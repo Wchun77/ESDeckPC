@@ -1,0 +1,82 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userprefs
+*.pdb
+*.log
+*.rptproj.user
+*.vcxproj.user
+*.vcxproj.filters
+*.sln.docstates
+*.vssscc
+*.buildscc
+*.deployproj
+
+# Build Results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+build/
+
+# Rider
+.idea/
+*.iml
+
+# NuGet
+packages/
+*.nupkg
+*.nuget.log
+
+# ReSharper
+*.DotSettings
+*.DotSettings.user
+
+# Project files
+*.csproj.user
+*.vcproj.user
+*.shfbproj.user
+*.vbp.user
+*.vsp
+*.sqlproj.user
+*.dbproj.user
+
+# Other
+Thumbs.db
+Desktop.ini
+.DS_Store # Mac specific
+*.bak
+*.orig
+*.~*
+*.tmp
+*.temp
+*_i.c
+*_p.c
+*.ncb
+*.aps
+*.pch
+*.ipch
+*.obj
+*.res
+*.pch
+*.lib
+*.exp
+*.ilk
+*.idb
+*.opt
+*.aps
+*.manifest
+*.map
+*.dep
+*.rgs
+*.tlb
+*.tlh
+*.tli
+*.stackdump
+
+# VS Code specific
+.vscode/
+
+# NBGV - Nerdbank.GitVersioning
+.nbgv_cache
