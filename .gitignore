@@ -80,3 +80,6 @@ Desktop.ini
 
 # NBGV - Nerdbank.GitVersioning
 .nbgv_cache
+
+# Claude Code local settings
+.claude/
