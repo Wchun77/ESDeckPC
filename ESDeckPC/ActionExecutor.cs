@@ -225,6 +225,7 @@ namespace ESDeckPC
                 case "discord":  return ExecDiscord(button.Target, button.ChannelId);
                 case "scroll":   return ExecScroll(button.Target, button.Amount);
                 case "sequence": return ExecSequence(button.Keys);
+                case "text":     return ExecText(button.Target);
                 default:         return $"unknown action: {button.Action}";
             }
         }
@@ -534,5 +535,20 @@ namespace ESDeckPC
 
             return result + tail;
         }
+        // ------------------------------------------------------------------
+        // text action handler
+        // Sends each character in target as a Unicode keystroke
+        // ------------------------------------------------------------------
+        private static string ExecText(string target)
+        {
+            if (target == null)
+                return "text failed: target is null";
+
+            foreach (char ch in target)
+                SendInputUnicode(ch);
+
+            return $"text: {target.Length} char(s)";
+        }
+
     }
 }

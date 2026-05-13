@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows.Forms;
 
 namespace ESDeckPC
@@ -32,6 +34,7 @@ namespace ESDeckPC
 
             lstPages.SelectedIndexChanged += lstPages_SelectedIndexChanged;
             lstPages.MouseUp += lstPages_MouseUp;
+            lstPages.KeyDown += lstPages_KeyDown;
             btnSave.Click += btnSave_Click;
             btnDiscard.Click += btnDiscard_Click;
             pnlGrid.AllowDrop = true;
@@ -150,8 +153,15 @@ namespace ESDeckPC
                 string crc = ConfigLoader.SavePair(_pcConfig, folder);
                 string newPcPath = Path.Combine(folder, $"pc_{crc}.json");
 
+                // Write startup.txt so ESP loads the new config on next boot
+                string startupTxt = Path.Combine(folder, "startup.txt");
+                File.WriteAllText(startupTxt, $"esp_{crc}.json", Encoding.ASCII);
+
                 MessageBox.Show($"Saved as pc_{crc}.json / esp_{crc}.json", "Config Editor",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                // Open the folder in Explorer
+                Process.Start("explorer.exe", folder);
 
                 this.DialogResult = DialogResult.OK;
                 this.Tag = newPcPath;
@@ -551,6 +561,24 @@ namespace ESDeckPC
             _pcConfig.Pages.RemoveAt(idx);
             UpdatePageList();
             lstPages.SelectedIndex = Math.Min(idx, lstPages.Items.Count - 1);
+        }
+
+        private void lstPages_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (!e.Control) return;
+            int idx = lstPages.SelectedIndex;
+            if (idx < 0) return;
+
+            if (e.KeyCode == Keys.Up && idx > 0)
+            {
+                MovePage(idx, idx - 1);
+                e.SuppressKeyPress = true;
+            }
+            else if (e.KeyCode == Keys.Down && idx < lstPages.Items.Count - 1)
+            {
+                MovePage(idx, idx + 1);
+                e.SuppressKeyPress = true;
+            }
         }
 
         private void MovePage(int oldIdx, int newIdx)

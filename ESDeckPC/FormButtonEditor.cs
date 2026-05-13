@@ -203,6 +203,19 @@ namespace ESDeckPC
                     pnlDynamic.Controls.Add(_dynLblSequenceKeys);
                     pnlDynamic.Controls.Add(_dynTxtSequenceKeys);
                     break;
+
+                case "text":
+                    _dynLabel = MakeLabel("Text");
+                    _dynLabel.Location = new Point(0, 0);
+
+                    _dynTxtTarget = MakeTextBox();
+                    _dynTxtTarget.Location = new Point(0, 16);
+                    _dynTxtTarget.Size     = new Size(352, 22);
+                    _dynTxtTarget.Text     = _button.Target ?? "";
+
+                    pnlDynamic.Controls.Add(_dynLabel);
+                    pnlDynamic.Controls.Add(_dynTxtTarget);
+                    break;
             }
         }
 
@@ -271,6 +284,13 @@ namespace ESDeckPC
                     if (trimmed.Length > 0)
                         _button.Keys.Add(trimmed);
                 }
+            }
+            else if (action == "text")
+            {
+                _button.Keys      = null;
+                _button.ChannelId = null;
+                _button.Amount    = null;
+                _button.Target    = _dynTxtTarget?.Text ?? "";
             }
 
             this.DialogResult = DialogResult.OK;

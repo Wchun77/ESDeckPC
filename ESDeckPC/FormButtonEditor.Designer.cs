@@ -76,7 +76,7 @@
             this.cmbAction.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
             this.cmbAction.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
             this.cmbAction.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.cmbAction.Items.AddRange(new object[] { "launch", "hotkey", "media", "discord", "scroll", "sequence" });
+            this.cmbAction.Items.AddRange(new object[] { "launch", "hotkey", "media", "discord", "scroll", "sequence", "text" });
 
             // pnlDynamic - filled at runtime based on action type
             this.pnlDynamic.Location = new System.Drawing.Point(16, 160);
