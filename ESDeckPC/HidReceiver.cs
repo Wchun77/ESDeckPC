@@ -18,6 +18,9 @@ public class HidReceiver
     // Fires when ESP sends monitor control: subscribe (0x01) or unsubscribe (0x02)
     public event Action<byte> OnMonitorControl;
 
+    // Fires when ESP replies to a mode query: true = monitor, false = deck
+    public event Action<bool> OnModeReport;
+
     public bool Open()
     {
         var list = DeviceList.Local;
@@ -92,8 +95,15 @@ public class HidReceiver
 
                 if (page == 0xFF)
                 {
-                    // Monitor control message from ESP
-                    OnMonitorControl?.Invoke(btn);
+                    const byte BTN_SUBSCRIBE = 0x01;
+                    const byte BTN_UNSUBSCRIBE = 0x02;
+                    const byte BTN_MODE_DECK = 0x03;
+                    const byte BTN_MODE_MONITOR = 0x04;
+
+                    if (btn == BTN_MODE_DECK || btn == BTN_MODE_MONITOR)
+                        OnModeReport?.Invoke(btn == BTN_MODE_MONITOR);
+                    else
+                        OnMonitorControl?.Invoke(btn);
                 }
                 else
                 {

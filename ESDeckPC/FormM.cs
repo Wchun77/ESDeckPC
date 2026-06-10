@@ -11,15 +11,15 @@ namespace ESDeckPC
 {
     public partial class FormM : Form
     {
-        private const int VendorId  = 0x303A;
+        private const int VendorId = 0x303A;
         private const int ProductId = 0x4004;
 
-        private HidReceiver    _receiver;
-        private MonitorSender  _monitor;
-        private bool           _hidConnected = false;
-        private PcConfig       _config       = null;
-        private string         _pcJsonPath   = null;
-        private bool           _forceClose   = false;
+        private HidReceiver _receiver;
+        private MonitorSender _monitor;
+        private bool _hidConnected = false;
+        private PcConfig _config = null;
+        private string _pcJsonPath = null;
+        private bool _forceClose = false;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
@@ -41,14 +41,15 @@ namespace ESDeckPC
             Icon = Resources.playstation;
 
             _receiver = new HidReceiver();
-            _receiver.OnButtonPressed  += OnButtonPressed;
+            _receiver.OnButtonPressed += OnButtonPressed;
             _receiver.OnMonitorControl += OnMonitorControl;
+            _receiver.OnModeReport += OnModeReport;
 
             _monitor = new MonitorSender(_receiver);
             _monitor.OnLog += msg => AppendLog(msg, Color.CornflowerBlue);
 
-            tsBtnOpen.Click       += tsBtnOpen_Click;
-            tsBtnClearLog.Click   += tsBtnClearLog_Click;
+            tsBtnOpen.Click += tsBtnOpen_Click;
+            tsBtnClearLog.Click += tsBtnClearLog_Click;
 
             notifyIcon.Icon = this.Icon ?? SystemIcons.Application;
 
@@ -69,7 +70,7 @@ namespace ESDeckPC
 
         private void timerHid_Tick(object sender, EventArgs e)
         {
-            var device   = DeviceList.Local.GetHidDeviceOrNull(VendorId, ProductId);
+            var device = DeviceList.Local.GetHidDeviceOrNull(VendorId, ProductId);
             bool detected = device != null;
 
             if (detected && !_hidConnected)
@@ -78,9 +79,12 @@ namespace ESDeckPC
                 {
                     _receiver.StartListening();
                     _hidConnected = true;
-                    ssLblHid.Text      = "HID: Connected";
+                    ssLblHid.Text = "HID: Connected";
                     ssLblHid.ForeColor = Color.Green;
                     AppendLog("HID connected", Color.LimeGreen);
+
+                    /* Query ESP for current mode — reply arrives via OnModeReport */
+                    _monitor.SendQuery();
                 }
             }
             else if (!detected && _hidConnected)
@@ -88,7 +92,7 @@ namespace ESDeckPC
                 _monitor.Unsubscribe();
                 _receiver.Stop();
                 _hidConnected = false;
-                ssLblHid.Text      = "HID: Disconnected";
+                ssLblHid.Text = "HID: Disconnected";
                 ssLblHid.ForeColor = Color.Red;
                 AppendLog("HID disconnected", Color.OrangeRed);
             }
@@ -104,7 +108,7 @@ namespace ESDeckPC
             this.BeginInvoke((Action)(() =>
             {
                 string result = ActionExecutor.Run(_config, page, btn);
-                string label  = GetButtonLabel(page, btn);
+                string label = GetButtonLabel(page, btn);
                 AppendLog($"[{label}] {result}",
                           result.Contains("failed") ? Color.OrangeRed : Color.LimeGreen);
             }));
@@ -116,7 +120,7 @@ namespace ESDeckPC
 
         private void OnMonitorControl(byte cmd)
         {
-            const byte SUBSCRIBE   = 0x01;
+            const byte SUBSCRIBE = 0x01;
             const byte UNSUBSCRIBE = 0x02;
 
             this.BeginInvoke((Action)(() =>
@@ -140,6 +144,22 @@ namespace ESDeckPC
             }));
         }
 
+        private void OnModeReport(bool inMonitor)
+        {
+            this.BeginInvoke((Action)(() =>
+            {
+                if (inMonitor)
+                {
+                    _monitor.Subscribe();
+                    AppendLog("Monitor: ESP already in monitor mode, subscribed", Color.CornflowerBlue);
+                }
+                else
+                {
+                    AppendLog("Monitor: ESP in deck mode", Color.Gray);
+                }
+            }));
+        }
+
         private string GetButtonLabel(byte page, byte btn)
         {
             if (_config == null) return $"p{page}b{btn}";
@@ -158,7 +178,7 @@ namespace ESDeckPC
         {
             using (var dlg = new OpenFileDialog())
             {
-                dlg.Title  = "Open PC JSON";
+                dlg.Title = "Open PC JSON";
                 dlg.Filter = "JSON files (*.json)|*.json";
 
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.LastPcJson))
@@ -177,12 +197,12 @@ namespace ESDeckPC
 
         private void tsBtnEdit_Click(object sender, EventArgs e)
         {
-            string pcPath  = null;
+            string pcPath = null;
             string espPath = null;
 
             using (var dlg = new OpenFileDialog())
             {
-                dlg.Title  = "Open PC JSON";
+                dlg.Title = "Open PC JSON";
                 dlg.Filter = "JSON files (*.json)|*.json";
 
                 if (!string.IsNullOrEmpty(Properties.Settings.Default.LastPcJson))
@@ -195,7 +215,7 @@ namespace ESDeckPC
 
             using (var dlg = new OpenFileDialog())
             {
-                dlg.Title  = "Open ESP JSON (optional, cancel to skip)";
+                dlg.Title = "Open ESP JSON (optional, cancel to skip)";
                 dlg.Filter = "JSON files (*.json)|*.json";
                 dlg.InitialDirectory = Path.GetDirectoryName(pcPath);
 
@@ -232,7 +252,7 @@ namespace ESDeckPC
             try
             {
                 var pcConfig = ConfigLoader.LoadPc(pcPath);
-                var editor   = new FormConfigEditor(pcConfig, pcPath, espPath);
+                var editor = new FormConfigEditor(pcConfig, pcPath, espPath);
                 if (editor.ShowDialog() == DialogResult.OK)
                 {
                     string newPath = editor.Tag as string;
@@ -258,7 +278,7 @@ namespace ESDeckPC
 
         private void tsMenuSettingsCfgFolder_Click(object sender, EventArgs e)
         {
-            string exeDir    = AppDomain.CurrentDomain.BaseDirectory;
+            string exeDir = AppDomain.CurrentDomain.BaseDirectory;
             string cfgFolder = Path.Combine(exeDir, "cfg");
 
             if (!Directory.Exists(cfgFolder))
@@ -295,12 +315,12 @@ namespace ESDeckPC
 
             if (connected)
             {
-                ssLblDiscord.Text      = "Discord: Connected";
+                ssLblDiscord.Text = "Discord: Connected";
                 ssLblDiscord.ForeColor = Color.Green;
             }
             else
             {
-                ssLblDiscord.Text      = "Discord: Disconnected";
+                ssLblDiscord.Text = "Discord: Disconnected";
                 ssLblDiscord.ForeColor = Color.Red;
             }
         }
@@ -319,7 +339,7 @@ namespace ESDeckPC
         }
 
         private void notifyIcon_DoubleClick(object sender, EventArgs e) => ShowMainWindow();
-        private void trayMenuOpen_Click(object sender, EventArgs e)      => ShowMainWindow();
+        private void trayMenuOpen_Click(object sender, EventArgs e) => ShowMainWindow();
 
         private void trayMenuExit_Click(object sender, EventArgs e)
         {
@@ -346,7 +366,7 @@ namespace ESDeckPC
         {
             try
             {
-                _config     = ConfigLoader.LoadPc(path);
+                _config = ConfigLoader.LoadPc(path);
                 _pcJsonPath = path;
                 Properties.Settings.Default.LastPcJson = path;
                 Properties.Settings.Default.Save();
@@ -355,7 +375,7 @@ namespace ESDeckPC
                 lstPages.Items.Clear();
                 foreach (var pg in _config.Pages)
                     lstPages.Items.Add($"{pg.Name} ({pg.Buttons.Count})");
-                ssLblJson.Text  = "JSON: Loaded";
+                ssLblJson.Text = "JSON: Loaded";
                 ssLblPages.Text = $"{_config.Pages.Count} pages";
                 AppendLog($"Loaded {Path.GetFileName(path)}", Color.LimeGreen);
             }
@@ -372,9 +392,9 @@ namespace ESDeckPC
         private void AppendLog(string text, Color color)
         {
             string line = $"[{DateTime.Now:HH:mm:ss}] {text}\n";
-            txtLog.SelectionStart  = txtLog.TextLength;
+            txtLog.SelectionStart = txtLog.TextLength;
             txtLog.SelectionLength = 0;
-            txtLog.SelectionColor  = color;
+            txtLog.SelectionColor = color;
             txtLog.AppendText(line);
             txtLog.ScrollToCaret();
         }

@@ -40,6 +40,16 @@ namespace ESDeckPC
         // Subscribe / Unsubscribe
         // ------------------------------------------------------------------
 
+        public void SendQuery()
+        {
+            const byte CMD_QUERY = 0x05;
+            var report = new byte[9];
+            report[0] = 0x00;
+            report[1] = CMD_QUERY;
+            _receiver.WriteReport(report);
+            Log("Monitor: sent mode query");
+        }
+
         public void Subscribe()
         {
             if (_subscribed) return;
@@ -179,7 +189,7 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
 
         private void SendData(byte cpuUsage, byte cpuTemp,
-                      byte ramUsage, byte gpuUsage)
+                              byte ramUsage, byte gpuUsage)
         {
             var report = new byte[9];   // Report ID + 8 bytes
             report[0] = 0x00;           // Report ID
