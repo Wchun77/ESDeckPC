@@ -133,6 +133,7 @@ namespace ESDeckPC
                     }
                 }
 
+                SendTimeSync();
                 SendData(cpuUsage, cpuTemp, ramUsage, gpuUsage);
             }
             catch (Exception ex)
@@ -224,8 +225,7 @@ namespace ESDeckPC
             report[8] = 0x00;
 
             bool ok = _receiver.WriteReport(report);
-            Log(ok ? $"Monitor: time sync sent {now:yyyy-MM-dd HH:mm:ss}"
-                   : "Monitor: time sync write failed");
+            if (!ok) Log("Monitor: time sync write failed");
         }
 
         private void Log(string msg) => OnLog?.Invoke(msg);
