@@ -67,6 +67,7 @@
     <Compile Include="DarkColorTable.cs" />
     <Compile Include="Deckconfig.cs" />
     <Compile Include="Discordrpcclient.cs" />
+    <Compile Include="FontBinLoader.cs" />
     <Compile Include="FormButtonEditor.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -85,7 +86,15 @@
     <Compile Include="FormM.Designer.cs">
       <DependentUpon>FormM.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormMonitorEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormMonitorEditor.Designer.cs">
+      <DependentUpon>FormMonitorEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="HidReceiver.cs" />
+    <Compile Include="MonitorClockRenderer.cs" />
+    <Compile Include="MonitorConfig.cs" />
     <Compile Include="MonitorSender.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -103,6 +112,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormM.resx">
       <DependentUpon>FormM.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormMonitorEditor.resx">
+      <DependentUpon>FormMonitorEditor.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

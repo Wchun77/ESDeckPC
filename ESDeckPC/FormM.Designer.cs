@@ -45,6 +45,7 @@
             this.trayMenuOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.trayMenuSep = new System.Windows.Forms.ToolStripSeparator();
             this.trayMenuExit = new System.Windows.Forms.ToolStripMenuItem();
+            this.TsBtnMonitor = new System.Windows.Forms.ToolStripDropDownButton();
             this.toolStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
@@ -66,6 +67,7 @@
             this.tsBtnEdit,
             this.tsMenuSettings,
             this.tsMenuDiscord,
+            this.TsBtnMonitor,
             this.tsSep1,
             this.tsBtnClearLog});
             this.toolStrip.Location = new System.Drawing.Point(0, 0);
@@ -96,21 +98,21 @@
             this.tsMenuSettings.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.tsMenuSettings.Name = "tsMenuSettings";
             this.tsMenuSettings.ShowDropDownArrow = false;
-            this.tsMenuSettings.Size = new System.Drawing.Size(55, 22);
+            this.tsMenuSettings.Size = new System.Drawing.Size(56, 22);
             this.tsMenuSettings.Text = "Settings";
             // 
             // tsMenuSettingsReload
             // 
-            this.tsMenuSettingsReload.Name = "tsMenuSettingsReload";
-            this.tsMenuSettingsReload.Size = new System.Drawing.Size(130, 22);
-            this.tsMenuSettingsReload.Text = "Reload";
             this.tsMenuSettingsReload.Enabled = false;
+            this.tsMenuSettingsReload.Name = "tsMenuSettingsReload";
+            this.tsMenuSettingsReload.Size = new System.Drawing.Size(131, 22);
+            this.tsMenuSettingsReload.Text = "Reload";
             this.tsMenuSettingsReload.Click += new System.EventHandler(this.tsMenuSettingsReload_Click);
             // 
             // tsMenuSettingsCfgFolder
             // 
             this.tsMenuSettingsCfgFolder.Name = "tsMenuSettingsCfgFolder";
-            this.tsMenuSettingsCfgFolder.Size = new System.Drawing.Size(130, 22);
+            this.tsMenuSettingsCfgFolder.Size = new System.Drawing.Size(131, 22);
             this.tsMenuSettingsCfgFolder.Text = "cfg Folder";
             this.tsMenuSettingsCfgFolder.Click += new System.EventHandler(this.tsMenuSettingsCfgFolder_Click);
             // 
@@ -121,13 +123,13 @@
             this.tsMenuDiscord.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.tsMenuDiscord.Name = "tsMenuDiscord";
             this.tsMenuDiscord.ShowDropDownArrow = false;
-            this.tsMenuDiscord.Size = new System.Drawing.Size(55, 22);
+            this.tsMenuDiscord.Size = new System.Drawing.Size(54, 22);
             this.tsMenuDiscord.Text = "Discord";
             // 
             // tsMenuDiscordReconnect
             // 
             this.tsMenuDiscordReconnect.Name = "tsMenuDiscordReconnect";
-            this.tsMenuDiscordReconnect.Size = new System.Drawing.Size(130, 22);
+            this.tsMenuDiscordReconnect.Size = new System.Drawing.Size(180, 22);
             this.tsMenuDiscordReconnect.Text = "Reconnect";
             this.tsMenuDiscordReconnect.Click += new System.EventHandler(this.tsMenuDiscordReconnect_Click);
             // 
@@ -180,14 +182,14 @@
             this.ssLblDiscord.BorderSides = System.Windows.Forms.ToolStripStatusLabelBorderSides.Right;
             this.ssLblDiscord.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.ssLblDiscord.Name = "ssLblDiscord";
-            this.ssLblDiscord.Size = new System.Drawing.Size(130, 19);
+            this.ssLblDiscord.Size = new System.Drawing.Size(137, 19);
             this.ssLblDiscord.Text = "Discord: Disconnected";
             // 
             // ssLblPages
             // 
             this.ssLblPages.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.ssLblPages.Name = "ssLblPages";
-            this.ssLblPages.Size = new System.Drawing.Size(485, 19);
+            this.ssLblPages.Size = new System.Drawing.Size(478, 19);
             this.ssLblPages.Spring = true;
             this.ssLblPages.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
@@ -345,6 +347,15 @@
             this.trayMenuExit.Text = "Exit";
             this.trayMenuExit.Click += new System.EventHandler(this.trayMenuExit_Click);
             // 
+            // TsBtnMonitor
+            // 
+            this.TsBtnMonitor.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.TsBtnMonitor.Name = "TsBtnMonitor";
+            this.TsBtnMonitor.ShowDropDownArrow = false;
+            this.TsBtnMonitor.Size = new System.Drawing.Size(57, 22);
+            this.TsBtnMonitor.Text = "Monitor";
+            this.TsBtnMonitor.Click += new System.EventHandler(this.TsBtnMonitor_Click);
+            // 
             // FormM
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -409,5 +420,6 @@
         private System.Windows.Forms.ToolStripMenuItem trayMenuOpen;
         private System.Windows.Forms.ToolStripSeparator trayMenuSep;
         private System.Windows.Forms.ToolStripMenuItem trayMenuExit;
+        private System.Windows.Forms.ToolStripDropDownButton TsBtnMonitor;
     }
 }
