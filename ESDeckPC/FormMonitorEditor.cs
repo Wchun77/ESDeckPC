@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using ESDeckPC.Properties;
 using Newtonsoft.Json;
 
 namespace ESDeckPC
@@ -50,6 +51,7 @@ namespace ESDeckPC
         public FormMonitorEditor()
         {
             InitializeComponent();
+            this.Icon = Resources.computer;
             StyleDarkButtons();
             this.splitMain.Panel2.Resize += (s, e) => CenterPreview();
             ApplyConfigToUi(_cfg);

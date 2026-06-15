@@ -63,6 +63,16 @@ namespace ESDeckPC.Properties {
         /// <summary>
         ///   查詢類似 (圖示) 的類型 System.Drawing.Icon 當地語系化資源。
         /// </summary>
+        internal static System.Drawing.Icon computer {
+            get {
+                object obj = ResourceManager.GetObject("computer", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   查詢類似 (圖示) 的類型 System.Drawing.Icon 當地語系化資源。
+        /// </summary>
         internal static System.Drawing.Icon playstation {
             get {
                 object obj = ResourceManager.GetObject("playstation", resourceCulture);
