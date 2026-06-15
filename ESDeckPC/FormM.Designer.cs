@@ -24,6 +24,9 @@
             this.tsMenuSettingsCfgFolder = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuDiscord = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuDiscordReconnect = new System.Windows.Forms.ToolStripMenuItem();
+            this.TsBtnMonitor = new System.Windows.Forms.ToolStripDropDownButton();
+            this.tsMenuMonitorEdit = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuFontBuilder = new System.Windows.Forms.ToolStripMenuItem();
             this.tsSep1 = new System.Windows.Forms.ToolStripSeparator();
             this.tsBtnClearLog = new System.Windows.Forms.ToolStripButton();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
@@ -45,7 +48,6 @@
             this.trayMenuOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.trayMenuSep = new System.Windows.Forms.ToolStripSeparator();
             this.trayMenuExit = new System.Windows.Forms.ToolStripMenuItem();
-            this.TsBtnMonitor = new System.Windows.Forms.ToolStripDropDownButton();
             this.toolStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
@@ -129,9 +131,34 @@
             // tsMenuDiscordReconnect
             // 
             this.tsMenuDiscordReconnect.Name = "tsMenuDiscordReconnect";
-            this.tsMenuDiscordReconnect.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuDiscordReconnect.Size = new System.Drawing.Size(134, 22);
             this.tsMenuDiscordReconnect.Text = "Reconnect";
             this.tsMenuDiscordReconnect.Click += new System.EventHandler(this.tsMenuDiscordReconnect_Click);
+            // 
+            // TsBtnMonitor
+            // 
+            this.TsBtnMonitor.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsMenuMonitorEdit,
+            this.tsMenuFontBuilder});
+            this.TsBtnMonitor.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.TsBtnMonitor.Name = "TsBtnMonitor";
+            this.TsBtnMonitor.ShowDropDownArrow = false;
+            this.TsBtnMonitor.Size = new System.Drawing.Size(57, 22);
+            this.TsBtnMonitor.Text = "Monitor";
+            // 
+            // tsMenuMonitorEdit
+            // 
+            this.tsMenuMonitorEdit.Name = "tsMenuMonitorEdit";
+            this.tsMenuMonitorEdit.Size = new System.Drawing.Size(186, 22);
+            this.tsMenuMonitorEdit.Text = "Edit Monitor Config";
+            this.tsMenuMonitorEdit.Click += new System.EventHandler(this.tsMenuMonitorEdit_Click);
+            // 
+            // tsMenuFontBuilder
+            // 
+            this.tsMenuFontBuilder.Name = "tsMenuFontBuilder";
+            this.tsMenuFontBuilder.Size = new System.Drawing.Size(186, 22);
+            this.tsMenuFontBuilder.Text = "Font Builder...";
+            this.tsMenuFontBuilder.Click += new System.EventHandler(this.tsMenuFontBuilder_Click);
             // 
             // tsSep1
             // 
@@ -347,15 +374,6 @@
             this.trayMenuExit.Text = "Exit";
             this.trayMenuExit.Click += new System.EventHandler(this.trayMenuExit_Click);
             // 
-            // TsBtnMonitor
-            // 
-            this.TsBtnMonitor.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.TsBtnMonitor.Name = "TsBtnMonitor";
-            this.TsBtnMonitor.ShowDropDownArrow = false;
-            this.TsBtnMonitor.Size = new System.Drawing.Size(57, 22);
-            this.TsBtnMonitor.Text = "Monitor";
-            this.TsBtnMonitor.Click += new System.EventHandler(this.TsBtnMonitor_Click);
-            // 
             // FormM
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -421,5 +439,7 @@
         private System.Windows.Forms.ToolStripSeparator trayMenuSep;
         private System.Windows.Forms.ToolStripMenuItem trayMenuExit;
         private System.Windows.Forms.ToolStripDropDownButton TsBtnMonitor;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuMonitorEdit;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuFontBuilder;
     }
 }

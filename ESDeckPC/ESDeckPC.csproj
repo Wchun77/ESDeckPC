@@ -83,6 +83,12 @@
     <Compile Include="FormConfigEditor.Designer.cs">
       <DependentUpon>FormConfigEditor.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormFontBuilder.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormFontBuilder.Designer.cs">
+      <DependentUpon>FormFontBuilder.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormM.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -112,6 +118,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormConfigEditor.resx">
       <DependentUpon>FormConfigEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormFontBuilder.resx">
+      <DependentUpon>FormFontBuilder.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormM.resx">
       <DependentUpon>FormM.cs</DependentUpon>

@@ -304,9 +304,14 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
         // Monitor
         // ------------------------------------------------------------------
-        private void TsBtnMonitor_Click(object sender, EventArgs e)
+        private void tsMenuMonitorEdit_Click(object sender, EventArgs e)
         {
             new FormMonitorEditor().Show();
+        }
+
+        private void tsMenuFontBuilder_Click(object sender, EventArgs e)
+        {
+            new FormFontBuilder().Show();
         }
 
         // ------------------------------------------------------------------
@@ -406,5 +411,6 @@ namespace ESDeckPC
             txtLog.AppendText(line);
             txtLog.ScrollToCaret();
         }
+
     }
 }
