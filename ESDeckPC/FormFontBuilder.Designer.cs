@@ -46,7 +46,7 @@
             this.nudTime.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.nudTime.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.nudTime.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.nudTime.Location = new System.Drawing.Point(100, 51);
+            this.nudTime.Location = new System.Drawing.Point(107, 53);
             this.nudTime.Maximum = new decimal(new int[] {
             500,
             0,
@@ -84,7 +84,7 @@
             this.nudSec.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.nudSec.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.nudSec.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.nudSec.Location = new System.Drawing.Point(100, 85);
+            this.nudSec.Location = new System.Drawing.Point(107, 87);
             this.nudSec.Maximum = new decimal(new int[] {
             500,
             0,
@@ -122,7 +122,7 @@
             this.nudDate.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.nudDate.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.nudDate.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.nudDate.Location = new System.Drawing.Point(100, 119);
+            this.nudDate.Location = new System.Drawing.Point(107, 121);
             this.nudDate.Maximum = new decimal(new int[] {
             500,
             0,
@@ -157,7 +157,7 @@
             this.txtTtf.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.txtTtf.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtTtf.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.txtTtf.Location = new System.Drawing.Point(76, 14);
+            this.txtTtf.Location = new System.Drawing.Point(81, 14);
             this.txtTtf.Name = "txtTtf";
             this.txtTtf.ReadOnly = true;
             this.txtTtf.Size = new System.Drawing.Size(244, 22);
@@ -169,7 +169,7 @@
             this.btnBrowse.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(84)))));
             this.btnBrowse.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnBrowse.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.btnBrowse.Location = new System.Drawing.Point(328, 12);
+            this.btnBrowse.Location = new System.Drawing.Point(332, 14);
             this.btnBrowse.Name = "btnBrowse";
             this.btnBrowse.Size = new System.Drawing.Size(72, 23);
             this.btnBrowse.TabIndex = 1;
@@ -183,7 +183,7 @@
             this.btnBuild.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(84)))));
             this.btnBuild.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnBuild.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.btnBuild.Location = new System.Drawing.Point(312, 117);
+            this.btnBuild.Location = new System.Drawing.Point(316, 117);
             this.btnBuild.Name = "btnBuild";
             this.btnBuild.Size = new System.Drawing.Size(88, 26);
             this.btnBuild.TabIndex = 8;
@@ -196,7 +196,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
-            this.ClientSize = new System.Drawing.Size(416, 159);
+            this.ClientSize = new System.Drawing.Size(416, 155);
             this.Controls.Add(this.lblTtf);
             this.Controls.Add(this.txtTtf);
             this.Controls.Add(this.btnBrowse);
