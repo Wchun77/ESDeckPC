@@ -17,10 +17,10 @@
         {
             this.splitMain = new System.Windows.Forms.SplitContainer();
             this.pnlLeft = new System.Windows.Forms.Panel();
-            this.grpBg = new System.Windows.Forms.GroupBox();
-            this.txtBgImage = new System.Windows.Forms.TextBox();
-            this.btnBgBrowse = new System.Windows.Forms.Button();
-            this.btnBgClear = new System.Windows.Forms.Button();
+            this.grpClockBg = new System.Windows.Forms.GroupBox();
+            this.txtClockBgImage = new System.Windows.Forms.TextBox();
+            this.btnClockBgBrowse = new System.Windows.Forms.Button();
+            this.btnClockBgClear = new System.Windows.Forms.Button();
             this.grpColors = new System.Windows.Forms.GroupBox();
             this.lblColTime = new System.Windows.Forms.Label();
             this.btnColTime = new System.Windows.Forms.Button();
@@ -57,18 +57,27 @@
             this.pnlRight = new System.Windows.Forms.Panel();
             this.picPreview = new System.Windows.Forms.PictureBox();
             this.lblStatus = new System.Windows.Forms.Label();
+            this.grpClock = new System.Windows.Forms.GroupBox();
+            this.grpSystem = new System.Windows.Forms.GroupBox();
+            this.grpSystemBg = new System.Windows.Forms.GroupBox();
+            this.txtSystemBgImage = new System.Windows.Forms.TextBox();
+            this.btnSystemBgBrowse = new System.Windows.Forms.Button();
+            this.btnSystemBgClear = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
             this.splitMain.Panel1.SuspendLayout();
             this.splitMain.Panel2.SuspendLayout();
             this.splitMain.SuspendLayout();
             this.pnlLeft.SuspendLayout();
-            this.grpBg.SuspendLayout();
+            this.grpClockBg.SuspendLayout();
             this.grpColors.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nudSepWidth)).BeginInit();
             this.grpFonts.SuspendLayout();
             this.grpJson.SuspendLayout();
             this.pnlRight.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picPreview)).BeginInit();
+            this.grpClock.SuspendLayout();
+            this.grpSystem.SuspendLayout();
+            this.grpSystemBg.SuspendLayout();
             this.SuspendLayout();
             // 
             // splitMain
@@ -85,65 +94,64 @@
             // splitMain.Panel2
             // 
             this.splitMain.Panel2.Controls.Add(this.pnlRight);
-            this.splitMain.Size = new System.Drawing.Size(1060, 560);
-            this.splitMain.SplitterDistance = 271;
+            this.splitMain.Size = new System.Drawing.Size(1056, 560);
+            this.splitMain.SplitterDistance = 303;
             this.splitMain.TabIndex = 0;
             // 
             // pnlLeft
             // 
             this.pnlLeft.AutoScroll = true;
             this.pnlLeft.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
-            this.pnlLeft.Controls.Add(this.grpBg);
-            this.pnlLeft.Controls.Add(this.grpColors);
-            this.pnlLeft.Controls.Add(this.grpFonts);
+            this.pnlLeft.Controls.Add(this.grpSystem);
             this.pnlLeft.Controls.Add(this.grpJson);
+            this.pnlLeft.Controls.Add(this.grpClock);
             this.pnlLeft.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlLeft.Location = new System.Drawing.Point(0, 0);
             this.pnlLeft.Name = "pnlLeft";
             this.pnlLeft.Padding = new System.Windows.Forms.Padding(10, 8, 6, 8);
-            this.pnlLeft.Size = new System.Drawing.Size(271, 560);
+            this.pnlLeft.Size = new System.Drawing.Size(303, 560);
             this.pnlLeft.TabIndex = 0;
             // 
-            // grpBg
+            // grpClockBg
             // 
-            this.grpBg.Controls.Add(this.txtBgImage);
-            this.grpBg.Controls.Add(this.btnBgBrowse);
-            this.grpBg.Controls.Add(this.btnBgClear);
-            this.grpBg.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(210)))), ((int)(((byte)(210)))));
-            this.grpBg.Location = new System.Drawing.Point(10, 541);
-            this.grpBg.Name = "grpBg";
-            this.grpBg.Size = new System.Drawing.Size(234, 78);
-            this.grpBg.TabIndex = 0;
-            this.grpBg.TabStop = false;
-            this.grpBg.Text = "Background image";
+            this.grpClockBg.Controls.Add(this.txtClockBgImage);
+            this.grpClockBg.Controls.Add(this.btnClockBgBrowse);
+            this.grpClockBg.Controls.Add(this.btnClockBgClear);
+            this.grpClockBg.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(210)))), ((int)(((byte)(210)))));
+            this.grpClockBg.Location = new System.Drawing.Point(15, 457);
+            this.grpClockBg.Name = "grpClockBg";
+            this.grpClockBg.Size = new System.Drawing.Size(234, 86);
+            this.grpClockBg.TabIndex = 0;
+            this.grpClockBg.TabStop = false;
+            this.grpClockBg.Text = "Background image";
             // 
-            // txtBgImage
+            // txtClockBgImage
             // 
-            this.txtBgImage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.txtBgImage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.txtBgImage.Location = new System.Drawing.Point(8, 20);
-            this.txtBgImage.Name = "txtBgImage";
-            this.txtBgImage.ReadOnly = true;
-            this.txtBgImage.Size = new System.Drawing.Size(218, 22);
-            this.txtBgImage.TabIndex = 0;
+            this.txtClockBgImage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.txtClockBgImage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.txtClockBgImage.Location = new System.Drawing.Point(8, 20);
+            this.txtClockBgImage.Name = "txtClockBgImage";
+            this.txtClockBgImage.ReadOnly = true;
+            this.txtClockBgImage.Size = new System.Drawing.Size(218, 22);
+            this.txtClockBgImage.TabIndex = 0;
             // 
-            // btnBgBrowse
+            // btnClockBgBrowse
             // 
-            this.btnBgBrowse.Location = new System.Drawing.Point(8, 46);
-            this.btnBgBrowse.Name = "btnBgBrowse";
-            this.btnBgBrowse.Size = new System.Drawing.Size(80, 24);
-            this.btnBgBrowse.TabIndex = 1;
-            this.btnBgBrowse.Text = "Browse...";
-            this.btnBgBrowse.Click += new System.EventHandler(this.BtnBgBrowse_Click);
+            this.btnClockBgBrowse.Location = new System.Drawing.Point(8, 46);
+            this.btnClockBgBrowse.Name = "btnClockBgBrowse";
+            this.btnClockBgBrowse.Size = new System.Drawing.Size(80, 24);
+            this.btnClockBgBrowse.TabIndex = 1;
+            this.btnClockBgBrowse.Text = "Browse...";
+            this.btnClockBgBrowse.Click += new System.EventHandler(this.BtnClockBgBrowse_Click);
             // 
-            // btnBgClear
+            // btnClockBgClear
             // 
-            this.btnBgClear.Location = new System.Drawing.Point(96, 46);
-            this.btnBgClear.Name = "btnBgClear";
-            this.btnBgClear.Size = new System.Drawing.Size(60, 24);
-            this.btnBgClear.TabIndex = 2;
-            this.btnBgClear.Text = "Clear";
-            this.btnBgClear.Click += new System.EventHandler(this.BtnBgClear_Click);
+            this.btnClockBgClear.Location = new System.Drawing.Point(96, 46);
+            this.btnClockBgClear.Name = "btnClockBgClear";
+            this.btnClockBgClear.Size = new System.Drawing.Size(60, 24);
+            this.btnClockBgClear.TabIndex = 2;
+            this.btnClockBgClear.Text = "Clear";
+            this.btnClockBgClear.Click += new System.EventHandler(this.BtnClockBgClear_Click);
             // 
             // grpColors
             // 
@@ -162,7 +170,7 @@
             this.grpColors.Controls.Add(this.lblSepWidthLbl);
             this.grpColors.Controls.Add(this.nudSepWidth);
             this.grpColors.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(210)))), ((int)(((byte)(210)))));
-            this.grpColors.Location = new System.Drawing.Point(10, 305);
+            this.grpColors.Location = new System.Drawing.Point(15, 221);
             this.grpColors.Name = "grpColors";
             this.grpColors.Size = new System.Drawing.Size(234, 228);
             this.grpColors.TabIndex = 1;
@@ -314,7 +322,7 @@
             this.grpFonts.Controls.Add(this.btnFontDate);
             this.grpFonts.Controls.Add(this.lblFontDateNote);
             this.grpFonts.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(210)))), ((int)(((byte)(210)))));
-            this.grpFonts.Location = new System.Drawing.Point(10, 106);
+            this.grpFonts.Location = new System.Drawing.Point(15, 22);
             this.grpFonts.Name = "grpFonts";
             this.grpFonts.Size = new System.Drawing.Size(234, 197);
             this.grpFonts.TabIndex = 2;
@@ -433,12 +441,12 @@
             this.grpJson.Controls.Add(this.btnJsonOpen);
             this.grpJson.Controls.Add(this.btnJsonSave);
             this.grpJson.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(210)))), ((int)(((byte)(210)))));
-            this.grpJson.Location = new System.Drawing.Point(10, 8);
+            this.grpJson.Location = new System.Drawing.Point(13, 12);
             this.grpJson.Name = "grpJson";
-            this.grpJson.Size = new System.Drawing.Size(234, 90);
+            this.grpJson.Size = new System.Drawing.Size(263, 83);
             this.grpJson.TabIndex = 3;
             this.grpJson.TabStop = false;
-            this.grpJson.Text = "Monitor JSON";
+            this.grpJson.Text = "JSON";
             // 
             // lblJsonPath
             // 
@@ -485,14 +493,14 @@
             this.pnlRight.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlRight.Location = new System.Drawing.Point(0, 0);
             this.pnlRight.Name = "pnlRight";
-            this.pnlRight.Size = new System.Drawing.Size(785, 560);
+            this.pnlRight.Size = new System.Drawing.Size(749, 560);
             this.pnlRight.TabIndex = 0;
             // 
             // picPreview
             // 
             this.picPreview.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
             this.picPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.picPreview.Location = new System.Drawing.Point(0, 3);
+            this.picPreview.Location = new System.Drawing.Point(13, 11);
             this.picPreview.Name = "picPreview";
             this.picPreview.Size = new System.Drawing.Size(720, 477);
             this.picPreview.TabIndex = 0;
@@ -506,22 +514,85 @@
             this.lblStatus.Location = new System.Drawing.Point(0, 540);
             this.lblStatus.Name = "lblStatus";
             this.lblStatus.Padding = new System.Windows.Forms.Padding(4, 0, 0, 0);
-            this.lblStatus.Size = new System.Drawing.Size(785, 20);
+            this.lblStatus.Size = new System.Drawing.Size(749, 20);
             this.lblStatus.TabIndex = 1;
             this.lblStatus.Text = "No font loaded";
             this.lblStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // grpClock
+            // 
+            this.grpClock.Controls.Add(this.grpClockBg);
+            this.grpClock.Controls.Add(this.grpColors);
+            this.grpClock.Controls.Add(this.grpFonts);
+            this.grpClock.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(210)))), ((int)(((byte)(210)))));
+            this.grpClock.Location = new System.Drawing.Point(14, 101);
+            this.grpClock.Name = "grpClock";
+            this.grpClock.Size = new System.Drawing.Size(263, 557);
+            this.grpClock.TabIndex = 4;
+            this.grpClock.TabStop = false;
+            this.grpClock.Text = "Clock";
+            // 
+            // grpSystem
+            // 
+            this.grpSystem.Controls.Add(this.grpSystemBg);
+            this.grpSystem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(210)))), ((int)(((byte)(210)))));
+            this.grpSystem.Location = new System.Drawing.Point(14, 664);
+            this.grpSystem.Name = "grpSystem";
+            this.grpSystem.Size = new System.Drawing.Size(263, 120);
+            this.grpSystem.TabIndex = 5;
+            this.grpSystem.TabStop = false;
+            this.grpSystem.Text = "System";
+            // 
+            // grpSystemBg
+            // 
+            this.grpSystemBg.Controls.Add(this.txtSystemBgImage);
+            this.grpSystemBg.Controls.Add(this.btnSystemBgBrowse);
+            this.grpSystemBg.Controls.Add(this.btnSystemBgClear);
+            this.grpSystemBg.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(210)))), ((int)(((byte)(210)))));
+            this.grpSystemBg.Location = new System.Drawing.Point(15, 22);
+            this.grpSystemBg.Name = "grpSystemBg";
+            this.grpSystemBg.Size = new System.Drawing.Size(234, 86);
+            this.grpSystemBg.TabIndex = 1;
+            this.grpSystemBg.TabStop = false;
+            this.grpSystemBg.Text = "Background image";
+            // 
+            // txtSystemBgImage
+            // 
+            this.txtSystemBgImage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.txtSystemBgImage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.txtSystemBgImage.Location = new System.Drawing.Point(8, 20);
+            this.txtSystemBgImage.Name = "txtSystemBgImage";
+            this.txtSystemBgImage.ReadOnly = true;
+            this.txtSystemBgImage.Size = new System.Drawing.Size(218, 22);
+            this.txtSystemBgImage.TabIndex = 0;
+            // 
+            // btnSystemBgBrowse
+            // 
+            this.btnSystemBgBrowse.Location = new System.Drawing.Point(8, 46);
+            this.btnSystemBgBrowse.Name = "btnSystemBgBrowse";
+            this.btnSystemBgBrowse.Size = new System.Drawing.Size(80, 24);
+            this.btnSystemBgBrowse.TabIndex = 1;
+            this.btnSystemBgBrowse.Text = "Browse...";
+            this.btnSystemBgBrowse.Click += new System.EventHandler(this.BtnSystemBgBrowse_Click);
+            // 
+            // btnSystemBgClear
+            // 
+            this.btnSystemBgClear.Location = new System.Drawing.Point(96, 46);
+            this.btnSystemBgClear.Name = "btnSystemBgClear";
+            this.btnSystemBgClear.Size = new System.Drawing.Size(60, 24);
+            this.btnSystemBgClear.TabIndex = 2;
+            this.btnSystemBgClear.Text = "Clear";
+            this.btnSystemBgClear.Click += new System.EventHandler(this.BtnSystemBgClear_Click);
             // 
             // FormMonitorEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
-            this.ClientSize = new System.Drawing.Size(1060, 560);
+            this.ClientSize = new System.Drawing.Size(1056, 560);
             this.Controls.Add(this.splitMain);
             this.Font = new System.Drawing.Font("Consolas", 9F);
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
             this.MinimumSize = new System.Drawing.Size(820, 580);
             this.Name = "FormMonitorEditor";
             this.Text = "Monitor Editor";
@@ -530,8 +601,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).EndInit();
             this.splitMain.ResumeLayout(false);
             this.pnlLeft.ResumeLayout(false);
-            this.grpBg.ResumeLayout(false);
-            this.grpBg.PerformLayout();
+            this.grpClockBg.ResumeLayout(false);
+            this.grpClockBg.PerformLayout();
             this.grpColors.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.nudSepWidth)).EndInit();
             this.grpFonts.ResumeLayout(false);
@@ -539,6 +610,10 @@
             this.grpJson.ResumeLayout(false);
             this.pnlRight.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.picPreview)).EndInit();
+            this.grpClock.ResumeLayout(false);
+            this.grpSystem.ResumeLayout(false);
+            this.grpSystemBg.ResumeLayout(false);
+            this.grpSystemBg.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -580,12 +655,18 @@
         private System.Windows.Forms.Button btnColSep;
         private System.Windows.Forms.Label lblSepWidthLbl;
         private System.Windows.Forms.NumericUpDown nudSepWidth;
-        private System.Windows.Forms.GroupBox grpBg;
-        private System.Windows.Forms.TextBox txtBgImage;
-        private System.Windows.Forms.Button btnBgBrowse;
-        private System.Windows.Forms.Button btnBgClear;
+        private System.Windows.Forms.GroupBox grpClockBg;
+        private System.Windows.Forms.TextBox txtClockBgImage;
+        private System.Windows.Forms.Button btnClockBgBrowse;
+        private System.Windows.Forms.Button btnClockBgClear;
         private System.Windows.Forms.Panel pnlRight;
         private System.Windows.Forms.PictureBox picPreview;
         private System.Windows.Forms.Label lblStatus;
+        private System.Windows.Forms.GroupBox grpSystem;
+        private System.Windows.Forms.GroupBox grpSystemBg;
+        private System.Windows.Forms.TextBox txtSystemBgImage;
+        private System.Windows.Forms.Button btnSystemBgBrowse;
+        private System.Windows.Forms.Button btnSystemBgClear;
+        private System.Windows.Forms.GroupBox grpClock;
     }
 }

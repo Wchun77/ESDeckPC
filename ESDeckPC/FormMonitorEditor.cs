@@ -179,7 +179,7 @@ namespace ESDeckPC
         // Background image
         // ------------------------------------------------------------------
 
-        private void BtnBgBrowse_Click(object sender, EventArgs e)
+        private void BtnClockBgBrowse_Click(object sender, EventArgs e)
         {
             using (var dlg = new OpenFileDialog())
             {
@@ -190,7 +190,7 @@ namespace ESDeckPC
                 {
                     _bgBitmap?.Dispose();
                     _bgBitmap = new Bitmap(dlg.FileName);
-                    txtBgImage.Text = Path.GetFileName(dlg.FileName);
+                    txtClockBgImage.Text = Path.GetFileName(dlg.FileName);
                     RefreshPreview();
                 }
                 catch (Exception ex)
@@ -201,12 +201,36 @@ namespace ESDeckPC
             }
         }
 
-        private void BtnBgClear_Click(object sender, EventArgs e)
+        private void BtnClockBgClear_Click(object sender, EventArgs e)
         {
             _bgBitmap?.Dispose();
             _bgBitmap = null;
-            txtBgImage.Text = "";
+            txtClockBgImage.Text = "";
             RefreshPreview();
+        }
+
+        private void BtnSystemBgBrowse_Click(object sender, EventArgs e)
+        {
+            using (var dlg = new OpenFileDialog())
+            {
+                dlg.Title = "Select background image";
+                dlg.Filter = "Image files (*.jpg;*.jpeg;)|*.jpg;*.jpeg;;";
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+                try
+                {
+                    txtSystemBgImage.Text = Path.GetFileName(dlg.FileName);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to load image:\n{ex.Message}",
+                                   "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void BtnSystemBgClear_Click(object sender, EventArgs e)
+        {
+            txtSystemBgImage.Text = "";
         }
 
         // ------------------------------------------------------------------
@@ -277,6 +301,14 @@ namespace ESDeckPC
         private void ApplyConfigToUi(MonitorConfig cfg)
         {
             var c = cfg.Clock;
+            txtClockBgImage.Text = c.BgImage ?? "";
+            txtFontTime.Text = c.FontTime ?? "";
+            txtFontDate.Text = c.FontDate ?? "";
+            txtFontSec.Text = c.FontSec ?? "";
+
+            var s = cfg.System;
+            txtSystemBgImage.Text = s.BgImage ?? "";
+
             SetColorButton(btnColTime, c.ColTime);
             SetColorButton(btnColColon, c.ColColon);
             SetColorButton(btnColDate, c.ColDate);
@@ -284,30 +316,7 @@ namespace ESDeckPC
             SetColorButton(btnColSec, c.ColSec);
             SetColorButton(btnColSep, c.SepColor);
             nudSepWidth.Value = Math.Max(nudSepWidth.Minimum,
-                                Math.Min(nudSepWidth.Maximum, c.SepWidth));
-            txtBgImage.Text = c.BgImage ?? "";
-            // Font .bin paths: populate txt boxes if files exist
-            TrySetFontTxt(txtFontTime, c.FontTime, ref _fontTime, lblFontTimeNote);
-            TrySetFontTxt(txtFontSec, c.FontSec, ref _fontSec, lblFontSecNote);
-            TrySetFontTxt(txtFontDate, c.FontDate, ref _fontDate, lblFontDateNote);
-        }
-
-        private void TrySetFontTxt(TextBox txt, string binFilename,
-                                   ref FontBinLoader cache, Label note)
-        {
-            if (string.IsNullOrEmpty(binFilename)) return;
-
-            // Try to resolve relative to the JSON file's directory
-            string dir = string.IsNullOrEmpty(_jsonPath) ? null : Path.GetDirectoryName(_jsonPath);
-            string fullPath = (dir != null) ? Path.Combine(dir, binFilename) : binFilename;
-
-            if (File.Exists(fullPath))
-            {
-                txt.Text = fullPath;
-                cache?.Dispose();
-                cache = FontBinLoader.Load(fullPath);
-                UpdateFontNote(note, cache);
-            }
+                                Math.Min(nudSepWidth.Maximum, c.SepWidth)); // 這個會觸發 ReadUiIntoConfig 所以要最後
         }
 
         private void ReadUiIntoConfig()
@@ -327,7 +336,10 @@ namespace ESDeckPC
             c.ColSec = ColorToHex(btnColSec.BackColor);
             c.SepColor = ColorToHex(btnColSep.BackColor);
             c.SepWidth = (int)nudSepWidth.Value;
-            c.BgImage = txtBgImage.Text;
+            c.BgImage = txtClockBgImage.Text;
+
+            var s = _cfg.System;
+            s.BgImage = txtSystemBgImage.Text;
         }
 
         // ------------------------------------------------------------------
@@ -343,7 +355,7 @@ namespace ESDeckPC
 
             foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave,
                                         btnFontTime, btnFontSec, btnFontDate,
-                                        btnBgBrowse, btnBgClear })
+                                        btnClockBgBrowse, btnClockBgClear })
             {
                 btn.BackColor = darkBg;
                 btn.ForeColor = lightFg;
