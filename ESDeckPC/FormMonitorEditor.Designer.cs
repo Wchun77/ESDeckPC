@@ -319,7 +319,7 @@
             this.grpFonts.Size = new System.Drawing.Size(234, 197);
             this.grpFonts.TabIndex = 2;
             this.grpFonts.TabStop = false;
-            this.grpFonts.Text = "Fonts (dump folder)";
+            this.grpFonts.Text = "Fonts (bin files)";
             // 
             // lblFontTime
             // 
