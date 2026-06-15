@@ -110,8 +110,22 @@ namespace ESDeckPC
                                           FontBinLoader font,
                                           Color col, int panelY)
         {
-            DrawTextCenter(g, "00:00", font, col,
-                           TIME_X, panelY, TIME_W, TIME_H);
+            // Mirror ESP layout: 4 equal digit cells + colon fixed at center
+            // [ h_tens | h_units |30| : |30| m_tens | m_units ]
+            // <-180px->|<--150px->|  |   |  |<-150px->|<-180px->
+            const int DIGIT_W = TIME_W / 4;  // 180px
+            const int COLON_GAP = 30;
+
+            // h_tens: centered in full cell
+            DrawSingleGlyph(g, '0', font, col, TIME_X, panelY, DIGIT_W, TIME_H, 0);
+            // h_units: right-aligned with COLON_GAP margin on right
+            DrawSingleGlyph(g, '0', font, col, TIME_X + DIGIT_W, panelY, DIGIT_W, TIME_H, -COLON_GAP);
+            // colon: centered on full panel
+            DrawSingleGlyph(g, ':', font, col, TIME_X, panelY, TIME_W, TIME_H, 0);
+            // m_tens: left-aligned with COLON_GAP margin on left
+            DrawSingleGlyph(g, '0', font, col, TIME_X + DIGIT_W * 2, panelY, DIGIT_W, TIME_H, +COLON_GAP);
+            // m_units: centered in full cell
+            DrawSingleGlyph(g, '0', font, col, TIME_X + DIGIT_W * 3, panelY, DIGIT_W, TIME_H, 0);
         }
 
         private static void DrawSecPanel(Graphics g,
@@ -121,6 +135,49 @@ namespace ESDeckPC
         {
             DrawTextCenter(g, "00", font, col,
                            panelX, panelY, SEC_W, SEC_H);
+        }
+
+        // ------------------------------------------------------------------
+        // Single glyph centered in a cell (mirrors LV_TEXT_ALIGN_CENTER in fixed-width label)
+        // penOffset: additional x offset from cell left (for cells with left padding)
+        // ------------------------------------------------------------------
+
+        // bias > 0: shift right (left-aligned with gap), bias < 0: shift left (right-aligned with gap)
+        private static void DrawSingleGlyph(Graphics g, char c,
+                                             FontBinLoader font, Color col,
+                                             int cellX, int cellY, int cellW, int cellH,
+                                             int bias = 0)
+        {
+            if (font == null) return;
+            var gi = font.GetGlyph(c);
+            if (gi == null) return;
+
+            int penX;
+            if (bias == 0)
+            {
+                // Centered
+                penX = cellX + (cellW - gi.AdvW) / 2;
+            }
+            else if (bias > 0)
+            {
+                // Left-aligned with gap: pen starts at cellX + bias
+                penX = cellX + bias;
+            }
+            else
+            {
+                // Right-aligned with gap: pen ends at cellX + cellW + bias
+                penX = cellX + cellW + bias - gi.AdvW;
+            }
+
+            int blockH = gi.OfsY + gi.BoxH;
+            int baselineY = cellY + (cellH - blockH) / 2 + blockH;
+
+            if (gi.Image != null)
+            {
+                int drawX = penX + gi.OfsX;
+                int drawY = baselineY - gi.OfsY - gi.BoxH;
+                DrawTinted(g, gi.Image, drawX, drawY, col);
+            }
         }
 
         // ------------------------------------------------------------------
