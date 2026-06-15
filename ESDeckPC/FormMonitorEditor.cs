@@ -26,12 +26,21 @@ namespace ESDeckPC
                                                         ref int attrValue, int attrSize);
         private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 
+        [System.Runtime.InteropServices.DllImport("uxtheme.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string pszSubAppName, string pszSubIdList);
+
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
             int v = 1;
             DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE,
                                   ref v, sizeof(int));
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            SetWindowTheme(pnlLeft.Handle, "DarkMode_Explorer", null);
         }
 
         // ------------------------------------------------------------------

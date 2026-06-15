@@ -492,9 +492,9 @@
             // 
             this.picPreview.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
             this.picPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.picPreview.Location = new System.Drawing.Point(0, 0);
+            this.picPreview.Location = new System.Drawing.Point(0, 3);
             this.picPreview.Name = "picPreview";
-            this.picPreview.Size = new System.Drawing.Size(720, 480);
+            this.picPreview.Size = new System.Drawing.Size(720, 477);
             this.picPreview.TabIndex = 0;
             this.picPreview.TabStop = false;
             // 
@@ -520,6 +520,8 @@
             this.Controls.Add(this.splitMain);
             this.Font = new System.Drawing.Font("Consolas", 9F);
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
             this.MinimumSize = new System.Drawing.Size(820, 580);
             this.Name = "FormMonitorEditor";
             this.Text = "Monitor Editor";
