@@ -7,19 +7,6 @@ namespace ESDeckPC
 {
     public partial class FormFontBuilder : Form
     {
-        [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
-        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
-                                                ref int attrValue, int attrSize);
-        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-
-        protected override void OnHandleCreated(EventArgs e)
-        {
-            base.OnHandleCreated(e);
-            int value = 1;
-            DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE,
-                                  ref value, sizeof(int));
-        }
-
         public FormFontBuilder()
         {
             InitializeComponent();
@@ -65,7 +52,8 @@ namespace ESDeckPC
             if (chkTime.Checked)
             {
                 int size = (int)nudTime.Value;
-                string bin = $"font_time_{size}.bin";
+                string prefix = Path.GetFileNameWithoutExtension(ttfPath);
+                string bin = $"{prefix}_time_{size}.bin";
                 string args = $"--font \"{font}\" --size {size} --bpp 4 --range 0x30-0x3A --format bin -o \"{bin}\"";
                 if (!RunLvFontConv(dir, args, out string err))
                 {
@@ -78,7 +66,8 @@ namespace ESDeckPC
             if (chkSec.Checked)
             {
                 int size = (int)nudSec.Value;
-                string bin = $"font_sec_{size}.bin";
+                string prefix = Path.GetFileNameWithoutExtension(ttfPath);
+                string bin = $"{prefix}_sec_{size}.bin";
                 string args = $"--font \"{font}\" --size {size} --bpp 4 --range 0x30-0x39 --format bin -o \"{bin}\"";
                 if (!RunLvFontConv(dir, args, out string err))
                 {
@@ -91,7 +80,8 @@ namespace ESDeckPC
             if (chkDate.Checked)
             {
                 int size = (int)nudDate.Value;
-                string bin = $"font_date_{size}.bin";
+                string prefix = Path.GetFileNameWithoutExtension(ttfPath);
+                string bin = $"{prefix}_date_{size}.bin";
                 string args = $"--font \"{font}\" --size {size} --bpp 4 -r 0x2F -r 0x30-0x39 -r 0x41-0x5A --format bin -o \"{bin}\"";
                 if (!RunLvFontConv(dir, args, out string err))
                 {
