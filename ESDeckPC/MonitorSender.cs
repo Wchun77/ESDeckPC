@@ -1,6 +1,4 @@
 using System;
-using System.Diagnostics;
-using System.Threading;
 using System.Windows.Forms;
 using LibreHardwareMonitor.Hardware;
 
@@ -8,20 +6,58 @@ namespace ESDeckPC
 {
     /// <summary>
     /// Collects system data via LibreHardwareMonitor and sends it to the
-    /// ESP32 via HID Output Report every second while subscribed.
+    /// ESP32 via HID Feature Report every second while subscribed.
     ///
-    /// Data format (7-byte OUT report):
-    ///   byte[0] = 0x03 (cmd: data)
-    ///   byte[1] = cpu_usage  (0-100)
-    ///   byte[2] = cpu_temp   (0-150 degrees C)
-    ///   byte[3] = ram_usage  (0-100)
-    ///   byte[4] = gpu_usage  (0-100)
-    ///   byte[5] = reserved
-    ///   byte[6] = reserved
+    /// OUT report layout (65 bytes total: Report ID + 64 payload):
+    ///
+    ///   CMD_DATA (0x03):
+    ///     [0]  Report ID  = 0x00
+    ///     [1]  CMD        = 0x03
+    ///     [2]  cpu_usage  0-100 %
+    ///     [3]  cpu_temp   0-150 degrees C
+    ///     [4]  ram_usage  0-100 %
+    ///     [5]  gpu_usage  0-100 %
+    ///     [6]  gpu_temp   0-150 degrees C
+    ///     [7..64] reserved
+    ///
+    ///   CMD_TIME (0x04):
+    ///     [0]  Report ID  = 0x00
+    ///     [1]  CMD        = 0x04
+    ///     [2]  year       (year - 2000)
+    ///     [3]  month      1-12
+    ///     [4]  day        1-31
+    ///     [5]  hour       0-23
+    ///     [6]  minute     0-59
+    ///     [7]  second     0-59
+    ///     [8..64] reserved
+    ///
+    ///   CMD_QUERY (0x05):
+    ///     [0]  Report ID  = 0x00
+    ///     [1]  CMD        = 0x05
+    ///     [2..64] unused
     /// </summary>
     public class MonitorSender : IDisposable
     {
+        // Report ID byte + 64-byte payload = 65 total.
+        // Must match HID_FEATURE_PAYLOAD_SIZE in usb_hid.h.
+        private const int REPORT_SIZE = 65;
+
         private const byte CMD_DATA = 0x03;
+        private const byte CMD_TIME = 0x04;
+        private const byte CMD_QUERY = 0x05;
+
+        // ------------------------------------------------------------------
+        // Snapshot of one sensor poll cycle
+        // ------------------------------------------------------------------
+
+        private struct MonitorData
+        {
+            public byte CpuUsage;
+            public byte CpuTemp;
+            public byte RamUsage;
+            public byte GpuUsage;
+            public byte GpuTemp;
+        }
 
         private readonly HidReceiver _receiver;
         private System.Windows.Forms.Timer _timer;
@@ -42,8 +78,7 @@ namespace ESDeckPC
 
         public void SendQuery()
         {
-            const byte CMD_QUERY = 0x05;
-            var report = new byte[9];
+            var report = new byte[REPORT_SIZE];
             report[0] = 0x00;
             report[1] = CMD_QUERY;
             _receiver.WriteReport(report);
@@ -56,9 +91,6 @@ namespace ESDeckPC
             _subscribed = true;
 
             InitHardwareMonitor();
-
-            // Send time sync first before starting the data timer
-            SendTimeSync();
 
             _timer = new System.Windows.Forms.Timer { Interval = 1000 };
             _timer.Tick += OnTick;
@@ -105,36 +137,12 @@ namespace ESDeckPC
         private void OnTick(object sender, EventArgs e)
         {
             if (!_subscribed) return;
-
             try
             {
                 _computer.Accept(new UpdateVisitor());
-
-                byte cpuUsage = 0, cpuTemp = 0, ramUsage = 0, gpuUsage = 0;
-
-                foreach (var hw in _computer.Hardware)
-                {
-                    switch (hw.HardwareType)
-                    {
-                        case HardwareType.Cpu:
-                            cpuUsage = ReadSensor(hw, SensorType.Load, "CPU Total", cpuUsage);
-                            cpuTemp = ReadSensorMax(hw, SensorType.Temperature, cpuTemp);
-                            break;
-
-                        case HardwareType.Memory:
-                            ramUsage = ReadSensor(hw, SensorType.Load, "Memory", ramUsage);
-                            break;
-
-                        case HardwareType.GpuNvidia:
-                        case HardwareType.GpuAmd:
-                        case HardwareType.GpuIntel:
-                            gpuUsage = ReadSensor(hw, SensorType.Load, "GPU Core", gpuUsage);
-                            break;
-                    }
-                }
-
+                MonitorData data = CollectSensors();
                 SendTimeSync();
-                SendData(cpuUsage, cpuTemp, ramUsage, gpuUsage);
+                SendData(data);
             }
             catch (Exception ex)
             {
@@ -143,7 +151,40 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // Sensor helper — find sensor by name fragment and type
+        // Sensor collection
+        // ------------------------------------------------------------------
+
+        private MonitorData CollectSensors()
+        {
+            var data = new MonitorData();
+
+            foreach (var hw in _computer.Hardware)
+            {
+                switch (hw.HardwareType)
+                {
+                    case HardwareType.Cpu:
+                        data.CpuUsage = ReadSensor(hw, SensorType.Load, "CPU Total", data.CpuUsage);
+                        data.CpuTemp = ReadSensorMax(hw, SensorType.Temperature, data.CpuTemp);
+                        break;
+
+                    case HardwareType.Memory:
+                        data.RamUsage = ReadSensor(hw, SensorType.Load, "Memory", data.RamUsage);
+                        break;
+
+                    case HardwareType.GpuNvidia:
+                    case HardwareType.GpuAmd:
+                    case HardwareType.GpuIntel:
+                        data.GpuUsage = ReadSensor(hw, SensorType.Load, "GPU Core", data.GpuUsage);
+                        data.GpuTemp = ReadSensorMax(hw, SensorType.Temperature, data.GpuTemp);
+                        break;
+                }
+            }
+
+            return data;
+        }
+
+        // ------------------------------------------------------------------
+        // Sensor helpers
         // ------------------------------------------------------------------
 
         private static byte ReadSensor(IHardware hw, SensorType type,
@@ -168,17 +209,17 @@ namespace ESDeckPC
         {
             float max = float.MinValue;
             bool found = false;
+
             foreach (var sensor in hw.Sensors)
             {
-                if (sensor.SensorType == type && sensor.Value.HasValue)
+                if (sensor.SensorType == type && sensor.Value.HasValue &&
+                    sensor.Value.Value > max)
                 {
-                    if (sensor.Value.Value > max)
-                    {
-                        max = sensor.Value.Value;
-                        found = true;
-                    }
+                    max = sensor.Value.Value;
+                    found = true;
                 }
             }
+
             if (!found) return fallback;
             if (max < 0) max = 0;
             if (max > 255) max = 255;
@@ -186,22 +227,20 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // Send OUT report via HidReceiver
+        // Send helpers
         // ------------------------------------------------------------------
 
-        private void SendData(byte cpuUsage, byte cpuTemp,
-                              byte ramUsage, byte gpuUsage)
+        private void SendData(MonitorData data)
         {
-            var report = new byte[9];   // Report ID + 8 bytes
+            var report = new byte[REPORT_SIZE];
             report[0] = 0x00;           // Report ID
             report[1] = CMD_DATA;
-            report[2] = cpuUsage;
-            report[3] = cpuTemp;
-            report[4] = ramUsage;
-            report[5] = gpuUsage;
-            report[6] = 0x00;
-            report[7] = 0x00;
-            report[8] = 0x00;
+            report[2] = data.CpuUsage;
+            report[3] = data.CpuTemp;
+            report[4] = data.RamUsage;
+            report[5] = data.GpuUsage;
+            report[6] = data.GpuTemp;
+            // [7..64] reserved, zero-filled by default
 
             bool ok = _receiver.WriteReport(report);
             if (!ok)
@@ -210,10 +249,9 @@ namespace ESDeckPC
 
         private void SendTimeSync()
         {
-            const byte CMD_TIME = 0x04;
             var now = DateTime.Now;
 
-            var report = new byte[9];   // Report ID + 8 bytes
+            var report = new byte[REPORT_SIZE];
             report[0] = 0x00;           // Report ID
             report[1] = CMD_TIME;
             report[2] = (byte)(now.Year - 2000);
@@ -222,7 +260,7 @@ namespace ESDeckPC
             report[5] = (byte)now.Hour;
             report[6] = (byte)now.Minute;
             report[7] = (byte)now.Second;
-            report[8] = 0x00;
+            // [8..64] reserved, zero-filled by default
 
             bool ok = _receiver.WriteReport(report);
             if (!ok) Log("Monitor: time sync write failed");
@@ -248,18 +286,13 @@ namespace ESDeckPC
 
     internal class UpdateVisitor : IVisitor
     {
-        public void VisitComputer(IComputer computer)
-        {
-            computer.Traverse(this);
-        }
-
+        public void VisitComputer(IComputer computer) => computer.Traverse(this);
         public void VisitHardware(IHardware hardware)
         {
             hardware.Update();
             foreach (var sub in hardware.SubHardware)
                 sub.Accept(this);
         }
-
         public void VisitSensor(ISensor sensor) { }
         public void VisitParameter(IParameter parameter) { }
     }
