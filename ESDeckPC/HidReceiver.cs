@@ -58,6 +58,8 @@ public class HidReceiver
     // ------------------------------------------------------------------
     // Send a Feature report to the device via SetReport (Control transfer).
     // report[0] must be the HID Report ID (0x00 when no Report IDs used).
+    // The buffer is automatically padded or trimmed to match the device's
+    // declared max feature report length so the HID driver accepts it.
     // Returns true on success.
     // ------------------------------------------------------------------
 
@@ -66,7 +68,15 @@ public class HidReceiver
         if (_stream == null) return false;
         try
         {
-            _stream.SetFeature(report);
+            int required = _device.GetMaxFeatureReportLength();
+            byte[] buf = report;
+            if (report.Length != required)
+            {
+                buf = new byte[required];
+                Buffer.BlockCopy(report, 0, buf, 0,
+                                 Math.Min(report.Length, required));
+            }
+            _stream.SetFeature(buf);
             return true;
         }
         catch (Exception ex)

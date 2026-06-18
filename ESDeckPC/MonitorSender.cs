@@ -1,5 +1,6 @@
 using System;
-using System.Windows.Forms;
+using System.Net.NetworkInformation;
+using System.Threading;
 using LibreHardwareMonitor.Hardware;
 
 namespace ESDeckPC
@@ -7,6 +8,10 @@ namespace ESDeckPC
     /// <summary>
     /// Collects system data via LibreHardwareMonitor and sends it to the
     /// ESP32 via HID Feature Report every second while subscribed.
+    ///
+    /// Runs entirely on a background thread -- no UI thread involvement.
+    /// HidSharp WriteReport is thread-safe so HID sends happen directly
+    /// from the background thread without marshalling back to the UI.
     ///
     /// OUT report layout (65 bytes total: Report ID + 64 payload):
     ///
@@ -18,7 +23,12 @@ namespace ESDeckPC
     ///     [4]  ram_usage  0-100 %
     ///     [5]  gpu_usage  0-100 %
     ///     [6]  gpu_temp   0-150 degrees C
-    ///     [7..64] reserved
+    ///     [7]  gpu_vram   0-100 %
+    ///     [8]  cpu_freq   0-255 (MHz / 100, max 25500 MHz)
+    ///     [9]  net_up     0-255 MB/s
+    ///     [10] net_down   0-255 MB/s
+    ///     [11] disk_usage 0-100 %
+    ///     [12..64] reserved
     ///
     ///   CMD_TIME (0x04):
     ///     [0]  Report ID  = 0x00
@@ -46,6 +56,7 @@ namespace ESDeckPC
         private const byte CMD_TIME = 0x04;
         private const byte CMD_QUERY = 0x05;
 
+        // cpu_freq encoding: value = MHz / 100, capped at 255 (= 25.5 GHz)
         // ------------------------------------------------------------------
         // Snapshot of one sensor poll cycle
         // ------------------------------------------------------------------
@@ -57,13 +68,22 @@ namespace ESDeckPC
             public byte RamUsage;
             public byte GpuUsage;
             public byte GpuTemp;
+            public byte GpuVram;
+            public byte CpuFreq;    // % of rated max (>100 = overclocked, capped at 200)
+            public byte NetUp;      // MB/s
+            public byte NetDown;    // MB/s
+            public byte DiskUsage;
         }
 
         private readonly HidReceiver _receiver;
-        private System.Windows.Forms.Timer _timer;
+        private Thread _thread;
         private Computer _computer;
-        private bool _subscribed = false;
-        private bool _disposed = false;
+        private volatile bool _subscribed = false;
+        private volatile bool _disposed = false;
+
+        // Network: previous byte counts for delta calculation
+        private long _prevNetSent = -1;
+        private long _prevNetReceived = -1;
 
         public event Action<string> OnLog;
 
@@ -90,11 +110,12 @@ namespace ESDeckPC
             if (_subscribed) return;
             _subscribed = true;
 
-            InitHardwareMonitor();
-
-            _timer = new System.Windows.Forms.Timer { Interval = 1000 };
-            _timer.Tick += OnTick;
-            _timer.Start();
+            _thread = new Thread(WorkerLoop)
+            {
+                IsBackground = true,
+                Name = "MonitorSender",
+            };
+            _thread.Start();
 
             Log("Monitor: started sending");
         }
@@ -104,14 +125,53 @@ namespace ESDeckPC
             if (!_subscribed) return;
             _subscribed = false;
 
-            _timer?.Stop();
-            _timer?.Dispose();
-            _timer = null;
+            // Thread will exit on its own when _subscribed goes false.
+            // Join with a timeout so we don't block the UI indefinitely.
+            _thread?.Join(2000);
+            _thread = null;
 
             _computer?.Close();
             _computer = null;
 
+            _prevNetSent = -1;
+            _prevNetReceived = -1;
+
             Log("Monitor: stopped sending");
+        }
+
+        // ------------------------------------------------------------------
+        // Background worker -- runs entirely off the UI thread
+        // ------------------------------------------------------------------
+
+        private void WorkerLoop()
+        {
+            InitHardwareMonitor();
+
+            while (_subscribed)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+
+                try
+                {
+                    _computer.Accept(new UpdateVisitor());
+                    MonitorData data = CollectSensors();
+                    SendTimeSync();
+                    SendData(data);
+                }
+                catch (Exception ex)
+                {
+                    Log($"Monitor collect error: {ex.Message}");
+                }
+
+                // Sleep for the remainder of the 1-second interval
+                int elapsed = (int)sw.ElapsedMilliseconds;
+                int remaining = 1000 - elapsed;
+                if (remaining > 0)
+                    Thread.Sleep(remaining);
+            }
+
+            _computer?.Close();
+            _computer = null;
         }
 
         // ------------------------------------------------------------------
@@ -125,29 +185,10 @@ namespace ESDeckPC
                 IsCpuEnabled = true,
                 IsGpuEnabled = true,
                 IsMemoryEnabled = true,
+                IsStorageEnabled = true,
             };
             _computer.Open();
             _computer.Accept(new UpdateVisitor());
-        }
-
-        // ------------------------------------------------------------------
-        // Timer tick — collect and send
-        // ------------------------------------------------------------------
-
-        private void OnTick(object sender, EventArgs e)
-        {
-            if (!_subscribed) return;
-            try
-            {
-                _computer.Accept(new UpdateVisitor());
-                MonitorData data = CollectSensors();
-                SendTimeSync();
-                SendData(data);
-            }
-            catch (Exception ex)
-            {
-                Log($"Monitor collect error: {ex.Message}");
-            }
         }
 
         // ------------------------------------------------------------------
@@ -165,7 +206,7 @@ namespace ESDeckPC
                     case HardwareType.Cpu:
                         data.CpuUsage = ReadSensor(hw, SensorType.Load, "CPU Total", data.CpuUsage);
                         data.CpuTemp = ReadSensorMax(hw, SensorType.Temperature, data.CpuTemp);
-                        break;
+                        data.CpuFreq = ReadCpuFreq(hw, data.CpuFreq); break;
 
                     case HardwareType.Memory:
                         data.RamUsage = ReadSensor(hw, SensorType.Load, "Memory", data.RamUsage);
@@ -176,11 +217,91 @@ namespace ESDeckPC
                     case HardwareType.GpuIntel:
                         data.GpuUsage = ReadSensor(hw, SensorType.Load, "GPU Core", data.GpuUsage);
                         data.GpuTemp = ReadSensorMax(hw, SensorType.Temperature, data.GpuTemp);
+                        data.GpuVram = ReadSensor(hw, SensorType.Load, "GPU Memory", data.GpuVram);
+                        break;
+
+                    case HardwareType.Storage:
+                        data.DiskUsage = ReadSensor(hw, SensorType.Load, "Total Activity", data.DiskUsage);
                         break;
                 }
             }
 
+            CollectNetwork(ref data);
             return data;
+        }
+
+        // ------------------------------------------------------------------
+        // CPU frequency -- average across all cores encoded as MHz / 100.
+        // Intel: "CPU Core #N", AMD: "Core #N" Clock sensors.
+        // Excludes "Bus Speed" (~100 MHz, also Clock type).
+        // Max value 255 = 25500 MHz, sufficient for any current CPU.
+        // ------------------------------------------------------------------
+
+        private static byte ReadCpuFreq(IHardware hw, byte fallback)
+        {
+            float total = 0;
+            int count = 0;
+
+            foreach (var sensor in hw.Sensors)
+            {
+                if (sensor.SensorType != SensorType.Clock) continue;
+                if (!sensor.Value.HasValue) continue;
+
+                string name = sensor.Name;
+                bool isIntelCore = name.IndexOf("CPU Core #", StringComparison.OrdinalIgnoreCase) >= 0;
+                bool isAmdCore = name.StartsWith("Core #", StringComparison.OrdinalIgnoreCase);
+                if (!isIntelCore && !isAmdCore) continue;
+
+                total += sensor.Value.Value;
+                count++;
+            }
+
+            if (count == 0) return fallback;
+
+            float mhz = total / count / 100.0f;   /* encode as MHz / 100 */
+            if (mhz < 0) mhz = 0;
+            if (mhz > 255) mhz = 255;
+            return (byte)mhz;
+        }
+
+        // ------------------------------------------------------------------
+        // Network -- delta bytes since last poll, converted to MB/s
+        // ------------------------------------------------------------------
+
+        private void CollectNetwork(ref MonitorData data)
+        {
+            try
+            {
+                long sent = 0;
+                long received = 0;
+                foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (nic.OperationalStatus != OperationalStatus.Up) continue;
+                    if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+                    var stats = nic.GetIPv4Statistics();
+                    sent += stats.BytesSent;
+                    received += stats.BytesReceived;
+                }
+
+                if (_prevNetSent >= 0)
+                {
+                    float upMB = (sent - _prevNetSent) / 1048576.0f;
+                    float downMB = (received - _prevNetReceived) / 1048576.0f;
+                    if (upMB < 0) upMB = 0;
+                    if (downMB < 0) downMB = 0;
+                    if (upMB > 255) upMB = 255;
+                    if (downMB > 255) downMB = 255;
+                    data.NetUp = (byte)upMB;
+                    data.NetDown = (byte)downMB;
+                }
+
+                _prevNetSent = sent;
+                _prevNetReceived = received;
+            }
+            catch
+            {
+                // Network stats unavailable -- leave as zero
+            }
         }
 
         // ------------------------------------------------------------------
@@ -240,7 +361,12 @@ namespace ESDeckPC
             report[4] = data.RamUsage;
             report[5] = data.GpuUsage;
             report[6] = data.GpuTemp;
-            // [7..64] reserved, zero-filled by default
+            report[7] = data.GpuVram;
+            report[8] = data.CpuFreq;
+            report[9] = data.NetUp;
+            report[10] = data.NetDown;
+            report[11] = data.DiskUsage;
+            // [12..64] reserved, zero-filled by default
 
             bool ok = _receiver.WriteReport(report);
             if (!ok)
