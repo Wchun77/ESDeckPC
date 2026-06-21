@@ -9,26 +9,29 @@ namespace ESDeckPC
     /// Collects system data via LibreHardwareMonitor and sends it to the
     /// ESP32 via HID Feature Report every second while subscribed.
     ///
-    /// Runs entirely on a background thread -- no UI thread involvement.
-    /// HidSharp WriteReport is thread-safe so HID sends happen directly
-    /// from the background thread without marshalling back to the UI.
+    /// Two background threads:
+    ///   Thread A (fast, every 1s)  -- CPU / GPU / RAM / Network + HID send
+    ///   Thread B (slow, every 10s) -- Storage (SMART, slow I/O)
     ///
     /// OUT report layout (65 bytes total: Report ID + 64 payload):
     ///
     ///   CMD_DATA (0x03):
-    ///     [0]  Report ID  = 0x00
-    ///     [1]  CMD        = 0x03
-    ///     [2]  cpu_usage  0-100 %
-    ///     [3]  cpu_temp   0-150 degrees C
-    ///     [4]  ram_usage  0-100 %
-    ///     [5]  gpu_usage  0-100 %
-    ///     [6]  gpu_temp   0-150 degrees C
-    ///     [7]  gpu_vram   0-100 %
-    ///     [8]  cpu_freq   0-255 (MHz / 100, max 25500 MHz)
-    ///     [9]  net_up     0-255 MB/s
-    ///     [10] net_down   0-255 MB/s
-    ///     [11] disk_usage 0-100 %
-    ///     [12..64] reserved
+    ///     [0]  Report ID   = 0x00
+    ///     [1]  CMD         = 0x03
+    ///     [2]  cpu_usage   0-100 %
+    ///     [3]  cpu_temp    0-150 degrees C
+    ///     [4]  ram_usage   0-100 %
+    ///     [5]  gpu_usage   0-100 %
+    ///     [6]  gpu_temp    0-150 degrees C
+    ///     [7]  gpu_vram    0-100 %
+    ///     [8]  cpu_freq    0-255 (MHz / 100)
+    ///     [9]  net_up      0-255 MB/s
+    ///     [10] net_down    0-255 MB/s
+    ///     [11] disk_usage  0-100 % (Total Activity, updated every 10s)
+    ///     [12] cpu_power   0-255 W
+    ///     [13] gpu_power   0-100 % of TDP (Load sensor)
+    ///     [14] ssd_life    0-100 % remaining (updated every 10s)
+    ///     [15..64] reserved
     ///
     ///   CMD_TIME (0x04):
     ///     [0]  Report ID  = 0x00
@@ -48,17 +51,14 @@ namespace ESDeckPC
     /// </summary>
     public class MonitorSender : IDisposable
     {
-        // Report ID byte + 64-byte payload = 65 total.
-        // Must match HID_FEATURE_PAYLOAD_SIZE in usb_hid.h.
         private const int REPORT_SIZE = 65;
-
         private const byte CMD_DATA = 0x03;
         private const byte CMD_TIME = 0x04;
         private const byte CMD_QUERY = 0x05;
+        private const int STORAGE_PERIOD = 10;   // Storage poll every N fast-thread ticks
 
-        // cpu_freq encoding: value = MHz / 100, capped at 255 (= 25.5 GHz)
         // ------------------------------------------------------------------
-        // Snapshot of one sensor poll cycle
+        // Snapshot of one fast sensor poll cycle
         // ------------------------------------------------------------------
 
         private struct MonitorData
@@ -69,19 +69,30 @@ namespace ESDeckPC
             public byte GpuUsage;
             public byte GpuTemp;
             public byte GpuVram;
-            public byte CpuFreq;    // % of rated max (>100 = overclocked, capped at 200)
-            public byte NetUp;      // MB/s
-            public byte NetDown;    // MB/s
-            public byte DiskUsage;
+            public byte CpuFreq;     // MHz / 100
+            public byte NetUp;       // MB/s
+            public byte NetDown;     // MB/s
+            public byte CpuPower;    // W (capped at 255)
+            public byte GpuPower;    // W / 2 (capped at 255, max 510 W)
         }
 
         private readonly HidReceiver _receiver;
-        private Thread _thread;
-        private Computer _computer;
+
+        // Fast thread
+        private Thread _fastThread;
+        private Computer _fastComputer;
         private volatile bool _subscribed = false;
         private volatile bool _disposed = false;
 
-        // Network: previous byte counts for delta calculation
+        // Slow thread (Storage)
+        private Thread _slowThread;
+        private Computer _slowComputer;
+
+        // Shared storage values -- written by slow thread, read by fast thread
+        private volatile int _diskUsage = 0;   // 0-100 %
+        private volatile int _ssdLife = 0;   // 0-100 % remaining
+
+        // Network delta
         private long _prevNetSent = -1;
         private long _prevNetReceived = -1;
 
@@ -110,12 +121,20 @@ namespace ESDeckPC
             if (_subscribed) return;
             _subscribed = true;
 
-            _thread = new Thread(WorkerLoop)
+            _slowThread = new Thread(SlowWorkerLoop)
             {
                 IsBackground = true,
-                Name = "MonitorSender",
+                Name = "MonitorSender_Storage",
+                Priority = ThreadPriority.BelowNormal,
             };
-            _thread.Start();
+            _slowThread.Start();
+
+            _fastThread = new Thread(FastWorkerLoop)
+            {
+                IsBackground = true,
+                Name = "MonitorSender_Fast",
+            };
+            _fastThread.Start();
 
             Log("Monitor: started sending");
         }
@@ -125,13 +144,17 @@ namespace ESDeckPC
             if (!_subscribed) return;
             _subscribed = false;
 
-            // Thread will exit on its own when _subscribed goes false.
-            // Join with a timeout so we don't block the UI indefinitely.
-            _thread?.Join(2000);
-            _thread = null;
+            _fastThread?.Join(2000);
+            _fastThread = null;
 
-            _computer?.Close();
-            _computer = null;
+            _slowThread?.Join(2000);
+            _slowThread = null;
+
+            _fastComputer?.Close();
+            _fastComputer = null;
+
+            _slowComputer?.Close();
+            _slowComputer = null;
 
             _prevNetSent = -1;
             _prevNetReceived = -1;
@@ -140,73 +163,94 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // Background worker -- runs entirely off the UI thread
+        // Fast worker -- CPU / GPU / RAM / Network, every 1 second
         // ------------------------------------------------------------------
 
-        private void WorkerLoop()
+        private void FastWorkerLoop()
         {
-            InitHardwareMonitor();
+            _fastComputer = new Computer
+            {
+                IsCpuEnabled = true,
+                IsGpuEnabled = true,
+                IsMemoryEnabled = true,
+            };
+            _fastComputer.Open();
+            _fastComputer.Accept(new UpdateVisitor());
 
             while (_subscribed)
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
-
                 try
                 {
-                    _computer.Accept(new UpdateVisitor());
-                    MonitorData data = CollectSensors();
+                    _fastComputer.Accept(new UpdateVisitor());
+                    MonitorData data = CollectFastSensors();
                     SendTimeSync();
                     SendData(data);
                 }
                 catch (Exception ex)
                 {
-                    Log($"Monitor collect error: {ex.Message}");
+                    Log($"Monitor fast error: {ex.Message}");
                 }
 
-                // Sleep for the remainder of the 1-second interval
-                int elapsed = (int)sw.ElapsedMilliseconds;
-                int remaining = 1000 - elapsed;
-                if (remaining > 0)
-                    Thread.Sleep(remaining);
+                int remaining = 1000 - (int)sw.ElapsedMilliseconds;
+                if (remaining > 0) Thread.Sleep(remaining);
             }
 
-            _computer?.Close();
-            _computer = null;
+            _fastComputer?.Close();
+            _fastComputer = null;
         }
 
         // ------------------------------------------------------------------
-        // Hardware monitor init
+        // Slow worker -- Storage sensors, every 10 seconds
         // ------------------------------------------------------------------
 
-        private void InitHardwareMonitor()
+        private void SlowWorkerLoop()
         {
-            _computer = new Computer
+            _slowComputer = new Computer
             {
-                IsCpuEnabled = true,
-                IsGpuEnabled = true,
-                IsMemoryEnabled = true,
                 IsStorageEnabled = true,
             };
-            _computer.Open();
-            _computer.Accept(new UpdateVisitor());
+            _slowComputer.Open();
+
+            while (_subscribed)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                try
+                {
+                    _slowComputer.Accept(new UpdateVisitor());
+                    CollectStorageSensors();
+                }
+                catch (Exception ex)
+                {
+                    Log($"Monitor storage error: {ex.Message}");
+                }
+
+                int remaining = 10000 - (int)sw.ElapsedMilliseconds;
+                if (remaining > 0) Thread.Sleep(remaining);
+            }
+
+            _slowComputer?.Close();
+            _slowComputer = null;
         }
 
         // ------------------------------------------------------------------
-        // Sensor collection
+        // Fast sensor collection
         // ------------------------------------------------------------------
 
-        private MonitorData CollectSensors()
+        private MonitorData CollectFastSensors()
         {
             var data = new MonitorData();
 
-            foreach (var hw in _computer.Hardware)
+            foreach (var hw in _fastComputer.Hardware)
             {
                 switch (hw.HardwareType)
                 {
                     case HardwareType.Cpu:
                         data.CpuUsage = ReadSensor(hw, SensorType.Load, "CPU Total", data.CpuUsage);
                         data.CpuTemp = ReadSensorMax(hw, SensorType.Temperature, data.CpuTemp);
-                        data.CpuFreq = ReadCpuFreq(hw, data.CpuFreq); break;
+                        data.CpuFreq = ReadCpuFreq(hw, data.CpuFreq);
+                        data.CpuPower = ReadSensor(hw, SensorType.Power, "Package", data.CpuPower);
+                        break;
 
                     case HardwareType.Memory:
                         data.RamUsage = ReadSensor(hw, SensorType.Load, "Memory", data.RamUsage);
@@ -218,10 +262,7 @@ namespace ESDeckPC
                         data.GpuUsage = ReadSensor(hw, SensorType.Load, "GPU Core", data.GpuUsage);
                         data.GpuTemp = ReadSensorMax(hw, SensorType.Temperature, data.GpuTemp);
                         data.GpuVram = ReadSensor(hw, SensorType.Load, "GPU Memory", data.GpuVram);
-                        break;
-
-                    case HardwareType.Storage:
-                        data.DiskUsage = ReadSensor(hw, SensorType.Load, "Total Activity", data.DiskUsage);
+                        data.GpuPower = ReadSensor(hw, SensorType.Load, "GPU Power", data.GpuPower);
                         break;
                 }
             }
@@ -231,77 +272,57 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // CPU frequency -- average across all cores encoded as MHz / 100.
-        // Intel: "CPU Core #N", AMD: "Core #N" Clock sensors.
-        // Excludes "Bus Speed" (~100 MHz, also Clock type).
-        // Max value 255 = 25500 MHz, sufficient for any current CPU.
+        // Storage sensor collection -- runs on slow thread
         // ------------------------------------------------------------------
 
-        private static byte ReadCpuFreq(IHardware hw, byte fallback)
+        private void CollectStorageSensors()
         {
-            float total = 0;
-            int count = 0;
+            int diskUsage = 0;
+            int ssdLife = 100;
+            bool foundLife = false;
 
-            foreach (var sensor in hw.Sensors)
+            foreach (var hw in _slowComputer.Hardware)
             {
-                if (sensor.SensorType != SensorType.Clock) continue;
-                if (!sensor.Value.HasValue) continue;
+                if (hw.HardwareType != HardwareType.Storage) continue;
 
-                string name = sensor.Name;
-                bool isIntelCore = name.IndexOf("CPU Core #", StringComparison.OrdinalIgnoreCase) >= 0;
-                bool isAmdCore = name.StartsWith("Core #", StringComparison.OrdinalIgnoreCase);
-                if (!isIntelCore && !isAmdCore) continue;
-
-                total += sensor.Value.Value;
-                count++;
-            }
-
-            if (count == 0) return fallback;
-
-            float mhz = total / count / 100.0f;   /* encode as MHz / 100 */
-            if (mhz < 0) mhz = 0;
-            if (mhz > 255) mhz = 255;
-            return (byte)mhz;
-        }
-
-        // ------------------------------------------------------------------
-        // Network -- delta bytes since last poll, converted to MB/s
-        // ------------------------------------------------------------------
-
-        private void CollectNetwork(ref MonitorData data)
-        {
-            try
-            {
-                long sent = 0;
-                long received = 0;
-                foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+                foreach (var sensor in hw.Sensors)
                 {
-                    if (nic.OperationalStatus != OperationalStatus.Up) continue;
-                    if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
-                    var stats = nic.GetIPv4Statistics();
-                    sent += stats.BytesSent;
-                    received += stats.BytesReceived;
-                }
+                    if (!sensor.Value.HasValue) continue;
 
-                if (_prevNetSent >= 0)
-                {
-                    float upMB = (sent - _prevNetSent) / 1048576.0f;
-                    float downMB = (received - _prevNetReceived) / 1048576.0f;
-                    if (upMB < 0) upMB = 0;
-                    if (downMB < 0) downMB = 0;
-                    if (upMB > 255) upMB = 255;
-                    if (downMB > 255) downMB = 255;
-                    data.NetUp = (byte)upMB;
-                    data.NetDown = (byte)downMB;
-                }
+                    if (sensor.SensorType == SensorType.Load &&
+                        sensor.Name.IndexOf("Total Activity", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        float v = sensor.Value.Value;
+                        if (v > diskUsage) diskUsage = (int)v;
+                    }
 
-                _prevNetSent = sent;
-                _prevNetReceived = received;
+                    if (sensor.SensorType == SensorType.Level &&
+                        sensor.Name.IndexOf("Remaining Life", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Remaining Life: direct percentage remaining
+                        if (!foundLife || (int)sensor.Value.Value < ssdLife)
+                        {
+                            ssdLife = (int)sensor.Value.Value;
+                            foundLife = true;
+                        }
+                    }
+                    else if (sensor.SensorType == SensorType.Level &&
+                             sensor.Name.IndexOf("Percentage Used", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        // Percentage Used: invert to get remaining
+                        int remaining = 100 - (int)sensor.Value.Value;
+                        if (remaining < 0) remaining = 0;
+                        if (!foundLife || remaining < ssdLife)
+                        {
+                            ssdLife = remaining;
+                            foundLife = true;
+                        }
+                    }
+                }
             }
-            catch
-            {
-                // Network stats unavailable -- leave as zero
-            }
+
+            _diskUsage = diskUsage;
+            _ssdLife = foundLife ? ssdLife : 0;
         }
 
         // ------------------------------------------------------------------
@@ -347,6 +368,69 @@ namespace ESDeckPC
             return (byte)max;
         }
 
+        private static byte ReadCpuFreq(IHardware hw, byte fallback)
+        {
+            float total = 0;
+            int count = 0;
+
+            foreach (var sensor in hw.Sensors)
+            {
+                if (sensor.SensorType != SensorType.Clock) continue;
+                if (!sensor.Value.HasValue) continue;
+
+                string name = sensor.Name;
+                bool isIntelCore = name.IndexOf("CPU Core #", StringComparison.OrdinalIgnoreCase) >= 0;
+                bool isAmdCore = name.StartsWith("Core #", StringComparison.OrdinalIgnoreCase);
+                if (!isIntelCore && !isAmdCore) continue;
+
+                total += sensor.Value.Value;
+                count++;
+            }
+
+            if (count == 0) return fallback;
+
+            float mhz = total / count / 100.0f;
+            if (mhz < 0) mhz = 0;
+            if (mhz > 255) mhz = 255;
+            return (byte)mhz;
+        }
+
+        private void CollectNetwork(ref MonitorData data)
+        {
+            try
+            {
+                long sent = 0;
+                long received = 0;
+                foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (nic.OperationalStatus != OperationalStatus.Up) continue;
+                    if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+                    var stats = nic.GetIPv4Statistics();
+                    sent += stats.BytesSent;
+                    received += stats.BytesReceived;
+                }
+
+                if (_prevNetSent >= 0)
+                {
+                    float upMB = (sent - _prevNetSent) / 1048576.0f;
+                    float downMB = (received - _prevNetReceived) / 1048576.0f;
+                    if (upMB < 0) upMB = 0;
+                    if (downMB < 0) downMB = 0;
+                    if (upMB > 255) upMB = 255;
+                    if (downMB > 255) downMB = 255;
+                    data.NetUp = (byte)upMB;
+                    data.NetDown = (byte)downMB;
+                }
+
+                _prevNetSent = sent;
+                _prevNetReceived = received;
+            }
+            catch
+            {
+                // Network stats unavailable -- leave as zero
+            }
+        }
+
         // ------------------------------------------------------------------
         // Send helpers
         // ------------------------------------------------------------------
@@ -354,7 +438,7 @@ namespace ESDeckPC
         private void SendData(MonitorData data)
         {
             var report = new byte[REPORT_SIZE];
-            report[0] = 0x00;           // Report ID
+            report[0] = 0x00;
             report[1] = CMD_DATA;
             report[2] = data.CpuUsage;
             report[3] = data.CpuTemp;
@@ -365,8 +449,11 @@ namespace ESDeckPC
             report[8] = data.CpuFreq;
             report[9] = data.NetUp;
             report[10] = data.NetDown;
-            report[11] = data.DiskUsage;
-            // [12..64] reserved, zero-filled by default
+            report[11] = (byte)Math.Min(_diskUsage, 255);
+            report[12] = data.CpuPower;
+            report[13] = data.GpuPower;
+            report[14] = (byte)Math.Min(_ssdLife, 255);
+            // [15..64] reserved
 
             bool ok = _receiver.WriteReport(report);
             if (!ok)
@@ -378,7 +465,7 @@ namespace ESDeckPC
             var now = DateTime.Now;
 
             var report = new byte[REPORT_SIZE];
-            report[0] = 0x00;           // Report ID
+            report[0] = 0x00;
             report[1] = CMD_TIME;
             report[2] = (byte)(now.Year - 2000);
             report[3] = (byte)now.Month;
@@ -386,7 +473,6 @@ namespace ESDeckPC
             report[5] = (byte)now.Hour;
             report[6] = (byte)now.Minute;
             report[7] = (byte)now.Second;
-            // [8..64] reserved, zero-filled by default
 
             bool ok = _receiver.WriteReport(report);
             if (!ok) Log("Monitor: time sync write failed");

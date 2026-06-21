@@ -404,6 +404,12 @@ namespace ESDeckPC
 
         private void AppendLog(string text, Color color)
         {
+            if (txtLog.InvokeRequired)
+            {
+                txtLog.Invoke((Action)(() => AppendLog(text, color)));
+                return;
+            }
+
             string line = $"[{DateTime.Now:HH:mm:ss}] {text}\n";
             txtLog.SelectionStart = txtLog.TextLength;
             txtLog.SelectionLength = 0;
