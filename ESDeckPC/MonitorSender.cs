@@ -29,7 +29,7 @@ namespace ESDeckPC
     ///     [10] net_down    0-255 MB/s
     ///     [11] disk_usage  0-100 % (Total Activity, updated every 10s)
     ///     [12] cpu_power   0-255 W
-    ///     [13] gpu_power   0-100 % of TDP (Load sensor)
+    ///     [13] gpu_power   0-255 (NVIDIA: Load %, AMD/Intel: W)
     ///     [14] ssd_life    0-100 % remaining (updated every 10s)
     ///     [15..64] reserved
     ///
@@ -55,7 +55,7 @@ namespace ESDeckPC
         private const byte CMD_DATA = 0x03;
         private const byte CMD_TIME = 0x04;
         private const byte CMD_QUERY = 0x05;
-        private const int STORAGE_PERIOD = 10;   // Storage poll every N fast-thread ticks
+        private const int STORAGE_PERIOD = 10;  // Storage poll every N fast-thread ticks
 
         // ------------------------------------------------------------------
         // Snapshot of one fast sensor poll cycle
@@ -69,11 +69,11 @@ namespace ESDeckPC
             public byte GpuUsage;
             public byte GpuTemp;
             public byte GpuVram;
-            public byte CpuFreq;     // MHz / 100
-            public byte NetUp;       // MB/s
-            public byte NetDown;     // MB/s
-            public byte CpuPower;    // W (capped at 255)
-            public byte GpuPower;    // W / 2 (capped at 255, max 510 W)
+            public byte CpuFreq;   // MHz / 100
+            public byte NetUp;     // MB/s
+            public byte NetDown;   // MB/s
+            public byte CpuPower;  // W (capped at 255)
+            public byte GpuPower;  // NVIDIA: Load %, AMD/Intel: W (capped at 255)
         }
 
         private readonly HidReceiver _receiver;
@@ -89,8 +89,8 @@ namespace ESDeckPC
         private Computer _slowComputer;
 
         // Shared storage values -- written by slow thread, read by fast thread
-        private volatile int _diskUsage = 0;   // 0-100 %
-        private volatile int _ssdLife = 0;   // 0-100 % remaining
+        private volatile int _diskUsage = 0;  // 0-100 %
+        private volatile int _ssdLife = 0;  // 0-100 % remaining
 
         // Network delta
         private long _prevNetSent = -1;
@@ -247,7 +247,7 @@ namespace ESDeckPC
                 {
                     case HardwareType.Cpu:
                         data.CpuUsage = ReadSensor(hw, SensorType.Load, "CPU Total", data.CpuUsage);
-                        data.CpuTemp = ReadSensorMax(hw, SensorType.Temperature, data.CpuTemp);
+                        data.CpuTemp = ReadSensorMaxFiltered(hw, SensorType.Temperature, data.CpuTemp);
                         data.CpuFreq = ReadCpuFreq(hw, data.CpuFreq);
                         data.CpuPower = ReadSensor(hw, SensorType.Power, "Package", data.CpuPower);
                         break;
@@ -260,9 +260,18 @@ namespace ESDeckPC
                     case HardwareType.GpuAmd:
                     case HardwareType.GpuIntel:
                         data.GpuUsage = ReadSensor(hw, SensorType.Load, "GPU Core", data.GpuUsage);
-                        data.GpuTemp = ReadSensorMax(hw, SensorType.Temperature, data.GpuTemp);
+                        data.GpuTemp = ReadSensorMaxFiltered(hw, SensorType.Temperature, data.GpuTemp);
                         data.GpuVram = ReadSensor(hw, SensorType.Load, "GPU Memory", data.GpuVram);
-                        data.GpuPower = ReadSensor(hw, SensorType.Load, "GPU Power", data.GpuPower);
+
+                        // GPU power sensor name differs by vendor:
+                        //   NVIDIA  -- Load  | "GPU Power"
+                        //   AMD     -- Power | "GPU Package"
+                        //   Intel   -- Power | "GPU Power"
+                        data.GpuPower = ReadSensor(hw, SensorType.Load, "GPU Power", 0);
+                        if (data.GpuPower == 0)
+                            data.GpuPower = ReadSensor(hw, SensorType.Power, "GPU Package", 0);
+                        if (data.GpuPower == 0)
+                            data.GpuPower = ReadSensor(hw, SensorType.Power, "GPU Power", 0);
                         break;
                 }
             }
@@ -347,15 +356,28 @@ namespace ESDeckPC
             return fallback;
         }
 
-        private static byte ReadSensorMax(IHardware hw, SensorType type, byte fallback)
+        /// <summary>
+        /// Returns the maximum value among all sensors of the given type,
+        /// excluding derived sensors such as "Distance to TjMax" that would
+        /// produce misleadingly low readings when temperatures are high.
+        /// </summary>
+        private static byte ReadSensorMaxFiltered(IHardware hw, SensorType type, byte fallback)
         {
             float max = float.MinValue;
             bool found = false;
 
             foreach (var sensor in hw.Sensors)
             {
-                if (sensor.SensorType == type && sensor.Value.HasValue &&
-                    sensor.Value.Value > max)
+                if (sensor.SensorType != type) continue;
+                if (!sensor.Value.HasValue) continue;
+
+                // Skip derived / inverted sensors that do not represent real temperature
+                string name = sensor.Name;
+                if (name.IndexOf("Distance", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                if (name.IndexOf("TjMax", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                if (name.IndexOf("Average", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+
+                if (sensor.Value.Value > max)
                 {
                     max = sensor.Value.Value;
                     found = true;
@@ -428,6 +450,22 @@ namespace ESDeckPC
             catch
             {
                 // Network stats unavailable -- leave as zero
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Debug helper -- dump all sensors for a hardware node to the log.
+        // Call LogSensors(hw, "CPU") / LogSensors(hw, "GPU") inside
+        // CollectFastSensors when investigating a new machine, then remove
+        // the calls once the sensor list is confirmed.
+        // ------------------------------------------------------------------
+
+        private void LogSensors(IHardware hw, string tag)
+        {
+            foreach (var sensor in hw.Sensors)
+            {
+                if (!sensor.Value.HasValue) continue;
+                Log($"[{tag}] {sensor.SensorType} | {sensor.Name} = {sensor.Value.Value:F3}");
             }
         }
 
