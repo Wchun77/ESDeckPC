@@ -206,11 +206,14 @@ namespace ESDeckPC
 
         private void SlowWorkerLoop()
         {
-            _slowComputer = new Computer
-            {
-                IsStorageEnabled = true,
-            };
+            _slowComputer = new Computer { IsStorageEnabled = true };
             _slowComputer.Open();
+
+            // 第一次 poll 丟掉，避免 LHM 初始化造成的 I/O 污染
+            try { _slowComputer.Accept(new UpdateVisitor()); }
+            catch { }
+
+            Thread.Sleep(3000);
 
             while (_subscribed)
             {
