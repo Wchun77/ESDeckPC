@@ -240,7 +240,15 @@ namespace ESDeckPC
                 return "launch failed: target is empty";
             try
             {
-                Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+                bool isExecutable = target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                                 || target.EndsWith(".bat", StringComparison.OrdinalIgnoreCase)
+                                 || target.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase);
+
+                ProcessStartInfo psi = isExecutable
+                    ? new ProcessStartInfo(target) { UseShellExecute = true }
+                    : new ProcessStartInfo("explorer.exe", $"\"{target}\"") { UseShellExecute = true };
+
+                Process.Start(psi);
                 return $"launch: {target}";
             }
             catch (Exception ex)
