@@ -30,6 +30,7 @@
             this.pnlPreview = new System.Windows.Forms.Panel();
             this.picPreview = new System.Windows.Forms.PictureBox();
             this.lblStatus = new System.Windows.Forms.Label();
+            this.btnJsonSaveAs = new System.Windows.Forms.Button();
             this.TLPanel_FULL.SuspendLayout();
             this.paneltop.SuspendLayout();
             this.flpPages.SuspendLayout();
@@ -68,17 +69,17 @@
             // 
             // btnClockPage
             // 
-            this.btnClockPage.Location = new System.Drawing.Point(299, 25);
+            this.btnClockPage.Location = new System.Drawing.Point(357, 25);
             this.btnClockPage.Name = "btnClockPage";
             this.btnClockPage.Size = new System.Drawing.Size(79, 55);
             this.btnClockPage.TabIndex = 4;
-            this.btnClockPage.Text = "Page";
+            this.btnClockPage.Text = "Clock";
             // 
             // flpPages
             // 
             this.flpPages.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.flpPages.Controls.Add(this.button1);
-            this.flpPages.Location = new System.Drawing.Point(388, 21);
+            this.flpPages.Location = new System.Drawing.Point(446, 21);
             this.flpPages.Name = "flpPages";
             this.flpPages.Size = new System.Drawing.Size(332, 64);
             this.flpPages.TabIndex = 5;
@@ -93,6 +94,7 @@
             // 
             // grpJson
             // 
+            this.grpJson.Controls.Add(this.btnJsonSaveAs);
             this.grpJson.Controls.Add(this.lblJsonPath);
             this.grpJson.Controls.Add(this.btnJsonNew);
             this.grpJson.Controls.Add(this.btnJsonOpen);
@@ -100,7 +102,7 @@
             this.grpJson.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(210)))), ((int)(((byte)(210)))));
             this.grpJson.Location = new System.Drawing.Point(9, 9);
             this.grpJson.Name = "grpJson";
-            this.grpJson.Size = new System.Drawing.Size(263, 76);
+            this.grpJson.Size = new System.Drawing.Size(298, 76);
             this.grpJson.TabIndex = 3;
             this.grpJson.TabStop = false;
             this.grpJson.Text = "JSON";
@@ -199,6 +201,14 @@
             this.lblStatus.Text = "No font loaded";
             this.lblStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
+            // btnJsonSaveAs
+            // 
+            this.btnJsonSaveAs.Location = new System.Drawing.Point(206, 42);
+            this.btnJsonSaveAs.Name = "btnJsonSaveAs";
+            this.btnJsonSaveAs.Size = new System.Drawing.Size(84, 26);
+            this.btnJsonSaveAs.TabIndex = 4;
+            this.btnJsonSaveAs.Text = "Save As";
+            // 
             // FormMonitorEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -239,5 +249,6 @@
         private System.Windows.Forms.Button btnClockPage;
         private System.Windows.Forms.FlowLayoutPanel flpPages;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button btnJsonSaveAs;
     }
 }

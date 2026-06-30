@@ -67,6 +67,7 @@ namespace ESDeckPC
             btnJsonNew.Click += BtnJsonNew_Click;
             btnJsonOpen.Click += BtnJsonOpen_Click;
             btnJsonSave.Click += BtnJsonSave_Click;
+            btnJsonSaveAs.Click += BtnJsonSaveAs_Click;
             btnClockPage.Click += BtnClockPage_Click;
 
             flpPages.AllowDrop = true;
@@ -104,7 +105,7 @@ namespace ESDeckPC
             {
                 Text = page.Name,
                 Tag = page,
-                Size = new Size(60, 55),
+                Size = new Size(79, 55),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = ColPageNormal,
                 ForeColor = Color.FromArgb(220, 220, 220),
@@ -441,16 +442,42 @@ namespace ESDeckPC
         {
             if (string.IsNullOrEmpty(_jsonPath))
             {
-                using (var dlg = new SaveFileDialog())
-                {
-                    dlg.Title = "Save monitor JSON";
-                    dlg.Filter = "JSON files (*.json)|*.json";
-                    dlg.FileName = "monitor.json";
-                    if (dlg.ShowDialog() != DialogResult.OK) return;
-                    _jsonPath = dlg.FileName;
-                    UpdateJsonPathLabel();
-                }
+                if (!PromptForSavePath()) return;
             }
+            SaveToCurrentPath();
+        }
+
+        private void BtnJsonSaveAs_Click(object sender, EventArgs e)
+        {
+            if (!PromptForSavePath()) return; // always shows the dialog, regardless of _jsonPath
+            SaveToCurrentPath();
+        }
+
+        /// <summary>
+        /// Shows the SaveFileDialog and updates _jsonPath on confirmation.
+        /// Returns false if the user cancelled.
+        /// </summary>
+        private bool PromptForSavePath()
+        {
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Title = "Save monitor JSON";
+                dlg.Filter = "JSON files (*.json)|*.json";
+                dlg.FileName = !string.IsNullOrEmpty(_jsonPath)
+                    ? Path.GetFileName(_jsonPath)
+                    : "monitor.json";
+                if (!string.IsNullOrEmpty(_jsonPath))
+                    dlg.InitialDirectory = Path.GetDirectoryName(_jsonPath);
+                if (dlg.ShowDialog() != DialogResult.OK) return false;
+
+                _jsonPath = dlg.FileName;
+                UpdateJsonPathLabel();
+                return true;
+            }
+        }
+
+        private void SaveToCurrentPath()
+        {
             try
             {
                 ReadUiIntoConfig();
@@ -533,7 +560,7 @@ namespace ESDeckPC
             var lightFg = Color.FromArgb(220, 220, 220);
             var font = new Font("Consolas", 8.5f);
 
-            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnClockPage })
+            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs, btnClockPage })
             {
                 btn.BackColor = darkBg;
                 btn.ForeColor = lightFg;
