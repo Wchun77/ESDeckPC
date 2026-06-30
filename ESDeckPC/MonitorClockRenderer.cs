@@ -62,19 +62,21 @@ namespace ESDeckPC
                 using (var br = new SolidBrush(Color.FromArgb(128, 0, 0, 0)))
                     g.FillRectangle(br, 0, 0, CW, CH);
 
-                Color colTime = ParseHex(cfg?.ColTime, 0xF0F2FF);
-                Color colDate = ParseHex(cfg?.ColDate, 0xF0F2FF);
-                Color colDay = ParseHex(cfg?.ColDay, 0xF0F2FF);
-                Color colSec = ParseHex(cfg?.ColSec, 0xF0F2FF);
+                Color colTime = ApplyOpacity(ParseHex(cfg?.ColTime, 0xF0F2FF), cfg?.OpaTime ?? 255);
+                Color colColon = ApplyOpacity(ParseHex(cfg?.ColTime, 0xF0F2FF), cfg?.OpaColon ?? 255);
+                Color colDate = ApplyOpacity(ParseHex(cfg?.ColDate, 0xF0F2FF), cfg?.OpaDate ?? 255);
+                Color colDay = ApplyOpacity(ParseHex(cfg?.ColDay, 0xF0F2FF), cfg?.OpaDay ?? 255);
+                Color colSec = ApplyOpacity(ParseHex(cfg?.ColSec, 0xF0F2FF), cfg?.OpaSec ?? 255);
                 Color colSep = ParseHex(cfg?.SepColor, 0xF0F2FF);
                 int sepWidth = cfg?.SepWidth ?? 1;
+                int colonGap = cfg?.ColonGap ?? 30;
 
                 int timeY = (CH - TIME_H) / 2;
                 int secX = CW - SEC_W - 4;
                 int secY = CH - SEC_H - 12;
 
                 DrawDatePanel(g, fontDate, colDate, colDay, colSep, sepWidth);
-                DrawTimePanel(g, fontTime, colTime, timeY);
+                DrawTimePanel(g, fontTime, colTime, colColon, timeY, colonGap);
                 DrawSecPanel(g, fontSec, colSec, secX, secY);
             }
             return bmp;
@@ -108,24 +110,24 @@ namespace ESDeckPC
 
         private static void DrawTimePanel(Graphics g,
                                           FontBinLoader font,
-                                          Color col, int panelY)
+                                          Color colDigits, Color colColon,
+                                          int panelY, int colonGap)
         {
             // Mirror ESP layout: 4 equal digit cells + colon fixed at center
-            // [ h_tens | h_units |30| : |30| m_tens | m_units ]
+            // [ h_tens | h_units |gap| : |gap| m_tens | m_units ]
             // <-180px->|<--150px->|  |   |  |<-150px->|<-180px->
             const int DIGIT_W = TIME_W / 4;  // 180px
-            const int COLON_GAP = 30;
 
             // h_tens: centered in full cell
-            DrawSingleGlyph(g, '0', font, col, TIME_X, panelY, DIGIT_W, TIME_H, 0);
-            // h_units: right-aligned with COLON_GAP margin on right
-            DrawSingleGlyph(g, '0', font, col, TIME_X + DIGIT_W, panelY, DIGIT_W, TIME_H, -COLON_GAP);
+            DrawSingleGlyph(g, '0', font, colDigits, TIME_X, panelY, DIGIT_W, TIME_H, 0);
+            // h_units: right-aligned with colonGap margin on right
+            DrawSingleGlyph(g, '0', font, colDigits, TIME_X + DIGIT_W, panelY, DIGIT_W, TIME_H, -colonGap);
             // colon: centered on full panel
-            DrawSingleGlyph(g, ':', font, col, TIME_X, panelY, TIME_W, TIME_H, 0);
-            // m_tens: left-aligned with COLON_GAP margin on left
-            DrawSingleGlyph(g, '0', font, col, TIME_X + DIGIT_W * 2, panelY, DIGIT_W, TIME_H, +COLON_GAP);
+            DrawSingleGlyph(g, ':', font, colColon, TIME_X, panelY, TIME_W, TIME_H, 0);
+            // m_tens: left-aligned with colonGap margin on left
+            DrawSingleGlyph(g, '0', font, colDigits, TIME_X + DIGIT_W * 2, panelY, DIGIT_W, TIME_H, +colonGap);
             // m_units: centered in full cell
-            DrawSingleGlyph(g, '0', font, col, TIME_X + DIGIT_W * 3, panelY, DIGIT_W, TIME_H, 0);
+            DrawSingleGlyph(g, '0', font, colDigits, TIME_X + DIGIT_W * 3, panelY, DIGIT_W, TIME_H, 0);
         }
 
         private static void DrawSecPanel(Graphics g,
@@ -358,6 +360,9 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
         // Utilities
         // ------------------------------------------------------------------
+
+        private static Color ApplyOpacity(Color baseColor, byte opacity)
+            => Color.FromArgb(opacity, baseColor.R, baseColor.G, baseColor.B);
 
         private static Color ParseHex(string hex, uint fallback)
         {
