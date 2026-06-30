@@ -17,6 +17,12 @@ namespace ESDeckPC
         private string _jsonPath = null;
         private MonitorConfig _cfg = new MonitorConfig();
 
+        // Resolved from _jsonPath when it matches "...\config\monitor\xxx.json"
+        // (USB layout convention). Null when the path doesn't match, in which
+        // case preview-from-filename is simply skipped (browse-to-load still works).
+        private string _assetsBackgroundsDir = null;
+        private string _assetsFontsDir = null;
+
         private UC_ClockSettings _ucClock = null;
         private UC_PageSettings _ucPage = null;
         private Bitmap _previewBmp = null;
@@ -307,7 +313,7 @@ namespace ESDeckPC
             page.Name = name;
             btn.Text = name;
             if (_ucPage != null && _ucPage.BoundPage == page)
-                _ucPage.ApplyConfig(page); // refresh name textbox if currently shown
+                _ucPage.ApplyConfig(page, _assetsBackgroundsDir); // refresh name textbox if currently shown
         }
 
         private void DeletePage(Button btn, MonitorPageCfg page)
@@ -352,7 +358,7 @@ namespace ESDeckPC
             pnlSettingsHost.Controls.Add(_ucClock);
             pnlSettingsHost.ResumeLayout();
 
-            _ucClock.ApplyConfig(_cfg.Clock);
+            _ucClock.ApplyConfig(_cfg.Clock, _assetsBackgroundsDir, _assetsFontsDir);
 
             SetSelectedButton(btnClockPage);
             SetStatus("");
@@ -374,7 +380,7 @@ namespace ESDeckPC
             pnlSettingsHost.Controls.Add(_ucPage);
             pnlSettingsHost.ResumeLayout();
 
-            _ucPage.ApplyConfig(page);
+            _ucPage.ApplyConfig(page, _assetsBackgroundsDir);
 
             var btn = flpPages.Controls.OfType<Button>().FirstOrDefault(b => ReferenceEquals(b.Tag, page));
             SetSelectedButton(btn);
@@ -403,6 +409,8 @@ namespace ESDeckPC
                 if (dlg.ShowDialog() != DialogResult.OK) return;
                 _cfg = new MonitorConfig();
                 _jsonPath = dlg.FileName;
+                _assetsBackgroundsDir = null;
+                _assetsFontsDir = null;
                 RebuildPageButtons();
                 ShowClockSettings();
                 UpdateJsonPathLabel();
@@ -425,6 +433,7 @@ namespace ESDeckPC
                                   File.ReadAllText(dlg.FileName)) ?? new MonitorConfig();
                     _cfg = cfg;
                     _jsonPath = dlg.FileName;
+                    ResolveAssetDirsFromJsonPath();
                     RebuildPageButtons();
                     ShowClockSettings();
                     UpdateJsonPathLabel();
@@ -580,6 +589,39 @@ namespace ESDeckPC
             this.Text = _jsonPath != null
                 ? $"Monitor Editor - {Path.GetFileName(_jsonPath)}"
                 : "Monitor Editor";
+        }
+
+        /// <summary>
+        /// USB layout convention: {root}\config\monitor\xxx.json alongside
+        /// {root}\assets\backgrounds\ and {root}\assets\fonts\. If the
+        /// current _jsonPath matches this layout, resolves the two asset
+        /// folders; otherwise both are set to null and filename-only preview
+        /// (existing JSON's bg_image/font_* fields) is simply skipped.
+        /// Does not affect Browse-to-load, which always works regardless.
+        /// </summary>
+        private void ResolveAssetDirsFromJsonPath()
+        {
+            _assetsBackgroundsDir = null;
+            _assetsFontsDir = null;
+
+            if (string.IsNullOrEmpty(_jsonPath)) return;
+
+            // .../config/monitor/xxx.json -> monitorDir -> configDir -> root
+            var monitorDir = Path.GetDirectoryName(_jsonPath);
+            if (string.IsNullOrEmpty(monitorDir)) return;
+            if (!string.Equals(Path.GetFileName(monitorDir), "monitor", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var configDir = Path.GetDirectoryName(monitorDir);
+            if (string.IsNullOrEmpty(configDir)) return;
+            if (!string.Equals(Path.GetFileName(configDir), "config", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var root = Path.GetDirectoryName(configDir);
+            if (string.IsNullOrEmpty(root)) return;
+
+            _assetsBackgroundsDir = Path.Combine(root, "assets", "backgrounds");
+            _assetsFontsDir = Path.Combine(root, "assets", "fonts");
         }
 
         // ------------------------------------------------------------------

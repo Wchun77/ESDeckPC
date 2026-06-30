@@ -73,7 +73,15 @@ namespace ESDeckPC
         /// Rebinds this shared control to a different page. Call this every
         /// time the selected page button in flpPages changes.
         /// </summary>
-        public void ApplyConfig(MonitorPageCfg page)
+        public void ApplyConfig(MonitorPageCfg page) => ApplyConfig(page, null);
+
+        /// <summary>
+        /// Rebinds this shared control to a different page, and additionally
+        /// tries to resolve+load the background image from the given USB
+        /// assets/backgrounds folder using the filename already stored in
+        /// the JSON. Pass null to skip resolution (filename still shown as text).
+        /// </summary>
+        public void ApplyConfig(MonitorPageCfg page, string backgroundsDir)
         {
             _isApplying = true;
             try
@@ -83,14 +91,17 @@ namespace ESDeckPC
                 txtPageName.Text = page.Name ?? "";
                 txtPageBgImage.Text = page.BgImage ?? "";
 
-                // Only the filename is persisted in JSON (no folder context), so
-                // we cannot resolve an actual file to preview here. The bitmap
-                // is only populated when the user picks a file via Browse in
-                // this session (same behavior as UC_ClockSettings). A future
-                // "USB source folder" picker will let us resolve+preview
-                // existing filenames against a chosen base folder.
                 _bgBitmap?.Dispose();
                 _bgBitmap = null;
+                if (!string.IsNullOrEmpty(backgroundsDir) && !string.IsNullOrEmpty(page.BgImage))
+                {
+                    var path = Path.Combine(backgroundsDir, page.BgImage);
+                    if (File.Exists(path))
+                    {
+                        try { _bgBitmap = new Bitmap(path); }
+                        catch { _bgBitmap = null; }
+                    }
+                }
 
                 var combos = CellCombos();
                 for (int i = 0; i < combos.Length; i++)

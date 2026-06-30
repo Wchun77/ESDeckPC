@@ -73,7 +73,16 @@ namespace ESDeckPC
         // Config <-> UI sync
         // ------------------------------------------------------------------
 
-        public void ApplyConfig(MonitorClockCfg c)
+        public void ApplyConfig(MonitorClockCfg c) => ApplyConfig(c, null, null);
+
+        /// <summary>
+        /// Rebinds config, and additionally tries to resolve+load the
+        /// background image and font .bin files from the given USB asset
+        /// folders, using the filenames already stored in the JSON. Pass
+        /// null for either folder to skip that resolution (filenames are
+        /// still shown as text either way).
+        /// </summary>
+        public void ApplyConfig(MonitorClockCfg c, string backgroundsDir, string fontsDir)
         {
             _isApplying = true;
             try
@@ -99,10 +108,75 @@ namespace ESDeckPC
                 nudOpaSec.Value = Math.Max(nudOpaSec.Minimum, Math.Min(nudOpaSec.Maximum, c.OpaSec));
                 nudColonGap.Value = Math.Max(nudColonGap.Minimum,
                                     Math.Min(nudColonGap.Maximum, c.ColonGap));
+
+                ReloadAssetsFromUsb(c, backgroundsDir, fontsDir);
             }
             finally
             {
                 _isApplying = false;
+            }
+        }
+
+        /// <summary>
+        /// Resolves c.BgImage / c.FontTime / c.FontSec / c.FontDate against
+        /// the given folders and loads them if found. Failures are silent
+        /// (missing file, wrong USB plugged in, etc.) -- the text fields
+        /// still show the stored filename either way.
+        /// </summary>
+        private void ReloadAssetsFromUsb(MonitorClockCfg c, string backgroundsDir, string fontsDir)
+        {
+            _bgBitmap?.Dispose();
+            _bgBitmap = null;
+            if (!string.IsNullOrEmpty(backgroundsDir) && !string.IsNullOrEmpty(c.BgImage))
+            {
+                var path = Path.Combine(backgroundsDir, c.BgImage);
+                if (File.Exists(path))
+                {
+                    try { _bgBitmap = new Bitmap(path); }
+                    catch { _bgBitmap = null; }
+                }
+            }
+
+            _fontTime?.Dispose(); _fontTime = null;
+            _fontSec?.Dispose(); _fontSec = null;
+            _fontDate?.Dispose(); _fontDate = null;
+            if (!string.IsNullOrEmpty(fontsDir))
+            {
+                _fontTime = TryLoadFont(fontsDir, c.FontTime, lblFontTimeNote);
+                _fontSec = TryLoadFont(fontsDir, c.FontSec, lblFontSecNote);
+                _fontDate = TryLoadFont(fontsDir, c.FontDate, lblFontDateNote);
+            }
+            else
+            {
+                UpdateFontNote(lblFontTimeNote, null);
+                UpdateFontNote(lblFontSecNote, null);
+                UpdateFontNote(lblFontDateNote, null);
+            }
+        }
+
+        private static FontBinLoader TryLoadFont(string fontsDir, string fileName, Label note)
+        {
+            if (string.IsNullOrEmpty(fileName))
+            {
+                UpdateFontNote(note, null);
+                return null;
+            }
+            var path = Path.Combine(fontsDir, fileName);
+            if (!File.Exists(path))
+            {
+                UpdateFontNote(note, null);
+                return null;
+            }
+            try
+            {
+                var loader = FontBinLoader.Load(path);
+                UpdateFontNote(note, loader);
+                return loader;
+            }
+            catch
+            {
+                UpdateFontNote(note, null);
+                return null;
             }
         }
 
