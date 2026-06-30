@@ -101,6 +101,12 @@
     <Compile Include="FormMonitorEditor.Designer.cs">
       <DependentUpon>FormMonitorEditor.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormPageNamePrompt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPageNamePrompt.Designer.cs">
+      <DependentUpon>FormPageNamePrompt.cs</DependentUpon>
+    </Compile>
     <Compile Include="HidReceiver.cs" />
     <Compile Include="MonitorClockRenderer.cs" />
     <Compile Include="MonitorConfig.cs" />
