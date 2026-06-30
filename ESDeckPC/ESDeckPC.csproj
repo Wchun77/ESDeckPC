@@ -110,14 +110,27 @@
     <Compile Include="HidReceiver.cs" />
     <Compile Include="MonitorClockRenderer.cs" />
     <Compile Include="MonitorConfig.cs" />
+    <Compile Include="MonitorPageRenderer.cs" />
     <Compile Include="MonitorSender.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UC_ClockSettings.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UC_ClockSettings.Designer.cs">
+      <DependentUpon>UC_ClockSettings.cs</DependentUpon>
+    </Compile>
     <Compile Include="UC_DeckButton.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="UC_DeckButton.Designer.cs">
       <DependentUpon>UC_DeckButton.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UC_PageSettings.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UC_PageSettings.Designer.cs">
+      <DependentUpon>UC_PageSettings.cs</DependentUpon>
     </Compile>
     <EmbeddedResource Include="FormButtonEditor.resx">
       <DependentUpon>FormButtonEditor.cs</DependentUpon>
@@ -144,8 +157,14 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <EmbeddedResource Include="UC_ClockSettings.resx">
+      <DependentUpon>UC_ClockSettings.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="UC_DeckButton.resx">
       <DependentUpon>UC_DeckButton.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UC_PageSettings.resx">
+      <DependentUpon>UC_PageSettings.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.manifest" />
     <None Include="packages.config" />
