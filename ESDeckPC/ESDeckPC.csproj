@@ -69,6 +69,9 @@
     <Compile Include="ConfigLoader.cs" />
     <Compile Include="DarkColorTable.cs" />
     <Compile Include="Deckconfig.cs" />
+    <Compile Include="DeckPreviewPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Discordrpcclient.cs" />
     <Compile Include="FontBinLoader.cs" />
     <Compile Include="FormButtonEditor.cs">
@@ -120,12 +123,6 @@
     <Compile Include="UC_ClockSettings.Designer.cs">
       <DependentUpon>UC_ClockSettings.cs</DependentUpon>
     </Compile>
-    <Compile Include="UC_DeckButton.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="UC_DeckButton.Designer.cs">
-      <DependentUpon>UC_DeckButton.cs</DependentUpon>
-    </Compile>
     <Compile Include="UC_PageSettings.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -159,9 +156,6 @@
     </Compile>
     <EmbeddedResource Include="UC_ClockSettings.resx">
       <DependentUpon>UC_ClockSettings.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="UC_DeckButton.resx">
-      <DependentUpon>UC_DeckButton.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UC_PageSettings.resx">
       <DependentUpon>UC_PageSettings.cs</DependentUpon>

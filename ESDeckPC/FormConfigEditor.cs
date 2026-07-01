@@ -14,13 +14,21 @@ namespace ESDeckPC
         private string _pcPath;
         private string _espPath;
 
-        private UC_DeckButton _draggedUC = null;
+        private string _assetsBackgroundsDir = null;
+        private string _assetsIconsDir = null;
 
-        private int _insertIndex = -1;
-        private UC_DeckButton _highlightLeft = null;
-        private UC_DeckButton _highlightRight = null;
-        private Color _highlightOrigLeft;
-        private Color _highlightOrigRight;
+        private DeckPreviewPanel _preview;
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            int value = 1;
+            DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
+        }
 
         public FormConfigEditor(PcConfig pcConfig, string pcPath, string espPath)
         {
@@ -32,17 +40,7 @@ namespace ESDeckPC
 
             this.Text = $"Config Editor - {Path.GetFileName(pcPath)}";
 
-            lstPages.SelectedIndexChanged += lstPages_SelectedIndexChanged;
-            lstPages.MouseUp += lstPages_MouseUp;
-            lstPages.KeyDown += lstPages_KeyDown;
-            btnSave.Click += btnSave_Click;
-            btnDiscard.Click += btnDiscard_Click;
-            pnlGrid.AllowDrop = true;
-            pnlGrid.DragEnter += pnlGrid_DragEnter;
-            pnlGrid.DragOver += pnlGrid_DragOver;
-            pnlGrid.DragDrop += pnlGrid_DragDrop;
-            pnlGrid.DragLeave += pnlGrid_DragLeave;
-            pnlGrid.MouseUp += pnlGrid_MouseUp;
+            ResolveAssetDirs();
 
             if (!string.IsNullOrEmpty(_espPath) && File.Exists(_espPath))
             {
@@ -52,9 +50,7 @@ namespace ESDeckPC
                     for (int pi = 0; pi < _pcConfig.Pages.Count; pi++)
                     {
                         if (pi >= espConfig.Pages.Count) break;
-
                         _pcConfig.Pages[pi].BgImage = espConfig.Pages[pi].BgImage ?? "";
-
                         for (int bi = 0; bi < _pcConfig.Pages[pi].Buttons.Count; bi++)
                         {
                             if (bi >= espConfig.Pages[pi].Buttons.Count) break;
@@ -65,7 +61,58 @@ namespace ESDeckPC
                 catch { }
             }
 
+            // Create DeckPreviewPanel and attach to picDeckPreview's location/size
+            _preview = new DeckPreviewPanel
+            {
+                Location = picDeckPreview.Location,
+                Size = picDeckPreview.Size,
+            };
+            picDeckPreview.Visible = false; // keep in Designer, hidden at runtime
+            grpPreview.Controls.Add(_preview);
+            _preview.BringToFront();
+
+            _preview.EditButtonRequested += Preview_EditButtonRequested;
+            _preview.AddButtonRequested += Preview_AddButtonRequested;
+            _preview.ClearButtonRequested += Preview_ClearButtonRequested;
+            _preview.ReorderCompleted += (s, e) => UpdatePageList();
+
+            lstPages.SelectedIndexChanged += lstPages_SelectedIndexChanged;
+            lstPages.MouseUp += lstPages_MouseUp;
+            lstPages.KeyDown += lstPages_KeyDown;
+            btnSave.Click += btnSave_Click;
+            btnDiscard.Click += btnDiscard_Click;
+
             LoadPages();
+        }
+
+        // ------------------------------------------------------------------
+        // Asset path resolution (same rule as MonitorEditor)
+        // config\deck\xxx.json -> root -> assets\backgrounds / assets\icons
+        // ------------------------------------------------------------------
+
+        private void ResolveAssetDirs()
+        {
+            _assetsBackgroundsDir = null;
+            _assetsIconsDir = null;
+
+            if (string.IsNullOrEmpty(_espPath)) return;
+
+            // ESP JSON lives at {root}\config\deck\esp_xxx.json
+            var deckDir = Path.GetDirectoryName(_espPath);
+            if (string.IsNullOrEmpty(deckDir)) return;
+            if (!string.Equals(Path.GetFileName(deckDir), "deck",
+                StringComparison.OrdinalIgnoreCase)) return;
+
+            var configDir = Path.GetDirectoryName(deckDir);
+            if (string.IsNullOrEmpty(configDir)) return;
+            if (!string.Equals(Path.GetFileName(configDir), "config",
+                StringComparison.OrdinalIgnoreCase)) return;
+
+            var root = Path.GetDirectoryName(configDir);
+            if (string.IsNullOrEmpty(root)) return;
+
+            _assetsBackgroundsDir = Path.Combine(root, "assets", "backgrounds");
+            _assetsIconsDir = Path.Combine(root, "assets", "icons");
         }
 
         // ------------------------------------------------------------------
@@ -86,38 +133,61 @@ namespace ESDeckPC
         {
             int idx = lstPages.SelectedIndex;
             if (idx < 0 || idx >= _pcConfig.Pages.Count) return;
-            BuildGrid(_pcConfig.Pages[idx]);
+            _preview.SetPage(_pcConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
         }
 
         // ------------------------------------------------------------------
-        // Grid
+        // Preview events -> Button editor
         // ------------------------------------------------------------------
 
-        private void BuildGrid(PcPage page)
+        private void Preview_EditButtonRequested(object sender, int btnIdx)
         {
-            pnlGrid.Controls.Clear();
+            int pageIdx = lstPages.SelectedIndex;
+            if (pageIdx < 0 || pageIdx >= _pcConfig.Pages.Count) return;
+            OpenButtonEditor(_pcConfig.Pages[pageIdx], btnIdx);
+        }
 
-            for (int i = 0; i < page.Buttons.Count; i++)
+        private void Preview_AddButtonRequested(object sender, EventArgs e)
+        {
+            int pageIdx = lstPages.SelectedIndex;
+            if (pageIdx < 0 || pageIdx >= _pcConfig.Pages.Count) return;
+
+            var page = _pcConfig.Pages[pageIdx];
+            var newBtn = new PcButton { Label = "", Action = "launch" };
+            page.Buttons.Add(newBtn);
+
+            int newIdx = page.Buttons.Count - 1;
+            using (var dlg = new FormButtonEditor(newBtn))
             {
-                var uc = new UC_DeckButton();
-                uc.SetData(page.Buttons[i]);
-
-                int btnIdx = i;
-                uc.EditClicked += (s, ev) =>
+                if (dlg.ShowDialog() == DialogResult.OK)
                 {
-                    var sender_uc = s as UC_DeckButton;
-                    int currentIdx = pnlGrid.Controls.GetChildIndex(sender_uc);
-                    OpenButtonEditor(page, currentIdx);
-                };
-                uc.MouseUp += UC_MouseUp;
-
-                pnlGrid.Controls.Add(uc);
+                    _preview.SetPage(page, _assetsBackgroundsDir, _assetsIconsDir);
+                    UpdatePageList();
+                }
+                else
+                {
+                    // User cancelled: remove the button that was tentatively added
+                    page.Buttons.RemoveAt(newIdx);
+                }
             }
         }
 
-        // ------------------------------------------------------------------
-        // Button editor
-        // ------------------------------------------------------------------
+        private void Preview_ClearButtonRequested(object sender, int btnIdx)
+        {
+            int pageIdx = lstPages.SelectedIndex;
+            if (pageIdx < 0 || pageIdx >= _pcConfig.Pages.Count) return;
+            var page = _pcConfig.Pages[pageIdx];
+            if (btnIdx < 0 || btnIdx >= page.Buttons.Count) return;
+
+            var result = MessageBox.Show(
+                $"Remove button \"{page.Buttons[btnIdx].Label}\"?", "ESDeck PC",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            if (result != DialogResult.Yes) return;
+
+            page.Buttons.RemoveAt(btnIdx);
+            _preview.SetPage(page, _assetsBackgroundsDir, _assetsIconsDir);
+            UpdatePageList();
+        }
 
         private void OpenButtonEditor(PcPage page, int btnIdx)
         {
@@ -125,11 +195,7 @@ namespace ESDeckPC
             using (var dlg = new FormButtonEditor(button))
             {
                 if (dlg.ShowDialog() == DialogResult.OK)
-                {
-                    // refresh the UC_DeckButton
-                    var uc = pnlGrid.Controls[btnIdx] as UC_DeckButton;
-                    uc?.SetData(button);
-                }
+                    _preview.SetPage(page, _assetsBackgroundsDir, _assetsIconsDir);
             }
         }
 
@@ -153,14 +219,12 @@ namespace ESDeckPC
                 string crc = ConfigLoader.SavePair(_pcConfig, folder);
                 string newPcPath = Path.Combine(folder, $"pc_{crc}.json");
 
-                // Write startup.txt so ESP loads the new config on next boot
                 string startupTxt = Path.Combine(folder, "startup.txt");
                 File.WriteAllText(startupTxt, $"esp_{crc}.json", Encoding.ASCII);
 
                 MessageBox.Show($"Saved as pc_{crc}.json / esp_{crc}.json", "Config Editor",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // Open the folder in Explorer
                 Process.Start("explorer.exe", folder);
 
                 this.DialogResult = DialogResult.OK;
@@ -183,267 +247,8 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // Drag & Drop
+        // Page list management (preserved from original)
         // ------------------------------------------------------------------
-
-        private void pnlGrid_DragEnter(object sender, DragEventArgs e)
-        {
-            ClearDragHighlight();
-            if (e.Data.GetDataPresent(typeof(UC_DeckButton)))
-            {
-                _draggedUC = e.Data.GetData(typeof(UC_DeckButton)) as UC_DeckButton;
-                e.Effect = DragDropEffects.Move;
-            }
-            else
-            {
-                e.Effect = DragDropEffects.None;
-            }
-        }
-
-        private void pnlGrid_DragOver(object sender, DragEventArgs e)
-        {
-            if (!e.Data.GetDataPresent(typeof(UC_DeckButton)))
-            {
-                e.Effect = DragDropEffects.None;
-                return;
-            }
-
-            e.Effect = DragDropEffects.Move;
-            Point client = pnlGrid.PointToClient(new Point(e.X, e.Y));
-
-            int newInsert = CalcInsertIndex(client);
-
-            if (newInsert != _insertIndex)
-            {
-                _insertIndex = newInsert;
-                ClearDragHighlight();
-
-                int count = pnlGrid.Controls.Count;
-                if (_insertIndex >= 0 && count > 0)
-                {
-                    // highlight left neighbour
-                    int leftIdx = _insertIndex - 1;
-                    if (leftIdx >= 0 && pnlGrid.Controls[leftIdx] is UC_DeckButton left
-                        && left != _draggedUC)
-                    {
-                        _highlightOrigLeft = left.BackColor;
-                        left.BackColor = Color.FromArgb(60, 100, 140);
-                        _highlightLeft = left;
-                    }
-
-                    // highlight right neighbour
-                    int rightIdx = _insertIndex;
-                    if (rightIdx < count && pnlGrid.Controls[rightIdx] is UC_DeckButton right
-                        && right != _draggedUC)
-                    {
-                        _highlightOrigRight = right.BackColor;
-                        right.BackColor = Color.FromArgb(60, 100, 140);
-                        _highlightRight = right;
-                    }
-                }
-            }
-        }
-
-        private void pnlGrid_DragDrop(object sender, DragEventArgs e)
-        {
-            ClearDragHighlight();
-
-            if (_draggedUC == null || _insertIndex < 0) return;
-
-            int oldIdx = pnlGrid.Controls.GetChildIndex(_draggedUC);
-            int newIdx = _insertIndex;
-
-            if (newIdx == oldIdx || newIdx == oldIdx + 1)
-            {
-                _draggedUC = null;
-                _insertIndex = -1;
-                return;
-            }
-
-            // adjust insert index for removal
-            int modelNew = newIdx > oldIdx ? newIdx - 1 : newIdx;
-
-            // update UI
-            pnlGrid.Controls.SetChildIndex(_draggedUC, modelNew);
-
-            // sync model
-            int pageIdx = lstPages.SelectedIndex;
-            if (pageIdx >= 0)
-            {
-                var buttons = _pcConfig.Pages[pageIdx].Buttons;
-                var item = buttons[oldIdx];
-                buttons.RemoveAt(oldIdx);
-                buttons.Insert(modelNew, item);
-            }
-
-            _draggedUC = null;
-            _insertIndex = -1;
-        }
-
-        private void pnlGrid_DragLeave(object sender, EventArgs e)
-        {
-            ClearDragHighlight();
-            _draggedUC = null;
-            _insertIndex = -1;
-        }
-
-        private UC_DeckButton GetUCAt(Point clientPoint)
-        {
-            foreach (Control c in pnlGrid.Controls)
-            {
-                if (c is UC_DeckButton uc && c.Bounds.Contains(clientPoint))
-                    return uc;
-            }
-            return null;
-        }
-
-        private int CalcInsertIndex(Point client)
-        {
-            int count = pnlGrid.Controls.Count;
-            if (count == 0) return 0;
-
-            for (int i = 0; i < count; i++)
-            {
-                var uc = pnlGrid.Controls[i] as UC_DeckButton;
-                if (uc == null) continue;
-
-                Rectangle b = uc.Bounds;
-                int mid = b.Left + b.Width / 2;
-
-                if (client.Y >= b.Top - 4 && client.Y <= b.Bottom + 4)
-                {
-                    if (client.X < mid)
-                        return i;         // insert before this one
-                    else if (i == count - 1 || client.X < b.Right + 4)
-                        return i + 1;     // insert after this one
-                }
-            }
-
-            // below all controls or to the right of last — append
-            return count;
-        }
-
-        private void ClearDragHighlight()
-        {
-            if (_highlightLeft != null)
-            {
-                _highlightLeft.BackColor = _highlightOrigLeft;
-                _highlightLeft = null;
-            }
-            if (_highlightRight != null)
-            {
-                _highlightRight.BackColor = _highlightOrigRight;
-                _highlightRight = null;
-            }
-        }
-
-        // ------------------------------------------------------------------
-        // Right-click context menu
-        // ------------------------------------------------------------------
-
-        private void pnlGrid_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-
-            Point client = e.Location;
-            UC_DeckButton target = GetUCAt(client);
-
-            if (target == null)
-                ShowGridMenu(e.Location);
-        }
-
-        private void UC_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-
-            var uc = sender as UC_DeckButton;
-            Point pos = uc.PointToScreen(e.Location);
-            Point rel = pnlGrid.PointToClient(pos);
-            ShowButtonMenu(rel, uc);
-        }
-
-        private void ShowGridMenu(Point location)
-        {
-            var menu = new ContextMenuStrip();
-            menu.BackColor = Color.FromArgb(45, 45, 48);
-            menu.ForeColor = Color.FromArgb(220, 220, 220);
-            menu.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
-            menu.ShowImageMargin = false;
-
-            var itemAdd = new ToolStripMenuItem("Add Button");
-            itemAdd.ForeColor = Color.FromArgb(220, 220, 220);
-            itemAdd.Click += (s, e) => AddButton();
-            menu.Items.Add(itemAdd);
-
-            menu.Show(pnlGrid, location);
-        }
-
-        private void ShowButtonMenu(Point location, UC_DeckButton uc)
-        {
-            var menu = new ContextMenuStrip();
-            menu.BackColor = Color.FromArgb(45, 45, 48);
-            menu.ForeColor = Color.FromArgb(220, 220, 220);
-            menu.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
-            menu.ShowImageMargin = false;
-
-            var itemAdd = new ToolStripMenuItem("Add Button");
-            itemAdd.ForeColor = Color.FromArgb(220, 220, 220);
-            itemAdd.Click += (s, e) => AddButton();
-
-            var itemDel = new ToolStripMenuItem("Delete Button");
-            itemDel.ForeColor = Color.FromArgb(220, 80, 80);
-            itemDel.Click += (s, e) => DeleteButton(uc);
-
-            menu.Items.Add(itemAdd);
-            menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(itemDel);
-
-            menu.Show(pnlGrid, location);
-        }
-
-        private void AddButton()
-        {
-            int pageIdx = lstPages.SelectedIndex;
-            if (pageIdx < 0) return;
-
-            var page = _pcConfig.Pages[pageIdx];
-            if (page.Buttons.Count >= 12)
-            {
-                MessageBox.Show("Max 12 buttons per page.", "ESDeck PC",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            var newButton = new PcButton { Label = "New", Action = "launch", Target = "" };
-
-            using (var dlg = new FormButtonEditor(newButton, isNew: true))
-            {
-                if (dlg.ShowDialog() != DialogResult.OK) return;
-            }
-
-            page.Buttons.Add(newButton);
-            BuildGrid(page);
-            UpdatePageList();
-        }
-
-        private void DeleteButton(UC_DeckButton uc)
-        {
-            int pageIdx = lstPages.SelectedIndex;
-            if (pageIdx < 0) return;
-
-            int btnIdx = pnlGrid.Controls.GetChildIndex(uc);
-            if (btnIdx < 0) return;
-
-            var result = MessageBox.Show(
-                $"Delete \"{uc.Button.Label}\"?", "ESDeck PC",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
-            if (result != DialogResult.Yes) return;
-
-            _pcConfig.Pages[pageIdx].Buttons.RemoveAt(btnIdx);
-            BuildGrid(_pcConfig.Pages[pageIdx]);
-            UpdatePageList();
-        }
 
         private void UpdatePageList()
         {
@@ -454,10 +259,6 @@ namespace ESDeckPC
             if (sel >= 0 && sel < lstPages.Items.Count)
                 lstPages.SelectedIndex = sel;
         }
-
-        // ------------------------------------------------------------------
-        // Page right-click menu
-        // ------------------------------------------------------------------
 
         private void lstPages_MouseUp(object sender, MouseEventArgs e)
         {
@@ -471,30 +272,29 @@ namespace ESDeckPC
             menu.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
             menu.ShowImageMargin = false;
 
-            var itemAdd = new ToolStripMenuItem("Add Page");
-            itemAdd.ForeColor = Color.FromArgb(220, 220, 220);
+            var itemAdd = new ToolStripMenuItem("Add Page") { ForeColor = Color.FromArgb(220, 220, 220) };
             itemAdd.Click += (s, ev) => AddPage();
             menu.Items.Add(itemAdd);
 
             if (idx >= 0)
             {
-                var itemRename = new ToolStripMenuItem("Rename");
-                itemRename.ForeColor = Color.FromArgb(220, 220, 220);
+                var itemRename = new ToolStripMenuItem("Rename") { ForeColor = Color.FromArgb(220, 220, 220) };
                 itemRename.Click += (s, ev) => RenamePage(idx);
 
-                var itemBg = new ToolStripMenuItem("Set Background");
-                itemBg.ForeColor = Color.FromArgb(220, 220, 220);
+                var itemBg = new ToolStripMenuItem("Set Background") { ForeColor = Color.FromArgb(220, 220, 220) };
                 itemBg.Click += (s, ev) =>
                 {
                     string name = PromptInput("Set Background", "Image filename (e.g. bg.jpg):",
                         _pcConfig.Pages[idx].BgImage ?? "");
                     if (name == null) return;
                     _pcConfig.Pages[idx].BgImage = name.Trim();
+                    int sel = lstPages.SelectedIndex;
+                    if (sel == idx)
+                        _preview.SetPage(_pcConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
                 };
                 menu.Items.Add(itemBg);
 
-                var itemDel = new ToolStripMenuItem("Delete Page");
-                itemDel.ForeColor = Color.FromArgb(220, 80, 80);
+                var itemDel = new ToolStripMenuItem("Delete Page") { ForeColor = Color.FromArgb(220, 80, 80) };
                 itemDel.Click += (s, ev) => DeletePage(idx);
 
                 menu.Items.Add(new ToolStripSeparator());
@@ -502,16 +302,14 @@ namespace ESDeckPC
 
                 if (idx > 0)
                 {
-                    var itemUp = new ToolStripMenuItem("Move Up");
-                    itemUp.ForeColor = Color.FromArgb(220, 220, 220);
+                    var itemUp = new ToolStripMenuItem("Move Up") { ForeColor = Color.FromArgb(220, 220, 220) };
                     itemUp.Click += (s, ev) => MovePage(idx, idx - 1);
                     menu.Items.Add(itemUp);
                 }
 
                 if (idx < _pcConfig.Pages.Count - 1)
                 {
-                    var itemDown = new ToolStripMenuItem("Move Down");
-                    itemDown.ForeColor = Color.FromArgb(220, 220, 220);
+                    var itemDown = new ToolStripMenuItem("Move Down") { ForeColor = Color.FromArgb(220, 220, 220) };
                     itemDown.Click += (s, ev) => MovePage(idx, idx + 1);
                     menu.Items.Add(itemDown);
                 }
@@ -527,7 +325,6 @@ namespace ESDeckPC
         {
             string name = PromptInput("Add Page", "Page name:");
             if (string.IsNullOrWhiteSpace(name)) return;
-
             _pcConfig.Pages.Add(new PcPage { Name = name });
             UpdatePageList();
             lstPages.SelectedIndex = lstPages.Items.Count - 1;
@@ -537,7 +334,6 @@ namespace ESDeckPC
         {
             string name = PromptInput("Rename Page", "New name:", _pcConfig.Pages[idx].Name);
             if (string.IsNullOrWhiteSpace(name)) return;
-
             _pcConfig.Pages[idx].Name = name;
             UpdatePageList();
             lstPages.SelectedIndex = idx;
@@ -555,7 +351,6 @@ namespace ESDeckPC
             var result = MessageBox.Show(
                 $"Delete page \"{_pcConfig.Pages[idx].Name}\"?", "ESDeck PC",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
             if (result != DialogResult.Yes) return;
 
             _pcConfig.Pages.RemoveAt(idx);
@@ -590,6 +385,10 @@ namespace ESDeckPC
             lstPages.SelectedIndex = newIdx;
         }
 
+        // ------------------------------------------------------------------
+        // Helpers
+        // ------------------------------------------------------------------
+
         private string PromptInput(string title, string label, string defaultValue = "")
         {
             Form prompt = new Form
@@ -608,13 +407,7 @@ namespace ESDeckPC
             int value = 1;
             DwmSetWindowAttribute(prompt.Handle, 20, ref value, sizeof(int));
 
-            var lbl = new Label
-            {
-                Text = label,
-                Location = new Point(12, 12),
-                AutoSize = true,
-                ForeColor = Color.Gray
-            };
+            var lbl = new Label { Text = label, Location = new Point(12, 12), AutoSize = true, ForeColor = Color.Gray };
             var txt = new TextBox
             {
                 Text = defaultValue,
@@ -641,18 +434,6 @@ namespace ESDeckPC
             prompt.AcceptButton = btn;
 
             return prompt.ShowDialog() == DialogResult.OK ? txt.Text.Trim() : null;
-        }
-
-        [DllImport("dwmapi.dll")]
-        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-
-        protected override void OnHandleCreated(EventArgs e)
-        {
-            base.OnHandleCreated(e);
-            int value = 1;
-            DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
         }
     }
 }
