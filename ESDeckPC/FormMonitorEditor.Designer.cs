@@ -21,6 +21,7 @@
             this.flpPages = new System.Windows.Forms.FlowLayoutPanel();
             this.button1 = new System.Windows.Forms.Button();
             this.grpJson = new System.Windows.Forms.GroupBox();
+            this.btnJsonSaveAs = new System.Windows.Forms.Button();
             this.lblJsonPath = new System.Windows.Forms.Label();
             this.btnJsonNew = new System.Windows.Forms.Button();
             this.btnJsonOpen = new System.Windows.Forms.Button();
@@ -30,7 +31,6 @@
             this.pnlPreview = new System.Windows.Forms.Panel();
             this.picPreview = new System.Windows.Forms.PictureBox();
             this.lblStatus = new System.Windows.Forms.Label();
-            this.btnJsonSaveAs = new System.Windows.Forms.Button();
             this.TLPanel_FULL.SuspendLayout();
             this.paneltop.SuspendLayout();
             this.flpPages.SuspendLayout();
@@ -106,6 +106,14 @@
             this.grpJson.TabIndex = 3;
             this.grpJson.TabStop = false;
             this.grpJson.Text = "JSON";
+            // 
+            // btnJsonSaveAs
+            // 
+            this.btnJsonSaveAs.Location = new System.Drawing.Point(206, 42);
+            this.btnJsonSaveAs.Name = "btnJsonSaveAs";
+            this.btnJsonSaveAs.Size = new System.Drawing.Size(84, 26);
+            this.btnJsonSaveAs.TabIndex = 4;
+            this.btnJsonSaveAs.Text = "Save As";
             // 
             // lblJsonPath
             // 
@@ -201,14 +209,6 @@
             this.lblStatus.Text = "No font loaded";
             this.lblStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
-            // btnJsonSaveAs
-            // 
-            this.btnJsonSaveAs.Location = new System.Drawing.Point(206, 42);
-            this.btnJsonSaveAs.Name = "btnJsonSaveAs";
-            this.btnJsonSaveAs.Size = new System.Drawing.Size(84, 26);
-            this.btnJsonSaveAs.TabIndex = 4;
-            this.btnJsonSaveAs.Text = "Save As";
-            // 
             // FormMonitorEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -218,6 +218,8 @@
             this.Controls.Add(this.TLPanel_FULL);
             this.Font = new System.Drawing.Font("Consolas", 9F);
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.MinimizeBox = false;
             this.MinimumSize = new System.Drawing.Size(820, 580);
             this.Name = "FormMonitorEditor";
             this.Text = "Monitor Editor";
