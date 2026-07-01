@@ -65,6 +65,9 @@ namespace ESDeckPC
         /// <summary>Fired after a drag-reorder completes; buttons list already reordered.</summary>
         public event EventHandler ReorderCompleted;
 
+        /// <summary>Fired when the user left-clicks a button (for preview action execution).</summary>
+        public event EventHandler<int> ButtonClicked;
+
         // ------------------------------------------------------------------
         // Constructor
         // ------------------------------------------------------------------
@@ -272,10 +275,27 @@ namespace ESDeckPC
 
             if (e.Button == MouseButtons.Left && _dragIndex >= 0)
             {
+                int dx = Math.Abs(e.X - _dragStartPoint.X);
+                int dy = Math.Abs(e.Y - _dragStartPoint.Y);
+                bool wasDrag = dx >= SystemInformation.DragSize.Width ||
+                               dy >= SystemInformation.DragSize.Height;
+
+                if (!wasDrag)
+                {
+                    // Short click, not a drag: fire ButtonClicked
+                    int idx = HitTest(e.Location);
+                    if (idx >= 0)
+                        ButtonClicked?.Invoke(this, idx);
+
+                    _dragIndex = -1;
+                    _dropInsertIndex = -1;
+                    Invalidate();
+                    return;
+                }
+
                 int insertIdx = FindDropIndex(e.Location);
                 if (insertIdx >= 0 && _page?.Buttons != null)
                 {
-                    // Adjust insertion index for the removal of the dragged item
                     int adjustedInsert = insertIdx > _dragIndex ? insertIdx - 1 : insertIdx;
                     adjustedInsert = Math.Max(0, Math.Min(adjustedInsert, _page.Buttons.Count - 1));
 

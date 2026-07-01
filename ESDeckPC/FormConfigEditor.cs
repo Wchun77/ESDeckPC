@@ -75,6 +75,7 @@ namespace ESDeckPC
             _preview.AddButtonRequested += Preview_AddButtonRequested;
             _preview.ClearButtonRequested += Preview_ClearButtonRequested;
             _preview.ReorderCompleted += (s, e) => UpdatePageList();
+            _preview.ButtonClicked += Preview_ButtonClicked;
 
             lstPages.SelectedIndexChanged += lstPages_SelectedIndexChanged;
             lstPages.MouseUp += lstPages_MouseUp;
@@ -187,6 +188,54 @@ namespace ESDeckPC
             page.Buttons.RemoveAt(btnIdx);
             _preview.SetPage(page, _assetsBackgroundsDir, _assetsIconsDir);
             UpdatePageList();
+        }
+
+        private void Preview_ButtonClicked(object sender, int btnIdx)
+        {
+            int pageIdx = lstPages.SelectedIndex;
+            if (pageIdx < 0 || pageIdx >= _pcConfig.Pages.Count) return;
+            var page = _pcConfig.Pages[pageIdx];
+            if (btnIdx < 0 || btnIdx >= page.Buttons.Count) return;
+
+            var button = page.Buttons[btnIdx];
+            string action = button.Action?.ToLower();
+
+            switch (action)
+            {
+                case "launch":
+                case "media":
+                case "discord":
+                    // Execute via ActionExecutor using 1-based page/btn index
+                    string result = ActionExecutor.Run(_pcConfig, (byte)(pageIdx + 1), (byte)(btnIdx + 1));
+                    if (result != null && result.Contains("failed"))
+                    {
+                        MessageBox.Show(result, "Action failed",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    break;
+
+                case "hotkey":
+                case "sequence":
+                case "scroll":
+                case "text":
+                    MessageBox.Show(
+                        $"Action \"{button.Action}\" is not supported in preview mode.",
+                        "Not supported",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    break;
+
+                default:
+                    if (!string.IsNullOrEmpty(action))
+                    {
+                        MessageBox.Show(
+                            $"Unknown action \"{button.Action}\".",
+                            "Not supported",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                    }
+                    break;
+            }
         }
 
         private void OpenButtonEditor(PcPage page, int btnIdx)
