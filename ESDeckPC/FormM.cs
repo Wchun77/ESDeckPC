@@ -315,6 +315,11 @@ namespace ESDeckPC
             new FormFontBuilder().Show();
         }
 
+        private void tsMenuImageBg_Click(object sender, EventArgs e)
+        {
+            new FormBgImporter().Show();
+        }
+
         // ------------------------------------------------------------------
         // Discord status update
         // ------------------------------------------------------------------

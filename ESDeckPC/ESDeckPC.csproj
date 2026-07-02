@@ -74,6 +74,12 @@
     </Compile>
     <Compile Include="Discordrpcclient.cs" />
     <Compile Include="FontBinLoader.cs" />
+    <Compile Include="FormBgImporter.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormBgImporter.Designer.cs">
+      <DependentUpon>FormBgImporter.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormButtonEditor.cs">
       <SubType>Form</SubType>
     </Compile>

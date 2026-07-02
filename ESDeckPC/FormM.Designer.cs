@@ -48,6 +48,8 @@
             this.trayMenuOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.trayMenuSep = new System.Windows.Forms.ToolStripSeparator();
             this.trayMenuExit = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuImage = new System.Windows.Forms.ToolStripDropDownButton();
+            this.tsMenuImageBg = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
@@ -68,6 +70,7 @@
             this.tsMenuDeck,
             this.tsMenuMonitor,
             this.tsMenuDiscord,
+            this.tsMenuImage,
             this.tsSep1,
             this.tsBtnClearLog});
             this.toolStrip.Location = new System.Drawing.Point(0, 0);
@@ -373,6 +376,23 @@
             this.trayMenuExit.Text = "Exit";
             this.trayMenuExit.Click += new System.EventHandler(this.trayMenuExit_Click);
             // 
+            // tsMenuImage
+            // 
+            this.tsMenuImage.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsMenuImageBg});
+            this.tsMenuImage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.tsMenuImage.Name = "tsMenuImage";
+            this.tsMenuImage.ShowDropDownArrow = false;
+            this.tsMenuImage.Size = new System.Drawing.Size(47, 22);
+            this.tsMenuImage.Text = "Image";
+            // 
+            // tsMenuImageBg
+            // 
+            this.tsMenuImageBg.Name = "tsMenuImageBg";
+            this.tsMenuImageBg.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuImageBg.Text = "Background";
+            this.tsMenuImageBg.Click += new System.EventHandler(this.tsMenuImageBg_Click);
+            // 
             // FormM
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -440,5 +460,7 @@
         private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsEdit;
         private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsReload;
         private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsOpenFolder;
+        private System.Windows.Forms.ToolStripDropDownButton tsMenuImage;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuImageBg;
     }
 }
