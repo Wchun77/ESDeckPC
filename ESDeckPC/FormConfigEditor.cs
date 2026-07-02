@@ -17,6 +17,11 @@ namespace ESDeckPC
         private string _assetsBackgroundsDir = null;
         private string _assetsIconsDir = null;
 
+        /// <summary>
+        /// Fired after a successful save. Argument is the new PC JSON path.
+        /// </summary>
+        public event EventHandler<string> ConfigSaved;
+
         private DeckPreviewPanel _preview;
 
         [DllImport("dwmapi.dll")]
@@ -255,19 +260,37 @@ namespace ESDeckPC
 
         private void btnSave_Click(object sender, EventArgs e)
         {
-            var confirm = MessageBox.Show(
-                "Save and overwrite? New files will be generated.",
-                "Config Editor",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
-
-            if (confirm != DialogResult.Yes) return;
-
             try
             {
                 string folder = Path.GetDirectoryName(_pcPath);
-                string crc = ConfigLoader.SavePair(_pcConfig, folder);
+
+                // Pre-calculate CRC the same way SavePair does, so we can
+                // check for existing files before committing the write.
+                string pcJson = Newtonsoft.Json.JsonConvert.SerializeObject(
+                    _pcConfig, Newtonsoft.Json.Formatting.Indented);
+                string crc = ConfigLoader.Crc16(pcJson).ToString("X4");
+
                 string newPcPath = Path.Combine(folder, $"pc_{crc}.json");
+                string newEspPath = Path.Combine(folder, $"esp_{crc}.json");
+                bool pcExists = File.Exists(newPcPath);
+                bool espExists = File.Exists(newEspPath);
+
+                if (pcExists || espExists)
+                {
+                    string existing = (pcExists && espExists)
+                        ? $"pc_{crc}.json and esp_{crc}.json"
+                        : pcExists ? $"pc_{crc}.json" : $"esp_{crc}.json";
+
+                    var confirm = MessageBox.Show(
+                        $"{existing} already exist.\n\nOverwrite?",
+                        "Config Editor",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning);
+
+                    if (confirm != DialogResult.Yes) return;
+                }
+
+                ConfigLoader.SavePair(_pcConfig, folder);
 
                 string startupTxt = Path.Combine(folder, "startup.txt");
                 File.WriteAllText(startupTxt, $"esp_{crc}.json", Encoding.ASCII);
@@ -277,8 +300,7 @@ namespace ESDeckPC
 
                 Process.Start("explorer.exe", folder);
 
-                this.DialogResult = DialogResult.OK;
-                this.Tag = newPcPath;
+                ConfigSaved?.Invoke(this, newPcPath);
                 this.Close();
             }
             catch (Exception ex)
@@ -295,7 +317,6 @@ namespace ESDeckPC
             if (result == DialogResult.Yes)
                 this.Close();
         }
-
         // ------------------------------------------------------------------
         // Page list management (preserved from original)
         // ------------------------------------------------------------------

@@ -17,11 +17,6 @@
         {
             this.components = new System.ComponentModel.Container();
             this.toolStrip = new System.Windows.Forms.ToolStrip();
-            this.tsBtnOpen = new System.Windows.Forms.ToolStripButton();
-            this.tsBtnEdit = new System.Windows.Forms.ToolStripButton();
-            this.tsMenuSettings = new System.Windows.Forms.ToolStripDropDownButton();
-            this.tsMenuSettingsReload = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsMenuSettingsCfgFolder = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuDiscord = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuDiscordReconnect = new System.Windows.Forms.ToolStripMenuItem();
             this.TsBtnMonitor = new System.Windows.Forms.ToolStripDropDownButton();
@@ -48,6 +43,11 @@
             this.trayMenuOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.trayMenuSep = new System.Windows.Forms.ToolStripSeparator();
             this.trayMenuExit = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripDropDownButton1 = new System.Windows.Forms.ToolStripDropDownButton();
+            this.tsMenuSettingsLoad = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuSettingsEdit = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuSettingsReload = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuSettingsOpenFolder = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
@@ -65,58 +65,15 @@
             this.toolStrip.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.toolStrip.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsBtnOpen,
-            this.tsBtnEdit,
-            this.tsMenuSettings,
-            this.tsMenuDiscord,
+            this.toolStripDropDownButton1,
             this.TsBtnMonitor,
+            this.tsMenuDiscord,
             this.tsSep1,
             this.tsBtnClearLog});
             this.toolStrip.Location = new System.Drawing.Point(0, 0);
             this.toolStrip.Name = "toolStrip";
             this.toolStrip.Size = new System.Drawing.Size(860, 25);
             this.toolStrip.TabIndex = 0;
-            // 
-            // tsBtnOpen
-            // 
-            this.tsBtnOpen.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.tsBtnOpen.Name = "tsBtnOpen";
-            this.tsBtnOpen.Size = new System.Drawing.Size(43, 22);
-            this.tsBtnOpen.Text = "Open";
-            // 
-            // tsBtnEdit
-            // 
-            this.tsBtnEdit.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.tsBtnEdit.Name = "tsBtnEdit";
-            this.tsBtnEdit.Size = new System.Drawing.Size(33, 22);
-            this.tsBtnEdit.Text = "Edit";
-            this.tsBtnEdit.Click += new System.EventHandler(this.tsBtnEdit_Click);
-            // 
-            // tsMenuSettings
-            // 
-            this.tsMenuSettings.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsMenuSettingsReload,
-            this.tsMenuSettingsCfgFolder});
-            this.tsMenuSettings.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.tsMenuSettings.Name = "tsMenuSettings";
-            this.tsMenuSettings.ShowDropDownArrow = false;
-            this.tsMenuSettings.Size = new System.Drawing.Size(56, 22);
-            this.tsMenuSettings.Text = "Settings";
-            // 
-            // tsMenuSettingsReload
-            // 
-            this.tsMenuSettingsReload.Enabled = false;
-            this.tsMenuSettingsReload.Name = "tsMenuSettingsReload";
-            this.tsMenuSettingsReload.Size = new System.Drawing.Size(131, 22);
-            this.tsMenuSettingsReload.Text = "Reload";
-            this.tsMenuSettingsReload.Click += new System.EventHandler(this.tsMenuSettingsReload_Click);
-            // 
-            // tsMenuSettingsCfgFolder
-            // 
-            this.tsMenuSettingsCfgFolder.Name = "tsMenuSettingsCfgFolder";
-            this.tsMenuSettingsCfgFolder.Size = new System.Drawing.Size(131, 22);
-            this.tsMenuSettingsCfgFolder.Text = "cfg Folder";
-            this.tsMenuSettingsCfgFolder.Click += new System.EventHandler(this.tsMenuSettingsCfgFolder_Click);
             // 
             // tsMenuDiscord
             // 
@@ -131,7 +88,7 @@
             // tsMenuDiscordReconnect
             // 
             this.tsMenuDiscordReconnect.Name = "tsMenuDiscordReconnect";
-            this.tsMenuDiscordReconnect.Size = new System.Drawing.Size(134, 22);
+            this.tsMenuDiscordReconnect.Size = new System.Drawing.Size(180, 22);
             this.tsMenuDiscordReconnect.Text = "Reconnect";
             this.tsMenuDiscordReconnect.Click += new System.EventHandler(this.tsMenuDiscordReconnect_Click);
             // 
@@ -374,6 +331,48 @@
             this.trayMenuExit.Text = "Exit";
             this.trayMenuExit.Click += new System.EventHandler(this.trayMenuExit_Click);
             // 
+            // toolStripDropDownButton1
+            // 
+            this.toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsMenuSettingsLoad,
+            this.tsMenuSettingsEdit,
+            this.tsMenuSettingsReload,
+            this.tsMenuSettingsOpenFolder});
+            this.toolStripDropDownButton1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.toolStripDropDownButton1.Name = "toolStripDropDownButton1";
+            this.toolStripDropDownButton1.ShowDropDownArrow = false;
+            this.toolStripDropDownButton1.Size = new System.Drawing.Size(39, 22);
+            this.toolStripDropDownButton1.Text = "Deck";
+            // 
+            // tsMenuSettingsLoad
+            // 
+            this.tsMenuSettingsLoad.Name = "tsMenuSettingsLoad";
+            this.tsMenuSettingsLoad.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuSettingsLoad.Text = "Load";
+            this.tsMenuSettingsLoad.Click += new System.EventHandler(this.tsMenuSettingsLoad_Click);
+            // 
+            // tsMenuSettingsEdit
+            // 
+            this.tsMenuSettingsEdit.Name = "tsMenuSettingsEdit";
+            this.tsMenuSettingsEdit.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuSettingsEdit.Text = "Edit";
+            this.tsMenuSettingsEdit.Click += new System.EventHandler(this.tsMenuSettingsEdit_Click);
+            // 
+            // tsMenuSettingsReload
+            // 
+            this.tsMenuSettingsReload.Enabled = false;
+            this.tsMenuSettingsReload.Name = "tsMenuSettingsReload";
+            this.tsMenuSettingsReload.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuSettingsReload.Text = "Reload";
+            this.tsMenuSettingsReload.Click += new System.EventHandler(this.tsMenuSettingsReload_Click);
+            // 
+            // tsMenuSettingsOpenFolder
+            // 
+            this.tsMenuSettingsOpenFolder.Name = "tsMenuSettingsOpenFolder";
+            this.tsMenuSettingsOpenFolder.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuSettingsOpenFolder.Text = "Open Folder";
+            this.tsMenuSettingsOpenFolder.Click += new System.EventHandler(this.tsMenuSettingsOpenFolder_Click);
+            // 
             // FormM
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -410,11 +409,6 @@
         #endregion
 
         private System.Windows.Forms.ToolStrip toolStrip;
-        private System.Windows.Forms.ToolStripButton tsBtnOpen;
-        private System.Windows.Forms.ToolStripButton tsBtnEdit;
-        private System.Windows.Forms.ToolStripDropDownButton tsMenuSettings;
-        private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsReload;
-        private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsCfgFolder;
         private System.Windows.Forms.ToolStripDropDownButton tsMenuDiscord;
         private System.Windows.Forms.ToolStripMenuItem tsMenuDiscordReconnect;
         private System.Windows.Forms.ToolStripSeparator tsSep1;
@@ -441,5 +435,10 @@
         private System.Windows.Forms.ToolStripDropDownButton TsBtnMonitor;
         private System.Windows.Forms.ToolStripMenuItem tsMenuMonitorEdit;
         private System.Windows.Forms.ToolStripMenuItem tsMenuFontBuilder;
+        private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton1;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsLoad;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsEdit;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsReload;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsOpenFolder;
     }
 }

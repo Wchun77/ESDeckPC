@@ -48,7 +48,6 @@ namespace ESDeckPC
             _monitor = new MonitorSender(_receiver);
             _monitor.OnLog += msg => AppendLog(msg, Color.CornflowerBlue);
 
-            tsBtnOpen.Click += tsBtnOpen_Click;
             tsBtnClearLog.Click += tsBtnClearLog_Click;
 
             notifyIcon.Icon = this.Icon ?? SystemIcons.Application;
@@ -174,16 +173,17 @@ namespace ESDeckPC
         // Toolbar handlers
         // ------------------------------------------------------------------
 
-        private void tsBtnOpen_Click(object sender, EventArgs e)
+        private void tsMenuSettingsLoad_Click(object sender, EventArgs e)
         {
             using (var dlg = new OpenFileDialog())
             {
                 dlg.Title = "Open PC JSON";
                 dlg.Filter = "JSON files (*.json)|*.json";
 
-                if (!string.IsNullOrEmpty(Properties.Settings.Default.LastPcJson))
-                    dlg.InitialDirectory =
-                        Path.GetDirectoryName(Properties.Settings.Default.LastPcJson);
+                string cfgDir = Path.Combine(
+                    Path.GetDirectoryName(Application.ExecutablePath), "cfg");
+                if (Directory.Exists(cfgDir))
+                    dlg.InitialDirectory = cfgDir;
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
                 LoadConfig(dlg.FileName);
@@ -195,7 +195,7 @@ namespace ESDeckPC
             txtLog.Clear();
         }
 
-        private void tsBtnEdit_Click(object sender, EventArgs e)
+        private void tsMenuSettingsEdit_Click(object sender, EventArgs e)
         {
             string pcPath = null;
             string espPath = null;
@@ -205,9 +205,10 @@ namespace ESDeckPC
                 dlg.Title = "Open PC JSON";
                 dlg.Filter = "JSON files (*.json)|*.json";
 
-                if (!string.IsNullOrEmpty(Properties.Settings.Default.LastPcJson))
-                    dlg.InitialDirectory =
-                        Path.GetDirectoryName(Properties.Settings.Default.LastPcJson);
+                string cfgDir = Path.Combine(
+                    Path.GetDirectoryName(Application.ExecutablePath), "cfg");
+                if (Directory.Exists(cfgDir))
+                    dlg.InitialDirectory = cfgDir;
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
                 pcPath = dlg.FileName;
@@ -253,12 +254,12 @@ namespace ESDeckPC
             {
                 var pcConfig = ConfigLoader.LoadPc(pcPath);
                 var editor = new FormConfigEditor(pcConfig, pcPath, espPath);
-                if (editor.ShowDialog() == DialogResult.OK)
+                editor.ConfigSaved += (s, newPath) =>
                 {
-                    string newPath = editor.Tag as string;
                     if (!string.IsNullOrEmpty(newPath))
                         LoadConfig(newPath);
-                }
+                };
+                editor.Show();
             }
             catch (Exception ex)
             {
@@ -276,7 +277,7 @@ namespace ESDeckPC
             LoadConfig(_pcJsonPath);
         }
 
-        private void tsMenuSettingsCfgFolder_Click(object sender, EventArgs e)
+        private void tsMenuSettingsOpenFolder_Click(object sender, EventArgs e)
         {
             string exeDir = AppDomain.CurrentDomain.BaseDirectory;
             string cfgFolder = Path.Combine(exeDir, "cfg");
