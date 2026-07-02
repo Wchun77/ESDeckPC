@@ -23,108 +23,127 @@
             this.cmbAction = new System.Windows.Forms.ComboBox();
             this.pnlDynamic = new System.Windows.Forms.Panel();
             this.pnlBottom = new System.Windows.Forms.Panel();
-            this.btnOK = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
+            this.btnOK = new System.Windows.Forms.Button();
             this.pnlBottom.SuspendLayout();
             this.SuspendLayout();
-
+            // 
             // lblLabelTag
+            // 
             this.lblLabelTag.AutoSize = true;
             this.lblLabelTag.ForeColor = System.Drawing.Color.Gray;
             this.lblLabelTag.Location = new System.Drawing.Point(16, 16);
             this.lblLabelTag.Name = "lblLabelTag";
+            this.lblLabelTag.Size = new System.Drawing.Size(42, 14);
+            this.lblLabelTag.TabIndex = 0;
             this.lblLabelTag.Text = "Label";
-
+            // 
             // txtLabel
+            // 
+            this.txtLabel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.txtLabel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.txtLabel.Location = new System.Drawing.Point(16, 32);
             this.txtLabel.Name = "txtLabel";
             this.txtLabel.Size = new System.Drawing.Size(352, 22);
             this.txtLabel.TabIndex = 0;
-            this.txtLabel.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
-            this.txtLabel.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            this.txtLabel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-
+            // 
             // lblIconTag
+            // 
             this.lblIconTag.AutoSize = true;
             this.lblIconTag.ForeColor = System.Drawing.Color.Gray;
             this.lblIconTag.Location = new System.Drawing.Point(16, 64);
             this.lblIconTag.Name = "lblIconTag";
+            this.lblIconTag.Size = new System.Drawing.Size(112, 14);
+            this.lblIconTag.TabIndex = 1;
             this.lblIconTag.Text = "Icon (filename)";
-
+            // 
             // txtIcon
+            // 
+            this.txtIcon.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.txtIcon.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtIcon.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.txtIcon.Location = new System.Drawing.Point(16, 80);
             this.txtIcon.Name = "txtIcon";
             this.txtIcon.Size = new System.Drawing.Size(352, 22);
             this.txtIcon.TabIndex = 1;
-            this.txtIcon.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
-            this.txtIcon.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            this.txtIcon.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-
+            // 
             // lblActionTag
+            // 
             this.lblActionTag.AutoSize = true;
             this.lblActionTag.ForeColor = System.Drawing.Color.Gray;
             this.lblActionTag.Location = new System.Drawing.Point(16, 112);
             this.lblActionTag.Name = "lblActionTag";
+            this.lblActionTag.Size = new System.Drawing.Size(49, 14);
+            this.lblActionTag.TabIndex = 2;
             this.lblActionTag.Text = "Action";
-
+            // 
             // cmbAction
+            // 
+            this.cmbAction.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.cmbAction.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbAction.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbAction.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.cmbAction.Location = new System.Drawing.Point(16, 128);
             this.cmbAction.Name = "cmbAction";
             this.cmbAction.Size = new System.Drawing.Size(352, 22);
             this.cmbAction.TabIndex = 2;
-            this.cmbAction.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
-            this.cmbAction.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            this.cmbAction.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.cmbAction.Items.AddRange(new object[] { "launch", "hotkey", "media", "discord", "scroll", "sequence", "text" });
-
-            // pnlDynamic - filled at runtime based on action type
+            // 
+            // pnlDynamic
+            // 
+            this.pnlDynamic.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.pnlDynamic.Location = new System.Drawing.Point(16, 160);
             this.pnlDynamic.Name = "pnlDynamic";
             this.pnlDynamic.Size = new System.Drawing.Size(352, 100);
             this.pnlDynamic.TabIndex = 3;
-            this.pnlDynamic.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
-
+            // 
             // pnlBottom
+            // 
+            this.pnlBottom.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlBottom.Controls.Add(this.btnCancel);
             this.pnlBottom.Controls.Add(this.btnOK);
             this.pnlBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlBottom.Location = new System.Drawing.Point(0, 270);
             this.pnlBottom.Name = "pnlBottom";
+            this.pnlBottom.Padding = new System.Windows.Forms.Padding(8, 6, 8, 6);
             this.pnlBottom.Size = new System.Drawing.Size(384, 40);
             this.pnlBottom.TabIndex = 4;
-            this.pnlBottom.BackColor = System.Drawing.Color.FromArgb(45, 45, 48);
-            this.pnlBottom.Padding = new System.Windows.Forms.Padding(8, 6, 8, 6);
-
-            // btnOK
-            this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnOK.Font = new System.Drawing.Font("Consolas", 9F);
-            this.btnOK.Location = new System.Drawing.Point(210, 6);
-            this.btnOK.Name = "btnOK";
-            this.btnOK.Size = new System.Drawing.Size(80, 26);
-            this.btnOK.TabIndex = 0;
-            this.btnOK.Text = "OK";
-            this.btnOK.BackColor = System.Drawing.Color.FromArgb(0, 122, 204);
-            this.btnOK.ForeColor = System.Drawing.Color.White;
-            this.btnOK.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnOK.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(0, 100, 180);
-
+            // 
             // btnCancel
+            // 
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnCancel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(62)))), ((int)(((byte)(66)))));
+            this.btnCancel.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
+            this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCancel.Font = new System.Drawing.Font("Consolas", 9F);
+            this.btnCancel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.btnCancel.Location = new System.Drawing.Point(296, 6);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(80, 26);
             this.btnCancel.TabIndex = 1;
             this.btnCancel.Text = "Cancel";
-            this.btnCancel.BackColor = System.Drawing.Color.FromArgb(62, 62, 66);
-            this.btnCancel.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
-            this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnCancel.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(80, 80, 80);
-
+            this.btnCancel.UseVisualStyleBackColor = false;
+            // 
+            // btnOK
+            // 
+            this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnOK.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
+            this.btnOK.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(100)))), ((int)(((byte)(180)))));
+            this.btnOK.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnOK.Font = new System.Drawing.Font("Consolas", 9F);
+            this.btnOK.ForeColor = System.Drawing.Color.White;
+            this.btnOK.Location = new System.Drawing.Point(210, 6);
+            this.btnOK.Name = "btnOK";
+            this.btnOK.Size = new System.Drawing.Size(80, 26);
+            this.btnOK.TabIndex = 0;
+            this.btnOK.Text = "OK";
+            this.btnOK.UseVisualStyleBackColor = false;
+            // 
             // FormButtonEditor
+            // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.ClientSize = new System.Drawing.Size(384, 310);
             this.Controls.Add(this.lblLabelTag);
             this.Controls.Add(this.txtLabel);
@@ -135,7 +154,7 @@
             this.Controls.Add(this.pnlDynamic);
             this.Controls.Add(this.pnlBottom);
             this.Font = new System.Drawing.Font("Consolas", 9F);
-            this.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
+            this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -144,6 +163,7 @@
             this.pnlBottom.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
+
         }
 
         #endregion

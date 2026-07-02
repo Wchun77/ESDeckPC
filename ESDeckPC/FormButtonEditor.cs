@@ -31,12 +31,15 @@ namespace ESDeckPC
 
         // scroll
         private ComboBox _dynCmbScrollTarget;
-        private Label    _dynLblAmount;
-        private TextBox  _dynTxtAmount;
+        private Label _dynLblAmount;
+        private TextBox _dynTxtAmount;
 
         // sequence
-        private Label   _dynLblSequenceKeys;
+        private Label _dynLblSequenceKeys;
         private TextBox _dynTxtSequenceKeys;
+
+        // mouse_click
+        private ComboBox _dynCmbClickType;
 
         public FormButtonEditor(PcButton button, bool isNew = false)
         {
@@ -49,7 +52,17 @@ namespace ESDeckPC
             txtLabel.Text = button.Label ?? "";
             txtIcon.Text = button.Icon ?? "";
 
+            // Populate action list here so adding new actions only requires
+            // editing this file, not the Designer.
+            cmbAction.Items.Clear();
+            cmbAction.Items.AddRange(new object[]
+            {
+                "launch", "hotkey", "media", "discord",
+                "scroll", "sequence", "text", "mouse_click",
+            });
+
             cmbAction.SelectedItem = button.Action ?? "launch";
+            if (cmbAction.SelectedIndex < 0) cmbAction.SelectedIndex = 0;
             cmbAction.SelectedIndexChanged += cmbAction_SelectedIndexChanged;
 
             btnOK.Click += btnOK_Click;
@@ -81,6 +94,7 @@ namespace ESDeckPC
             _dynTxtAmount = null;
             _dynLblSequenceKeys = null;
             _dynTxtSequenceKeys = null;
+            _dynCmbClickType = null;
 
             switch (action?.ToLower())
             {
@@ -162,12 +176,12 @@ namespace ESDeckPC
                     _dynCmbScrollTarget = new ComboBox
                     {
                         DropDownStyle = ComboBoxStyle.DropDownList,
-                        Location      = new Point(0, 16),
-                        Size          = new Size(352, 22),
-                        BackColor     = System.Drawing.Color.FromArgb(45, 45, 48),
-                        ForeColor     = System.Drawing.Color.FromArgb(220, 220, 220),
-                        FlatStyle     = FlatStyle.Flat,
-                        Font          = this.Font,
+                        Location = new Point(0, 16),
+                        Size = new Size(352, 22),
+                        BackColor = System.Drawing.Color.FromArgb(45, 45, 48),
+                        ForeColor = System.Drawing.Color.FromArgb(220, 220, 220),
+                        FlatStyle = FlatStyle.Flat,
+                        Font = this.Font,
                     };
                     _dynCmbScrollTarget.Items.AddRange(new object[] { "up", "down", "left", "right" });
                     _dynCmbScrollTarget.SelectedItem = _button.Target ?? "up";
@@ -178,8 +192,8 @@ namespace ESDeckPC
 
                     _dynTxtAmount = MakeTextBox();
                     _dynTxtAmount.Location = new Point(0, 64);
-                    _dynTxtAmount.Size     = new Size(120, 22);
-                    _dynTxtAmount.Text     = _button.Amount.HasValue
+                    _dynTxtAmount.Size = new Size(120, 22);
+                    _dynTxtAmount.Text = _button.Amount.HasValue
                         ? _button.Amount.Value.ToString() : "";
 
                     pnlDynamic.Controls.Add(_dynLabel);
@@ -193,9 +207,9 @@ namespace ESDeckPC
                     _dynLblSequenceKeys.Location = new Point(0, 0);
 
                     _dynTxtSequenceKeys = MakeTextBox();
-                    _dynTxtSequenceKeys.Location  = new Point(0, 16);
-                    _dynTxtSequenceKeys.Size       = new Size(352, 80);
-                    _dynTxtSequenceKeys.Multiline  = true;
+                    _dynTxtSequenceKeys.Location = new Point(0, 16);
+                    _dynTxtSequenceKeys.Size = new Size(352, 80);
+                    _dynTxtSequenceKeys.Multiline = true;
                     _dynTxtSequenceKeys.ScrollBars = ScrollBars.Vertical;
                     _dynTxtSequenceKeys.Text = _button.Keys != null
                         ? string.Join(Environment.NewLine, _button.Keys) : "";
@@ -210,11 +224,33 @@ namespace ESDeckPC
 
                     _dynTxtTarget = MakeTextBox();
                     _dynTxtTarget.Location = new Point(0, 16);
-                    _dynTxtTarget.Size     = new Size(352, 22);
-                    _dynTxtTarget.Text     = _button.Target ?? "";
+                    _dynTxtTarget.Size = new Size(352, 22);
+                    _dynTxtTarget.Text = _button.Target ?? "";
 
                     pnlDynamic.Controls.Add(_dynLabel);
                     pnlDynamic.Controls.Add(_dynTxtTarget);
+                    break;
+
+                case "mouse_click":
+                    _dynLabel = MakeLabel("Click type");
+                    _dynLabel.Location = new Point(0, 0);
+
+                    _dynCmbClickType = new ComboBox
+                    {
+                        DropDownStyle = ComboBoxStyle.DropDownList,
+                        Location = new Point(0, 16),
+                        Size = new Size(352, 22),
+                        BackColor = System.Drawing.Color.FromArgb(45, 45, 48),
+                        ForeColor = System.Drawing.Color.FromArgb(220, 220, 220),
+                        FlatStyle = FlatStyle.Flat,
+                        Font = this.Font,
+                    };
+                    _dynCmbClickType.Items.AddRange(new object[] { "single", "double" });
+                    _dynCmbClickType.SelectedItem = _button.Target ?? "single";
+                    if (_dynCmbClickType.SelectedIndex < 0) _dynCmbClickType.SelectedIndex = 0;
+
+                    pnlDynamic.Controls.Add(_dynLabel);
+                    pnlDynamic.Controls.Add(_dynCmbClickType);
                     break;
             }
         }
@@ -264,20 +300,20 @@ namespace ESDeckPC
             }
             else if (action == "scroll")
             {
-                _button.Keys      = null;
+                _button.Keys = null;
                 _button.ChannelId = null;
-                _button.Target    = _dynCmbScrollTarget?.SelectedItem?.ToString();
-                string amtTxt     = _dynTxtAmount?.Text.Trim();
-                _button.Amount    = int.TryParse(amtTxt, out int amt) ? (int?)amt : null;
+                _button.Target = _dynCmbScrollTarget?.SelectedItem?.ToString();
+                string amtTxt = _dynTxtAmount?.Text.Trim();
+                _button.Amount = int.TryParse(amtTxt, out int amt) ? (int?)amt : null;
             }
             else if (action == "sequence")
             {
-                _button.Target    = null;
+                _button.Target = null;
                 _button.ChannelId = null;
-                _button.Amount    = null;
-                string raw        = _dynTxtSequenceKeys?.Text ?? "";
-                var lines         = raw.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                _button.Keys      = new List<string>();
+                _button.Amount = null;
+                string raw = _dynTxtSequenceKeys?.Text ?? "";
+                var lines = raw.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                _button.Keys = new List<string>();
                 foreach (var line in lines)
                 {
                     string trimmed = line.Trim();
@@ -287,10 +323,17 @@ namespace ESDeckPC
             }
             else if (action == "text")
             {
-                _button.Keys      = null;
+                _button.Keys = null;
                 _button.ChannelId = null;
-                _button.Amount    = null;
-                _button.Target    = _dynTxtTarget?.Text ?? "";
+                _button.Amount = null;
+                _button.Target = _dynTxtTarget?.Text ?? "";
+            }
+            else if (action == "mouse_click")
+            {
+                _button.Keys = null;
+                _button.ChannelId = null;
+                _button.Amount = null;
+                _button.Target = _dynCmbClickType?.SelectedItem?.ToString() ?? "single";
             }
 
             this.DialogResult = DialogResult.OK;

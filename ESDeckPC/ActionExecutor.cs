@@ -222,11 +222,12 @@ namespace ESDeckPC
                 case "launch": return ExecLaunch(button.Target);
                 case "hotkey": return ExecHotkey(button.Keys);
                 case "media": return ExecMedia(button.Target);
-                case "discord":  return ExecDiscord(button.Target, button.ChannelId);
-                case "scroll":   return ExecScroll(button.Target, button.Amount);
+                case "discord": return ExecDiscord(button.Target, button.ChannelId);
+                case "scroll": return ExecScroll(button.Target, button.Amount);
                 case "sequence": return ExecSequence(button.Keys);
-                case "text":     return ExecText(button.Target);
-                default:         return $"unknown action: {button.Action}";
+                case "text": return ExecText(button.Target);
+                case "mouse_click": return ExecMouseClick(button.Target);
+                default: return $"unknown action: {button.Action}";
             }
         }
 
@@ -356,14 +357,14 @@ namespace ESDeckPC
             if (target.ToLower() == "down" || target.ToLower() == "right")
                 delta = -delta;
 
-            const uint MOUSEEVENTF_WHEEL  = 0x0800;
+            const uint MOUSEEVENTF_WHEEL = 0x0800;
             const uint MOUSEEVENTF_HWHEEL = 0x1000;
             const int INPUT_MOUSE = 0;
 
             var inputs = new INPUT[1];
             inputs[0].type = INPUT_MOUSE;
             inputs[0].u.mi.mouseData = delta;
-            inputs[0].u.mi.dwFlags   = horizontal ? MOUSEEVENTF_HWHEEL : MOUSEEVENTF_WHEEL;
+            inputs[0].u.mi.dwFlags = horizontal ? MOUSEEVENTF_HWHEEL : MOUSEEVENTF_WHEEL;
 
             SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
             return $"scroll: {target} ({delta})";
@@ -543,6 +544,33 @@ namespace ESDeckPC
 
             return result + tail;
         }
+        private static string ExecMouseClick(string target)
+        {
+            bool isDouble = string.Equals(target, "double", StringComparison.OrdinalIgnoreCase);
+            SendMouseClick();
+            if (isDouble)
+            {
+                System.Threading.Thread.Sleep(50);
+                SendMouseClick();
+            }
+            return $"mouse_click: {(isDouble ? "double" : "single")}";
+        }
+
+        private static void SendMouseClick()
+        {
+            const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+            const uint MOUSEEVENTF_LEFTUP = 0x0004;
+            const int INPUT_MOUSE = 0;
+
+            var inputs = new INPUT[2];
+            inputs[0].type = INPUT_MOUSE;
+            inputs[0].u.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+            inputs[1].type = INPUT_MOUSE;
+            inputs[1].u.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+
+            SendInput(2, inputs, Marshal.SizeOf(typeof(INPUT)));
+        }
+
         // ------------------------------------------------------------------
         // text action handler
         // Sends each character in target as a Unicode keystroke

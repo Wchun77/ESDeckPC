@@ -205,6 +205,7 @@ namespace ESDeckPC
                 case "launch":
                 case "media":
                 case "discord":
+                case "mouse_click":
                     // Execute via ActionExecutor using 1-based page/btn index
                     string result = ActionExecutor.Run(_pcConfig, (byte)(pageIdx + 1), (byte)(btnIdx + 1));
                     if (result != null && result.Contains("failed"))
