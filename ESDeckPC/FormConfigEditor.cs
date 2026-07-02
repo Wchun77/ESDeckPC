@@ -333,10 +333,9 @@ namespace ESDeckPC
                 var itemBg = new ToolStripMenuItem("Set Background") { ForeColor = Color.FromArgb(220, 220, 220) };
                 itemBg.Click += (s, ev) =>
                 {
-                    string name = PromptInput("Set Background", "Image filename (e.g. bg.jpg):",
-                        _pcConfig.Pages[idx].BgImage ?? "");
+                    string name = PromptBackground(_pcConfig.Pages[idx].BgImage ?? "");
                     if (name == null) return;
-                    _pcConfig.Pages[idx].BgImage = name.Trim();
+                    _pcConfig.Pages[idx].BgImage = name;
                     int sel = lstPages.SelectedIndex;
                     if (sel == idx)
                         _preview.SetPage(_pcConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
@@ -437,6 +436,102 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
         // Helpers
         // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Shows a small dialog for picking a background image.
+        /// Returns the short filename on OK, empty string on Clear+OK, or null on Cancel.
+        /// </summary>
+        private string PromptBackground(string currentFileName)
+        {
+            var dlgForm = new Form
+            {
+                Text = "Set Background",
+                ClientSize = new Size(360, 90),
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                BackColor = Color.FromArgb(30, 30, 30),
+                ForeColor = Color.FromArgb(220, 220, 220),
+                Font = this.Font,
+            };
+
+            int v = 1;
+            DwmSetWindowAttribute(dlgForm.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref v, sizeof(int));
+
+            var darkBg = Color.FromArgb(45, 45, 48);
+            var darkBorder = Color.FromArgb(80, 80, 80);
+            var lightFg = Color.FromArgb(220, 220, 220);
+
+            var txt = new TextBox
+            {
+                Text = currentFileName,
+                Location = new Point(12, 12),
+                Size = new Size(336, 22),
+                BackColor = darkBg,
+                ForeColor = lightFg,
+                BorderStyle = BorderStyle.FixedSingle,
+                ReadOnly = true,
+            };
+
+            var btnBrowse = new Button
+            {
+                Text = "Browse",
+                Location = new Point(12, 46),
+                Size = new Size(90, 26),
+                BackColor = darkBg,
+                ForeColor = lightFg,
+                FlatStyle = FlatStyle.Flat,
+            };
+            btnBrowse.FlatAppearance.BorderColor = darkBorder;
+
+            var btnClear = new Button
+            {
+                Text = "Clear",
+                Location = new Point(108, 46),
+                Size = new Size(90, 26),
+                BackColor = darkBg,
+                ForeColor = lightFg,
+                FlatStyle = FlatStyle.Flat,
+            };
+            btnClear.FlatAppearance.BorderColor = darkBorder;
+
+            var btnOk = new Button
+            {
+                Text = "OK",
+                Location = new Point(258, 46),
+                Size = new Size(90, 26),
+                BackColor = Color.FromArgb(0, 122, 204),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                DialogResult = DialogResult.OK,
+            };
+            btnOk.FlatAppearance.BorderColor = Color.FromArgb(0, 100, 180);
+
+            btnBrowse.Click += (s, e) =>
+            {
+                using (var ofd = new OpenFileDialog())
+                {
+                    ofd.Title = "Select background image";
+                    ofd.Filter = "Image files (*.jpg;*.jpeg;*.png;*.bmp)|*.jpg;*.jpeg;*.png;*.bmp";
+                    if (!string.IsNullOrEmpty(_assetsBackgroundsDir) &&
+                        Directory.Exists(_assetsBackgroundsDir))
+                        ofd.InitialDirectory = _assetsBackgroundsDir;
+                    if (ofd.ShowDialog() == DialogResult.OK)
+                        txt.Text = Path.GetFileName(ofd.FileName);
+                }
+            };
+
+            btnClear.Click += (s, e) => txt.Text = "";
+
+            dlgForm.Controls.AddRange(new Control[] { txt, btnBrowse, btnClear, btnOk });
+            dlgForm.AcceptButton = btnOk;
+
+            if (dlgForm.ShowDialog(this) == DialogResult.OK)
+                return txt.Text.Trim();
+
+            return null;
+        }
 
         private string PromptInput(string title, string label, string defaultValue = "")
         {
