@@ -50,6 +50,7 @@
             this.trayMenuExit = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuImage = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuImageBg = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuImageIco = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
@@ -379,7 +380,8 @@
             // tsMenuImage
             // 
             this.tsMenuImage.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsMenuImageBg});
+            this.tsMenuImageBg,
+            this.tsMenuImageIco});
             this.tsMenuImage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.tsMenuImage.Name = "tsMenuImage";
             this.tsMenuImage.ShowDropDownArrow = false;
@@ -392,6 +394,13 @@
             this.tsMenuImageBg.Size = new System.Drawing.Size(180, 22);
             this.tsMenuImageBg.Text = "Background";
             this.tsMenuImageBg.Click += new System.EventHandler(this.tsMenuImageBg_Click);
+            // 
+            // tsMenuImageIco
+            // 
+            this.tsMenuImageIco.Name = "tsMenuImageIco";
+            this.tsMenuImageIco.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuImageIco.Text = "Icon";
+            this.tsMenuImageIco.Click += new System.EventHandler(this.tsMenuImageIco_Click);
             // 
             // FormM
             // 
@@ -462,5 +471,6 @@
         private System.Windows.Forms.ToolStripMenuItem tsMenuSettingsOpenFolder;
         private System.Windows.Forms.ToolStripDropDownButton tsMenuImage;
         private System.Windows.Forms.ToolStripMenuItem tsMenuImageBg;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuImageIco;
     }
 }

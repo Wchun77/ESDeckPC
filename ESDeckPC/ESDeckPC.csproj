@@ -98,6 +98,12 @@
     <Compile Include="FormFontBuilder.Designer.cs">
       <DependentUpon>FormFontBuilder.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormIcoImporter.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormIcoImporter.Designer.cs">
+      <DependentUpon>FormIcoImporter.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormM.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -143,6 +149,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormFontBuilder.resx">
       <DependentUpon>FormFontBuilder.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormIcoImporter.resx">
+      <DependentUpon>FormIcoImporter.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormM.resx">
       <DependentUpon>FormM.cs</DependentUpon>

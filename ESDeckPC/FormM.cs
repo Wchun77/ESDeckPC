@@ -320,6 +320,11 @@ namespace ESDeckPC
             new FormBgImporter().Show();
         }
 
+        private void tsMenuImageIco_Click(object sender, EventArgs e)
+        {
+            new FormIcoImporter().Show();
+        }
+
         // ------------------------------------------------------------------
         // Discord status update
         // ------------------------------------------------------------------
