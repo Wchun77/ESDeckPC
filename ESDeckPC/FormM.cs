@@ -58,6 +58,10 @@ namespace ESDeckPC
                 }
             }
 
+            trayMenu.Renderer = darkRenderer;
+            foreach (ToolStripItem item in trayMenu.Items)
+                item.ForeColor = Color.FromArgb(220, 220, 220);
+
             Icon = Resources.playstation;
 
             _receiver = new HidReceiver();
