@@ -39,6 +39,25 @@ namespace ESDeckPC
         {
             InitializeComponent();
 
+            var darkRenderer = new ToolStripProfessionalRenderer(new DarkColorTable());
+            ToolStripManager.Renderer = darkRenderer;
+            toolStrip.Renderer = darkRenderer;
+
+            foreach (ToolStripItem item in toolStrip.Items)
+            {
+                if (item is ToolStripDropDownButton btn)
+                {
+                    btn.DropDown.Renderer = darkRenderer;
+                    btn.DropDown.Opening += (s, e) =>
+                    {
+                        if (s is ToolStripDropDown dd)
+                            dd.Renderer = darkRenderer;
+                    };
+                    foreach (ToolStripItem sub in btn.DropDownItems)
+                        sub.ForeColor = Color.FromArgb(220, 220, 220);
+                }
+            }
+
             Icon = Resources.playstation;
 
             _receiver = new HidReceiver();
