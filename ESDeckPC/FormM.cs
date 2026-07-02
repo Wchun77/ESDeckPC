@@ -20,6 +20,7 @@ namespace ESDeckPC
         private PcConfig _config = null;
         private string _pcJsonPath = null;
         private bool _forceClose = false;
+        private bool _editorOpen = false;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
@@ -197,6 +198,12 @@ namespace ESDeckPC
 
         private void tsMenuSettingsEdit_Click(object sender, EventArgs e)
         {
+            if (_editorOpen)
+            {
+                MessageBox.Show("The deck editor is already open.",
+                    "ESDeck PC", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
             string pcPath = null;
             string espPath = null;
 
@@ -259,6 +266,8 @@ namespace ESDeckPC
                     if (!string.IsNullOrEmpty(newPath))
                         LoadConfig(newPath);
                 };
+                editor.FormClosed += (s, args) => _editorOpen = false;
+                _editorOpen = true;
                 editor.Show();
             }
             catch (Exception ex)
