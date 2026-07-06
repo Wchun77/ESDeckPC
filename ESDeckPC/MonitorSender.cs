@@ -144,16 +144,25 @@ namespace ESDeckPC
             if (!_subscribed) return;
             _subscribed = false;
 
-            _fastThread?.Join(2000);
-            _fastThread = null;
+            // Join 逾時必須大於各自 worker loop 的輪詢週期，
+            // 否則主執行緒會在 worker 還沒跑完最後一輪時搶著存取
+            // Computer 物件，跟 worker 結尾的 Close() 產生競爭，
+            // 導致 Computer.Close() 內部欄位被兩邊同時清空而炸掉。
+            bool fastJoined = _fastThread?.Join(3000) ?? true;
+            bool slowJoined = _slowThread?.Join(12000) ?? true;
 
-            _slowThread?.Join(2000);
+            if (!fastJoined)
+                Log("Monitor: fast thread did not exit in time");
+            if (!slowJoined)
+                Log("Monitor: slow thread did not exit in time");
+
+            _fastThread = null;
             _slowThread = null;
 
-            _fastComputer?.Close();
+            // Computer 的 Close() 一律交給各自的 worker thread 在
+            // 迴圈結束後自行呼叫（見 FastWorkerLoop / SlowWorkerLoop 結尾），
+            // 這裡不再重複呼叫，避免兩邊同時存取同一個 Computer 實例。
             _fastComputer = null;
-
-            _slowComputer?.Close();
             _slowComputer = null;
 
             _prevNetSent = -1;
@@ -168,21 +177,22 @@ namespace ESDeckPC
 
         private void FastWorkerLoop()
         {
-            _fastComputer = new Computer
+            var computer = new Computer
             {
                 IsCpuEnabled = true,
                 IsGpuEnabled = true,
                 IsMemoryEnabled = true,
             };
-            _fastComputer.Open();
-            _fastComputer.Accept(new UpdateVisitor());
+            _fastComputer = computer;
+            computer.Open();
+            computer.Accept(new UpdateVisitor());
 
             while (_subscribed)
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 try
                 {
-                    _fastComputer.Accept(new UpdateVisitor());
+                    computer.Accept(new UpdateVisitor());
                     MonitorData data = CollectFastSensors();
                     SendTimeSync();
                     SendData(data);
@@ -196,8 +206,19 @@ namespace ESDeckPC
                 if (remaining > 0) Thread.Sleep(remaining);
             }
 
-            _fastComputer?.Close();
-            _fastComputer = null;
+            // 這條 thread 自己建立、自己關閉，不會有其他執行緒同時碰它
+            try
+            {
+                computer.Close();
+            }
+            catch (Exception ex)
+            {
+                Log($"Monitor: fast computer close error: {ex.Message}");
+            }
+            finally
+            {
+                _fastComputer = null;
+            }
         }
 
         // ------------------------------------------------------------------
@@ -206,11 +227,12 @@ namespace ESDeckPC
 
         private void SlowWorkerLoop()
         {
-            _slowComputer = new Computer { IsStorageEnabled = true };
-            _slowComputer.Open();
+            var computer = new Computer { IsStorageEnabled = true };
+            _slowComputer = computer;
+            computer.Open();
 
             // 第一次 poll 丟掉，避免 LHM 初始化造成的 I/O 污染
-            try { _slowComputer.Accept(new UpdateVisitor()); }
+            try { computer.Accept(new UpdateVisitor()); }
             catch { }
 
             Thread.Sleep(3000);
@@ -220,7 +242,7 @@ namespace ESDeckPC
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 try
                 {
-                    _slowComputer.Accept(new UpdateVisitor());
+                    computer.Accept(new UpdateVisitor());
                     CollectStorageSensors();
                 }
                 catch (Exception ex)
@@ -232,8 +254,19 @@ namespace ESDeckPC
                 if (remaining > 0) Thread.Sleep(remaining);
             }
 
-            _slowComputer?.Close();
-            _slowComputer = null;
+            // 這條 thread 自己建立、自己關閉，不會有其他執行緒同時碰它
+            try
+            {
+                computer.Close();
+            }
+            catch (Exception ex)
+            {
+                Log($"Monitor: slow computer close error: {ex.Message}");
+            }
+            finally
+            {
+                _slowComputer = null;
+            }
         }
 
         // ------------------------------------------------------------------
@@ -243,8 +276,10 @@ namespace ESDeckPC
         private MonitorData CollectFastSensors()
         {
             var data = new MonitorData();
+            var computer = _fastComputer;
+            if (computer == null) return data;
 
-            foreach (var hw in _fastComputer.Hardware)
+            foreach (var hw in computer.Hardware)
             {
                 switch (hw.HardwareType)
                 {
@@ -289,11 +324,14 @@ namespace ESDeckPC
 
         private void CollectStorageSensors()
         {
+            var computer = _slowComputer;
+            if (computer == null) return;
+
             int diskUsage = 0;
             int ssdLife = 100;
             bool foundLife = false;
 
-            foreach (var hw in _slowComputer.Hardware)
+            foreach (var hw in computer.Hardware)
             {
                 if (hw.HardwareType != HardwareType.Storage) continue;
 
