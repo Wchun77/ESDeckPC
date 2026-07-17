@@ -535,7 +535,7 @@ namespace ESDeckPC
                 using (var ofd = new OpenFileDialog())
                 {
                     ofd.Title = "Select background image";
-                    ofd.Filter = "Image files (*.jpg;*.jpeg;*.png;*.bmp)|*.jpg;*.jpeg;*.png;*.bmp";
+                    ofd.Filter = "JPEG image (*.jpg;*.jpeg)|*.jpg;*.jpeg";
                     if (!string.IsNullOrEmpty(_assetsBackgroundsDir) &&
                         Directory.Exists(_assetsBackgroundsDir))
                         ofd.InitialDirectory = _assetsBackgroundsDir;

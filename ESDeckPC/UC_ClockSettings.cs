@@ -250,7 +250,7 @@ namespace ESDeckPC
             using (var dlg = new OpenFileDialog())
             {
                 dlg.Title = "Select background image";
-                dlg.Filter = "Image files (*.jpg;*.jpeg;*.png;*.bmp)|*.jpg;*.jpeg;*.png;*.bmp";
+                dlg.Filter = "JPEG image (*.jpg;*.jpeg)|*.jpg;*.jpeg";
                 if (dlg.ShowDialog() != DialogResult.OK) return;
                 try
                 {

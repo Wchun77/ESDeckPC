@@ -27,6 +27,10 @@
             this.tsMenuFontBuilder = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuDiscord = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuDiscordReconnect = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuImage = new System.Windows.Forms.ToolStripDropDownButton();
+            this.tsMenuImageBg = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuImageIco = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuImageSideIcon = new System.Windows.Forms.ToolStripMenuItem();
             this.tsSep1 = new System.Windows.Forms.ToolStripSeparator();
             this.tsBtnClearLog = new System.Windows.Forms.ToolStripButton();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
@@ -48,9 +52,6 @@
             this.trayMenuOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.trayMenuSep = new System.Windows.Forms.ToolStripSeparator();
             this.trayMenuExit = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsMenuImage = new System.Windows.Forms.ToolStripDropDownButton();
-            this.tsMenuImageBg = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsMenuImageIco = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
@@ -95,14 +96,14 @@
             // tsMenuSettingsLoad
             // 
             this.tsMenuSettingsLoad.Name = "tsMenuSettingsLoad";
-            this.tsMenuSettingsLoad.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuSettingsLoad.Size = new System.Drawing.Size(145, 22);
             this.tsMenuSettingsLoad.Text = "Load";
             this.tsMenuSettingsLoad.Click += new System.EventHandler(this.tsMenuSettingsLoad_Click);
             // 
             // tsMenuSettingsEdit
             // 
             this.tsMenuSettingsEdit.Name = "tsMenuSettingsEdit";
-            this.tsMenuSettingsEdit.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuSettingsEdit.Size = new System.Drawing.Size(145, 22);
             this.tsMenuSettingsEdit.Text = "Edit";
             this.tsMenuSettingsEdit.Click += new System.EventHandler(this.tsMenuSettingsEdit_Click);
             // 
@@ -110,14 +111,14 @@
             // 
             this.tsMenuSettingsReload.Enabled = false;
             this.tsMenuSettingsReload.Name = "tsMenuSettingsReload";
-            this.tsMenuSettingsReload.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuSettingsReload.Size = new System.Drawing.Size(145, 22);
             this.tsMenuSettingsReload.Text = "Reload";
             this.tsMenuSettingsReload.Click += new System.EventHandler(this.tsMenuSettingsReload_Click);
             // 
             // tsMenuSettingsOpenFolder
             // 
             this.tsMenuSettingsOpenFolder.Name = "tsMenuSettingsOpenFolder";
-            this.tsMenuSettingsOpenFolder.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuSettingsOpenFolder.Size = new System.Drawing.Size(145, 22);
             this.tsMenuSettingsOpenFolder.Text = "Open Folder";
             this.tsMenuSettingsOpenFolder.Click += new System.EventHandler(this.tsMenuSettingsOpenFolder_Click);
             // 
@@ -162,6 +163,39 @@
             this.tsMenuDiscordReconnect.Size = new System.Drawing.Size(180, 22);
             this.tsMenuDiscordReconnect.Text = "Reconnect";
             this.tsMenuDiscordReconnect.Click += new System.EventHandler(this.tsMenuDiscordReconnect_Click);
+            // 
+            // tsMenuImage
+            // 
+            this.tsMenuImage.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsMenuImageBg,
+            this.tsMenuImageIco,
+            this.tsMenuImageSideIcon});
+            this.tsMenuImage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.tsMenuImage.Name = "tsMenuImage";
+            this.tsMenuImage.ShowDropDownArrow = false;
+            this.tsMenuImage.Size = new System.Drawing.Size(47, 22);
+            this.tsMenuImage.Text = "Image";
+            // 
+            // tsMenuImageBg
+            // 
+            this.tsMenuImageBg.Name = "tsMenuImageBg";
+            this.tsMenuImageBg.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuImageBg.Text = "Background";
+            this.tsMenuImageBg.Click += new System.EventHandler(this.tsMenuImageBg_Click);
+            // 
+            // tsMenuImageIco
+            // 
+            this.tsMenuImageIco.Name = "tsMenuImageIco";
+            this.tsMenuImageIco.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuImageIco.Text = "Icon";
+            this.tsMenuImageIco.Click += new System.EventHandler(this.tsMenuImageIco_Click);
+            // 
+            // tsMenuImageSideIcon
+            // 
+            this.tsMenuImageSideIcon.Name = "tsMenuImageSideIcon";
+            this.tsMenuImageSideIcon.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuImageSideIcon.Text = "Side Icon";
+            this.tsMenuImageSideIcon.Click += new System.EventHandler(this.tsMenuImageSideIcon_Click);
             // 
             // tsSep1
             // 
@@ -377,31 +411,6 @@
             this.trayMenuExit.Text = "Exit";
             this.trayMenuExit.Click += new System.EventHandler(this.trayMenuExit_Click);
             // 
-            // tsMenuImage
-            // 
-            this.tsMenuImage.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsMenuImageBg,
-            this.tsMenuImageIco});
-            this.tsMenuImage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.tsMenuImage.Name = "tsMenuImage";
-            this.tsMenuImage.ShowDropDownArrow = false;
-            this.tsMenuImage.Size = new System.Drawing.Size(47, 22);
-            this.tsMenuImage.Text = "Image";
-            // 
-            // tsMenuImageBg
-            // 
-            this.tsMenuImageBg.Name = "tsMenuImageBg";
-            this.tsMenuImageBg.Size = new System.Drawing.Size(180, 22);
-            this.tsMenuImageBg.Text = "Background";
-            this.tsMenuImageBg.Click += new System.EventHandler(this.tsMenuImageBg_Click);
-            // 
-            // tsMenuImageIco
-            // 
-            this.tsMenuImageIco.Name = "tsMenuImageIco";
-            this.tsMenuImageIco.Size = new System.Drawing.Size(180, 22);
-            this.tsMenuImageIco.Text = "Icon";
-            this.tsMenuImageIco.Click += new System.EventHandler(this.tsMenuImageIco_Click);
-            // 
             // FormM
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -472,5 +481,6 @@
         private System.Windows.Forms.ToolStripDropDownButton tsMenuImage;
         private System.Windows.Forms.ToolStripMenuItem tsMenuImageBg;
         private System.Windows.Forms.ToolStripMenuItem tsMenuImageIco;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuImageSideIcon;
     }
 }
