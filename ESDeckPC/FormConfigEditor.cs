@@ -167,7 +167,7 @@ namespace ESDeckPC
             page.Buttons.Add(newBtn);
 
             int newIdx = page.Buttons.Count - 1;
-            using (var dlg = new FormButtonEditor(newBtn))
+            using (var dlg = new FormButtonEditor(newBtn, true, _assetsIconsDir))
             {
                 if (dlg.ShowDialog() == DialogResult.OK)
                 {
@@ -251,7 +251,7 @@ namespace ESDeckPC
         private void OpenButtonEditor(PcPage page, int btnIdx)
         {
             var button = page.Buttons[btnIdx];
-            using (var dlg = new FormButtonEditor(button))
+            using (var dlg = new FormButtonEditor(button, false, _assetsIconsDir))
             {
                 if (dlg.ShowDialog() == DialogResult.OK)
                     _preview.SetPage(page, _assetsBackgroundsDir, _assetsIconsDir);

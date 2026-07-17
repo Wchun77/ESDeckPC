@@ -20,6 +20,7 @@ namespace ESDeckPC
         }
 
         private PcButton _button;
+        private readonly string _iconsDir;
 
         // Dynamic controls
         private Label _dynLabel;
@@ -41,11 +42,12 @@ namespace ESDeckPC
         // mouse_click
         private ComboBox _dynCmbClickType;
 
-        public FormButtonEditor(PcButton button, bool isNew = false)
+        public FormButtonEditor(PcButton button, bool isNew = false, string iconsDir = null)
         {
             InitializeComponent();
 
             _button = button;
+            _iconsDir = iconsDir;
 
             this.Text = isNew ? "Add Button" : "Edit Button";
 
@@ -65,10 +67,31 @@ namespace ESDeckPC
             if (cmbAction.SelectedIndex < 0) cmbAction.SelectedIndex = 0;
             cmbAction.SelectedIndexChanged += cmbAction_SelectedIndexChanged;
 
+            btnIconBrowse.Click += BtnIconBrowse_Click;
+            btnIconClear.Click += (s, e) => txtIcon.Text = "";
+
             btnOK.Click += btnOK_Click;
             btnCancel.Click += btnCancel_Click;
 
             BuildDynamicPanel(button.Action ?? "launch");
+        }
+
+        // ------------------------------------------------------------------
+        // Icon browse
+        // ------------------------------------------------------------------
+
+        private void BtnIconBrowse_Click(object sender, EventArgs e)
+        {
+            using (var ofd = new OpenFileDialog())
+            {
+                ofd.Title = "Select icon";
+                ofd.Filter = "PNG image (*.png)|*.png";
+                if (!string.IsNullOrEmpty(_iconsDir) && System.IO.Directory.Exists(_iconsDir))
+                    ofd.InitialDirectory = _iconsDir;
+
+                if (ofd.ShowDialog() == DialogResult.OK)
+                    txtIcon.Text = System.IO.Path.GetFileName(ofd.FileName);
+            }
         }
 
         // ------------------------------------------------------------------

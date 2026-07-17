@@ -18,6 +18,8 @@
             this.lblLabelTag = new System.Windows.Forms.Label();
             this.txtLabel = new System.Windows.Forms.TextBox();
             this.lblIconTag = new System.Windows.Forms.Label();
+            this.btnIconBrowse = new System.Windows.Forms.Button();
+            this.btnIconClear = new System.Windows.Forms.Button();
             this.txtIcon = new System.Windows.Forms.TextBox();
             this.lblActionTag = new System.Windows.Forms.Label();
             this.cmbAction = new System.Windows.Forms.ComboBox();
@@ -58,15 +60,42 @@
             this.lblIconTag.TabIndex = 1;
             this.lblIconTag.Text = "Icon (filename)";
             // 
+            // btnIconBrowse
+            // 
+            this.btnIconBrowse.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.btnIconBrowse.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
+            this.btnIconBrowse.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnIconBrowse.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.btnIconBrowse.Location = new System.Drawing.Point(221, 81);
+            this.btnIconBrowse.Name = "btnIconBrowse";
+            this.btnIconBrowse.Size = new System.Drawing.Size(83, 22);
+            this.btnIconBrowse.TabIndex = 1;
+            this.btnIconBrowse.Text = "Browse...";
+            this.btnIconBrowse.UseVisualStyleBackColor = false;
+            // 
+            // btnIconClear
+            // 
+            this.btnIconClear.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.btnIconClear.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
+            this.btnIconClear.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnIconClear.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.btnIconClear.Location = new System.Drawing.Point(308, 81);
+            this.btnIconClear.Name = "btnIconClear";
+            this.btnIconClear.Size = new System.Drawing.Size(60, 22);
+            this.btnIconClear.TabIndex = 2;
+            this.btnIconClear.Text = "Clear";
+            this.btnIconClear.UseVisualStyleBackColor = false;
+            // 
             // txtIcon
             // 
             this.txtIcon.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.txtIcon.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtIcon.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.txtIcon.Location = new System.Drawing.Point(16, 80);
+            this.txtIcon.Location = new System.Drawing.Point(16, 81);
             this.txtIcon.Name = "txtIcon";
-            this.txtIcon.Size = new System.Drawing.Size(352, 22);
-            this.txtIcon.TabIndex = 1;
+            this.txtIcon.ReadOnly = true;
+            this.txtIcon.Size = new System.Drawing.Size(199, 22);
+            this.txtIcon.TabIndex = 3;
             // 
             // lblActionTag
             // 
@@ -145,6 +174,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.ClientSize = new System.Drawing.Size(384, 310);
+            this.Controls.Add(this.btnIconBrowse);
+            this.Controls.Add(this.btnIconClear);
             this.Controls.Add(this.lblLabelTag);
             this.Controls.Add(this.txtLabel);
             this.Controls.Add(this.lblIconTag);
@@ -171,6 +202,8 @@
         private System.Windows.Forms.Label lblLabelTag;
         private System.Windows.Forms.TextBox txtLabel;
         private System.Windows.Forms.Label lblIconTag;
+        private System.Windows.Forms.Button btnIconBrowse;
+        private System.Windows.Forms.Button btnIconClear;
         private System.Windows.Forms.TextBox txtIcon;
         private System.Windows.Forms.Label lblActionTag;
         private System.Windows.Forms.ComboBox cmbAction;

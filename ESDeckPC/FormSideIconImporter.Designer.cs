@@ -60,7 +60,7 @@ namespace ESDeckPC
             this.rbFill.AutoSize = true;
             this.rbFill.Checked = true;
             this.rbFill.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.rbFill.Location = new System.Drawing.Point(12, 74);
+            this.rbFill.Location = new System.Drawing.Point(25, 74);
             this.rbFill.Name = "rbFill";
             this.rbFill.Size = new System.Drawing.Size(53, 18);
             this.rbFill.TabIndex = 2;
@@ -73,7 +73,7 @@ namespace ESDeckPC
             // 
             this.rbFit.AutoSize = true;
             this.rbFit.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.rbFit.Location = new System.Drawing.Point(15, 109);
+            this.rbFit.Location = new System.Drawing.Point(28, 109);
             this.rbFit.Name = "rbFit";
             this.rbFit.Size = new System.Drawing.Size(46, 18);
             this.rbFit.TabIndex = 3;
