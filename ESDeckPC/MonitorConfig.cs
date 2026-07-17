@@ -17,6 +17,10 @@ namespace ESDeckPC
         [JsonProperty("bg_image")]
         public string BgImage { get; set; } = "";
 
+        // filename only, under assets/side_icons; empty = show "Clock" text on sidebar button
+        [JsonProperty("side_icon")]
+        public string SideIcon { get; set; } = "";
+
         [JsonProperty("font_time")]
         public string FontTime { get; set; } = "";
 
@@ -78,6 +82,10 @@ namespace ESDeckPC
 
         [JsonProperty("bg_image")]
         public string BgImage { get; set; } = "";
+
+        // filename only, under assets/side_icons; empty = show page name text on sidebar button
+        [JsonProperty("side_icon")]
+        public string SideIcon { get; set; } = "";
 
         // null entry = empty slot
         [JsonProperty("cells")]

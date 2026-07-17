@@ -128,6 +128,12 @@
     <Compile Include="FormSideIconImporter.Designer.cs">
       <DependentUpon>FormSideIconImporter.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormSideIconPicker.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSideIconPicker.Designer.cs">
+      <DependentUpon>FormSideIconPicker.cs</DependentUpon>
+    </Compile>
     <Compile Include="HidReceiver.cs" />
     <Compile Include="MonitorClockRenderer.cs" />
     <Compile Include="MonitorConfig.cs" />
@@ -135,6 +141,7 @@
     <Compile Include="MonitorSender.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SidebarButtonPreview.cs" />
     <Compile Include="UC_ClockSettings.cs">
       <SubType>UserControl</SubType>
     </Compile>

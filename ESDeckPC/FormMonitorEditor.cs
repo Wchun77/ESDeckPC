@@ -22,6 +22,7 @@ namespace ESDeckPC
         // case preview-from-filename is simply skipped (browse-to-load still works).
         private string _assetsBackgroundsDir = null;
         private string _assetsFontsDir = null;
+        private string _assetsSideIconsDir = null;
 
         private UC_ClockSettings _ucClock = null;
         private UC_PageSettings _ucPage = null;
@@ -75,6 +76,7 @@ namespace ESDeckPC
             btnJsonSave.Click += BtnJsonSave_Click;
             btnJsonSaveAs.Click += BtnJsonSaveAs_Click;
             btnClockPage.Click += BtnClockPage_Click;
+            btnClockPage.MouseUp += BtnClockPage_MouseUp;
 
             flpPages.AllowDrop = true;
             flpPages.MouseUp += FlpPages_MouseUp;
@@ -260,6 +262,16 @@ namespace ESDeckPC
             miEdit.Click += (s, e) => EditPageName(btn, page);
             cms.Items.Add(miEdit);
 
+            var miSideIcon = new ToolStripMenuItem("Set Side Icon");
+            miSideIcon.Click += (s, e) =>
+            {
+                string name = FormSideIconPicker.Show(this, "Set Side Icon",
+                    page.SideIcon ?? "", page.Name, _assetsSideIconsDir);
+                if (name == null) return;
+                page.SideIcon = name;
+            };
+            cms.Items.Add(miSideIcon);
+
             var miDelete = new ToolStripMenuItem("Delete");
             miDelete.Click += (s, e) => DeletePage(btn, page);
             cms.Items.Add(miDelete);
@@ -343,6 +355,24 @@ namespace ESDeckPC
             ShowClockSettings();
         }
 
+        private void BtnClockPage_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right) return;
+
+            var cms = BuildDarkMenu();
+            var miSideIcon = new ToolStripMenuItem("Set Side Icon");
+            miSideIcon.Click += (s, ev) =>
+            {
+                string name = FormSideIconPicker.Show(this, "Set Side Icon - Clock",
+                    _cfg.Clock.SideIcon ?? "", "Clock", _assetsSideIconsDir);
+                if (name == null) return;
+                _cfg.Clock.SideIcon = name;
+            };
+            cms.Items.Add(miSideIcon);
+
+            cms.Show(Cursor.Position);
+        }
+
         private void ShowClockSettings()
         {
             _selectedPage = null;
@@ -411,6 +441,7 @@ namespace ESDeckPC
                 _jsonPath = dlg.FileName;
                 _assetsBackgroundsDir = null;
                 _assetsFontsDir = null;
+                _assetsSideIconsDir = null;
                 RebuildPageButtons();
                 ShowClockSettings();
                 UpdateJsonPathLabel();
@@ -487,6 +518,13 @@ namespace ESDeckPC
 
         private void SaveToCurrentPath()
         {
+            var confirm = MessageBox.Show(
+                $"Save changes to {Path.GetFileName(_jsonPath)}?",
+                "Monitor Editor",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (confirm != DialogResult.Yes) return;
+
             try
             {
                 ReadUiIntoConfig();
@@ -603,6 +641,7 @@ namespace ESDeckPC
         {
             _assetsBackgroundsDir = null;
             _assetsFontsDir = null;
+            _assetsSideIconsDir = null;
 
             if (string.IsNullOrEmpty(_jsonPath)) return;
 
@@ -622,6 +661,7 @@ namespace ESDeckPC
 
             _assetsBackgroundsDir = Path.Combine(root, "assets", "backgrounds");
             _assetsFontsDir = Path.Combine(root, "assets", "fonts");
+            _assetsSideIconsDir = Path.Combine(root, "assets", "side_icons");
         }
 
         // ------------------------------------------------------------------

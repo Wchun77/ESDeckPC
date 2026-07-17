@@ -33,6 +33,8 @@
             this.btnClockBgBrowse = new System.Windows.Forms.Button();
             this.btnClockBgClear = new System.Windows.Forms.Button();
             this.grpColors = new System.Windows.Forms.GroupBox();
+            this.lblColonGap = new System.Windows.Forms.Label();
+            this.nudColonGap = new System.Windows.Forms.NumericUpDown();
             this.lblColTime = new System.Windows.Forms.Label();
             this.btnColTime = new System.Windows.Forms.Button();
             this.lblColColon = new System.Windows.Forms.Label();
@@ -61,29 +63,27 @@
             this.btnFontDate = new System.Windows.Forms.Button();
             this.lblFontDateNote = new System.Windows.Forms.Label();
             this.grpOpacity = new System.Windows.Forms.GroupBox();
+            this.nudOpaSec = new System.Windows.Forms.NumericUpDown();
+            this.nudOpaDay = new System.Windows.Forms.NumericUpDown();
+            this.nudOpaDate = new System.Windows.Forms.NumericUpDown();
+            this.nudOpaColon = new System.Windows.Forms.NumericUpDown();
+            this.nudOpaTime = new System.Windows.Forms.NumericUpDown();
             this.lblOpaTime = new System.Windows.Forms.Label();
             this.lblOpaColon = new System.Windows.Forms.Label();
             this.lblOpaDate = new System.Windows.Forms.Label();
             this.lblOpaDay = new System.Windows.Forms.Label();
             this.lblOpaSec = new System.Windows.Forms.Label();
-            this.nudOpaTime = new System.Windows.Forms.NumericUpDown();
-            this.nudOpaColon = new System.Windows.Forms.NumericUpDown();
-            this.nudOpaDate = new System.Windows.Forms.NumericUpDown();
-            this.nudOpaDay = new System.Windows.Forms.NumericUpDown();
-            this.nudOpaSec = new System.Windows.Forms.NumericUpDown();
-            this.lblColonGap = new System.Windows.Forms.Label();
-            this.nudColonGap = new System.Windows.Forms.NumericUpDown();
             this.grpClockBg.SuspendLayout();
             this.grpColors.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nudColonGap)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudSepWidth)).BeginInit();
             this.grpFonts.SuspendLayout();
             this.grpOpacity.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.nudOpaTime)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudOpaColon)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudOpaDate)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudOpaDay)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudOpaSec)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudColonGap)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudOpaDay)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudOpaDate)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudOpaColon)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudOpaTime)).BeginInit();
             this.SuspendLayout();
             // 
             // grpClockBg
@@ -111,7 +111,7 @@
             // 
             // btnClockBgBrowse
             // 
-            this.btnClockBgBrowse.Location = new System.Drawing.Point(8, 46);
+            this.btnClockBgBrowse.Location = new System.Drawing.Point(8, 49);
             this.btnClockBgBrowse.Name = "btnClockBgBrowse";
             this.btnClockBgBrowse.Size = new System.Drawing.Size(80, 24);
             this.btnClockBgBrowse.TabIndex = 1;
@@ -119,7 +119,7 @@
             // 
             // btnClockBgClear
             // 
-            this.btnClockBgClear.Location = new System.Drawing.Point(96, 46);
+            this.btnClockBgClear.Location = new System.Drawing.Point(96, 49);
             this.btnClockBgClear.Name = "btnClockBgClear";
             this.btnClockBgClear.Size = new System.Drawing.Size(60, 24);
             this.btnClockBgClear.TabIndex = 2;
@@ -150,6 +150,33 @@
             this.grpColors.TabIndex = 10;
             this.grpColors.TabStop = false;
             this.grpColors.Text = "Colors";
+            // 
+            // lblColonGap
+            // 
+            this.lblColonGap.Location = new System.Drawing.Point(8, 52);
+            this.lblColonGap.Name = "lblColonGap";
+            this.lblColonGap.Size = new System.Drawing.Size(90, 18);
+            this.lblColonGap.TabIndex = 14;
+            this.lblColonGap.Text = "Colon gap";
+            // 
+            // nudColonGap
+            // 
+            this.nudColonGap.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.nudColonGap.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.nudColonGap.Location = new System.Drawing.Point(104, 48);
+            this.nudColonGap.Maximum = new decimal(new int[] {
+            200,
+            0,
+            0,
+            0});
+            this.nudColonGap.Name = "nudColonGap";
+            this.nudColonGap.Size = new System.Drawing.Size(56, 22);
+            this.nudColonGap.TabIndex = 15;
+            this.nudColonGap.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
             // 
             // lblColTime
             // 
@@ -310,14 +337,14 @@
             this.txtFontTime.Location = new System.Drawing.Point(8, 36);
             this.txtFontTime.Name = "txtFontTime";
             this.txtFontTime.ReadOnly = true;
-            this.txtFontTime.Size = new System.Drawing.Size(188, 22);
+            this.txtFontTime.Size = new System.Drawing.Size(174, 22);
             this.txtFontTime.TabIndex = 1;
             // 
             // btnFontTime
             // 
-            this.btnFontTime.Location = new System.Drawing.Point(200, 35);
+            this.btnFontTime.Location = new System.Drawing.Point(188, 35);
             this.btnFontTime.Name = "btnFontTime";
-            this.btnFontTime.Size = new System.Drawing.Size(28, 22);
+            this.btnFontTime.Size = new System.Drawing.Size(40, 22);
             this.btnFontTime.TabIndex = 2;
             this.btnFontTime.Text = "...";
             // 
@@ -344,14 +371,14 @@
             this.txtFontSec.Location = new System.Drawing.Point(8, 94);
             this.txtFontSec.Name = "txtFontSec";
             this.txtFontSec.ReadOnly = true;
-            this.txtFontSec.Size = new System.Drawing.Size(188, 22);
+            this.txtFontSec.Size = new System.Drawing.Size(174, 22);
             this.txtFontSec.TabIndex = 5;
             // 
             // btnFontSec
             // 
-            this.btnFontSec.Location = new System.Drawing.Point(200, 93);
+            this.btnFontSec.Location = new System.Drawing.Point(188, 93);
             this.btnFontSec.Name = "btnFontSec";
-            this.btnFontSec.Size = new System.Drawing.Size(28, 22);
+            this.btnFontSec.Size = new System.Drawing.Size(40, 22);
             this.btnFontSec.TabIndex = 6;
             this.btnFontSec.Text = "...";
             // 
@@ -378,14 +405,14 @@
             this.txtFontDate.Location = new System.Drawing.Point(8, 152);
             this.txtFontDate.Name = "txtFontDate";
             this.txtFontDate.ReadOnly = true;
-            this.txtFontDate.Size = new System.Drawing.Size(188, 22);
+            this.txtFontDate.Size = new System.Drawing.Size(174, 22);
             this.txtFontDate.TabIndex = 9;
             // 
             // btnFontDate
             // 
-            this.btnFontDate.Location = new System.Drawing.Point(200, 151);
+            this.btnFontDate.Location = new System.Drawing.Point(188, 151);
             this.btnFontDate.Name = "btnFontDate";
-            this.btnFontDate.Size = new System.Drawing.Size(28, 22);
+            this.btnFontDate.Size = new System.Drawing.Size(40, 22);
             this.btnFontDate.TabIndex = 10;
             this.btnFontDate.Text = "...";
             // 
@@ -417,6 +444,101 @@
             this.grpOpacity.TabIndex = 12;
             this.grpOpacity.TabStop = false;
             this.grpOpacity.Text = "Opacity";
+            // 
+            // nudOpaSec
+            // 
+            this.nudOpaSec.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.nudOpaSec.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.nudOpaSec.Location = new System.Drawing.Point(104, 134);
+            this.nudOpaSec.Maximum = new decimal(new int[] {
+            255,
+            0,
+            0,
+            0});
+            this.nudOpaSec.Name = "nudOpaSec";
+            this.nudOpaSec.Size = new System.Drawing.Size(56, 22);
+            this.nudOpaSec.TabIndex = 18;
+            this.nudOpaSec.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // nudOpaDay
+            // 
+            this.nudOpaDay.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.nudOpaDay.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.nudOpaDay.Location = new System.Drawing.Point(104, 106);
+            this.nudOpaDay.Maximum = new decimal(new int[] {
+            255,
+            0,
+            0,
+            0});
+            this.nudOpaDay.Name = "nudOpaDay";
+            this.nudOpaDay.Size = new System.Drawing.Size(56, 22);
+            this.nudOpaDay.TabIndex = 17;
+            this.nudOpaDay.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // nudOpaDate
+            // 
+            this.nudOpaDate.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.nudOpaDate.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.nudOpaDate.Location = new System.Drawing.Point(104, 78);
+            this.nudOpaDate.Maximum = new decimal(new int[] {
+            255,
+            0,
+            0,
+            0});
+            this.nudOpaDate.Name = "nudOpaDate";
+            this.nudOpaDate.Size = new System.Drawing.Size(56, 22);
+            this.nudOpaDate.TabIndex = 16;
+            this.nudOpaDate.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // nudOpaColon
+            // 
+            this.nudOpaColon.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.nudOpaColon.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.nudOpaColon.Location = new System.Drawing.Point(104, 50);
+            this.nudOpaColon.Maximum = new decimal(new int[] {
+            255,
+            0,
+            0,
+            0});
+            this.nudOpaColon.Name = "nudOpaColon";
+            this.nudOpaColon.Size = new System.Drawing.Size(56, 22);
+            this.nudOpaColon.TabIndex = 15;
+            this.nudOpaColon.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // nudOpaTime
+            // 
+            this.nudOpaTime.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.nudOpaTime.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.nudOpaTime.Location = new System.Drawing.Point(104, 20);
+            this.nudOpaTime.Maximum = new decimal(new int[] {
+            255,
+            0,
+            0,
+            0});
+            this.nudOpaTime.Name = "nudOpaTime";
+            this.nudOpaTime.Size = new System.Drawing.Size(56, 22);
+            this.nudOpaTime.TabIndex = 14;
+            this.nudOpaTime.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
             // 
             // lblOpaTime
             // 
@@ -458,128 +580,6 @@
             this.lblOpaSec.TabIndex = 8;
             this.lblOpaSec.Text = "Sec";
             // 
-            // nudOpaTime
-            // 
-            this.nudOpaTime.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.nudOpaTime.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.nudOpaTime.Location = new System.Drawing.Point(104, 20);
-            this.nudOpaTime.Maximum = new decimal(new int[] {
-            255,
-            0,
-            0,
-            0});
-            this.nudOpaTime.Name = "nudOpaTime";
-            this.nudOpaTime.Size = new System.Drawing.Size(56, 22);
-            this.nudOpaTime.TabIndex = 14;
-            this.nudOpaTime.Value = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            // 
-            // nudOpaColon
-            // 
-            this.nudOpaColon.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.nudOpaColon.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.nudOpaColon.Location = new System.Drawing.Point(104, 50);
-            this.nudOpaColon.Maximum = new decimal(new int[] {
-            255,
-            0,
-            0,
-            0});
-            this.nudOpaColon.Name = "nudOpaColon";
-            this.nudOpaColon.Size = new System.Drawing.Size(56, 22);
-            this.nudOpaColon.TabIndex = 15;
-            this.nudOpaColon.Value = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            // 
-            // nudOpaDate
-            // 
-            this.nudOpaDate.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.nudOpaDate.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.nudOpaDate.Location = new System.Drawing.Point(104, 78);
-            this.nudOpaDate.Maximum = new decimal(new int[] {
-            255,
-            0,
-            0,
-            0});
-            this.nudOpaDate.Name = "nudOpaDate";
-            this.nudOpaDate.Size = new System.Drawing.Size(56, 22);
-            this.nudOpaDate.TabIndex = 16;
-            this.nudOpaDate.Value = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            // 
-            // nudOpaDay
-            // 
-            this.nudOpaDay.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.nudOpaDay.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.nudOpaDay.Location = new System.Drawing.Point(104, 106);
-            this.nudOpaDay.Maximum = new decimal(new int[] {
-            255,
-            0,
-            0,
-            0});
-            this.nudOpaDay.Name = "nudOpaDay";
-            this.nudOpaDay.Size = new System.Drawing.Size(56, 22);
-            this.nudOpaDay.TabIndex = 17;
-            this.nudOpaDay.Value = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            // 
-            // nudOpaSec
-            // 
-            this.nudOpaSec.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.nudOpaSec.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.nudOpaSec.Location = new System.Drawing.Point(104, 134);
-            this.nudOpaSec.Maximum = new decimal(new int[] {
-            255,
-            0,
-            0,
-            0});
-            this.nudOpaSec.Name = "nudOpaSec";
-            this.nudOpaSec.Size = new System.Drawing.Size(56, 22);
-            this.nudOpaSec.TabIndex = 18;
-            this.nudOpaSec.Value = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            // 
-            // lblColonGap
-            // 
-            this.lblColonGap.Location = new System.Drawing.Point(8, 52);
-            this.lblColonGap.Name = "lblColonGap";
-            this.lblColonGap.Size = new System.Drawing.Size(90, 18);
-            this.lblColonGap.TabIndex = 14;
-            this.lblColonGap.Text = "Colon gap";
-            // 
-            // nudColonGap
-            // 
-            this.nudColonGap.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.nudColonGap.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.nudColonGap.Location = new System.Drawing.Point(104, 48);
-            this.nudColonGap.Maximum = new decimal(new int[] {
-            200,
-            0,
-            0,
-            0});
-            this.nudColonGap.Name = "nudColonGap";
-            this.nudColonGap.Size = new System.Drawing.Size(56, 22);
-            this.nudColonGap.TabIndex = 15;
-            this.nudColonGap.Value = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            // 
             // UC_ClockSettings
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -596,16 +596,16 @@
             this.grpClockBg.ResumeLayout(false);
             this.grpClockBg.PerformLayout();
             this.grpColors.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.nudColonGap)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudSepWidth)).EndInit();
             this.grpFonts.ResumeLayout(false);
             this.grpFonts.PerformLayout();
             this.grpOpacity.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.nudOpaTime)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudOpaColon)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudOpaDate)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudOpaDay)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudOpaSec)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudColonGap)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudOpaDay)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudOpaDate)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudOpaColon)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudOpaTime)).EndInit();
             this.ResumeLayout(false);
 
         }

@@ -24,6 +24,10 @@ namespace ESDeckPC
         // from esp JSON, not written to pc JSON
         [JsonIgnore]
         public string BgImage { get; set; }
+
+        // from esp JSON, not written to pc JSON -- filename only, under assets/side_icons
+        [JsonIgnore]
+        public string SideIcon { get; set; }
     }
 
     public class PcButton
@@ -72,6 +76,9 @@ namespace ESDeckPC
 
         [JsonProperty("bg_image")]
         public string BgImage { get; set; }
+
+        [JsonProperty("side_icon")]
+        public string SideIcon { get; set; }
 
         [JsonProperty("buttons")]
         public List<EspButton> Buttons { get; set; } = new List<EspButton>();

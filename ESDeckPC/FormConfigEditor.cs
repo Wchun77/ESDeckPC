@@ -16,6 +16,7 @@ namespace ESDeckPC
 
         private string _assetsBackgroundsDir = null;
         private string _assetsIconsDir = null;
+        private string _assetsSideIconsDir = null;
 
         /// <summary>
         /// Fired after a successful save. Argument is the new PC JSON path.
@@ -56,6 +57,7 @@ namespace ESDeckPC
                     {
                         if (pi >= espConfig.Pages.Count) break;
                         _pcConfig.Pages[pi].BgImage = espConfig.Pages[pi].BgImage ?? "";
+                        _pcConfig.Pages[pi].SideIcon = espConfig.Pages[pi].SideIcon ?? "";
                         for (int bi = 0; bi < _pcConfig.Pages[pi].Buttons.Count; bi++)
                         {
                             if (bi >= espConfig.Pages[pi].Buttons.Count) break;
@@ -100,6 +102,7 @@ namespace ESDeckPC
         {
             _assetsBackgroundsDir = null;
             _assetsIconsDir = null;
+            _assetsSideIconsDir = null;
 
             if (string.IsNullOrEmpty(_espPath)) return;
 
@@ -119,6 +122,7 @@ namespace ESDeckPC
 
             _assetsBackgroundsDir = Path.Combine(root, "assets", "backgrounds");
             _assetsIconsDir = Path.Combine(root, "assets", "icons");
+            _assetsSideIconsDir = Path.Combine(root, "assets", "side_icons");
         }
 
         // ------------------------------------------------------------------
@@ -363,6 +367,19 @@ namespace ESDeckPC
                         _preview.SetPage(_pcConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
                 };
                 menu.Items.Add(itemBg);
+
+                var itemSideIcon = new ToolStripMenuItem("Set Side Icon") { ForeColor = Color.FromArgb(220, 220, 220) };
+                itemSideIcon.Click += (s, ev) =>
+                {
+                    string name = FormSideIconPicker.Show(this, "Set Side Icon",
+                        _pcConfig.Pages[idx].SideIcon ?? "", _pcConfig.Pages[idx].Name, _assetsSideIconsDir);
+                    if (name == null) return;
+                    _pcConfig.Pages[idx].SideIcon = name;
+                    // No _preview refresh here -- DeckPreviewPanel shows the
+                    // grid page (buttons/background), not the sidebar page
+                    // switcher, so side_icon has nothing to redraw there.
+                };
+                menu.Items.Add(itemSideIcon);
 
                 var itemDel = new ToolStripMenuItem("Delete Page") { ForeColor = Color.FromArgb(220, 80, 80) };
                 itemDel.Click += (s, ev) => DeletePage(idx);

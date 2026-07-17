@@ -74,6 +74,7 @@ namespace ESDeckPC
                 {
                     Name = pcPage.Name,
                     BgImage = pcPage.BgImage ?? "",
+                    SideIcon = pcPage.SideIcon ?? "",
                 };
 
                 foreach (var pcBtn in pcPage.Buttons)
