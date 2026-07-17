@@ -68,6 +68,12 @@ namespace ESDeckPC
         {
             var esp = new EspConfig();
 
+            esp.Settings = new EspSettings
+            {
+                BgImage = pcConfig.Settings?.BgImage ?? "",
+                SideIcon = pcConfig.Settings?.SideIcon ?? "",
+            };
+
             foreach (var pcPage in pcConfig.Pages)
             {
                 var espPage = new EspPage

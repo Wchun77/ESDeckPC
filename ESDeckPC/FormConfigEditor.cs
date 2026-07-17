@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -24,6 +25,14 @@ namespace ESDeckPC
         public event EventHandler<string> ConfigSaved;
 
         private DeckPreviewPanel _preview;
+
+        // Settings entry (btnSettingsPage) -- not part of _pcConfig.Pages,
+        // shown/hidden the same way FormMonitorEditor's fixed Clock button
+        // works. Tracked separately since lstPages' own SelectedIndex can't
+        // represent "Settings selected".
+        private bool _settingsSelected = false;
+        private static readonly Color ColSettingsNormal = Color.FromArgb(45, 45, 48);
+        private static readonly Color ColSettingsSelected = Color.FromArgb(0, 85, 204);
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
@@ -53,6 +62,8 @@ namespace ESDeckPC
                 try
                 {
                     var espConfig = ConfigLoader.LoadEsp(_espPath);
+                    _pcConfig.Settings.BgImage = espConfig.Settings?.BgImage ?? "";
+                    _pcConfig.Settings.SideIcon = espConfig.Settings?.SideIcon ?? "";
                     for (int pi = 0; pi < _pcConfig.Pages.Count; pi++)
                     {
                         if (pi >= espConfig.Pages.Count) break;
@@ -89,6 +100,10 @@ namespace ESDeckPC
             lstPages.KeyDown += lstPages_KeyDown;
             btnSave.Click += btnSave_Click;
             btnDiscard.Click += btnDiscard_Click;
+
+            btnSettingsPage.BackColor = ColSettingsNormal;
+            btnSettingsPage.Click += (s, e) => ShowSettingsPreview();
+            btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
 
             LoadPages();
         }
@@ -143,7 +158,75 @@ namespace ESDeckPC
         {
             int idx = lstPages.SelectedIndex;
             if (idx < 0 || idx >= _pcConfig.Pages.Count) return;
+
+            SetSettingsButtonSelected(false);
+            _preview.AllowButtons = true;
             _preview.SetPage(_pcConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
+        }
+
+        // ------------------------------------------------------------------
+        // Settings entry (fixed, not part of _pcConfig.Pages -- same idea as
+        // FormMonitorEditor's btnClockPage). Preview is background-only:
+        // Settings has no buttons in the schema, so AllowButtons is turned
+        // off and the wrapper PcPage we build here always has an empty
+        // Buttons list.
+        // ------------------------------------------------------------------
+
+        private void SetSettingsButtonSelected(bool selected)
+        {
+            _settingsSelected = selected;
+            btnSettingsPage.BackColor = selected ? ColSettingsSelected : ColSettingsNormal;
+        }
+
+        private void ShowSettingsPreview()
+        {
+            lstPages.SelectedIndex = -1;   // harmless no-op via the idx<0 guard above
+            SetSettingsButtonSelected(true);
+
+            _preview.AllowButtons = false;
+            var settingsPage = new PcPage
+            {
+                Name = "Settings",
+                BgImage = _pcConfig.Settings.BgImage,
+                Buttons = new List<PcButton>(),
+            };
+            _preview.SetPage(settingsPage, _assetsBackgroundsDir, _assetsIconsDir);
+        }
+
+        private void BtnSettingsPage_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right) return;
+
+            var menu = new ContextMenuStrip();
+            menu.BackColor = Color.FromArgb(45, 45, 48);
+            menu.ForeColor = Color.FromArgb(220, 220, 220);
+            menu.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
+            menu.ShowImageMargin = false;
+
+            var itemBg = new ToolStripMenuItem("Set Background") { ForeColor = Color.FromArgb(220, 220, 220) };
+            itemBg.Click += (s, ev) =>
+            {
+                string name = PromptBackground(_pcConfig.Settings.BgImage ?? "");
+                if (name == null) return;
+                _pcConfig.Settings.BgImage = name;
+                if (_settingsSelected)
+                    ShowSettingsPreview();
+            };
+            menu.Items.Add(itemBg);
+
+            var itemSideIcon = new ToolStripMenuItem("Set Side Icon") { ForeColor = Color.FromArgb(220, 220, 220) };
+            itemSideIcon.Click += (s, ev) =>
+            {
+                string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
+                    _pcConfig.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
+                if (name == null) return;
+                _pcConfig.Settings.SideIcon = name;
+                // No _preview refresh -- same as page side_icon, DeckPreviewPanel
+                // shows the grid/background, not the sidebar switcher.
+            };
+            menu.Items.Add(itemSideIcon);
+
+            menu.Show(btnSettingsPage, e.Location);
         }
 
         // ------------------------------------------------------------------

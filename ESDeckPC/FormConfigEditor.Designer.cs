@@ -18,6 +18,7 @@
             this.splitMain = new System.Windows.Forms.SplitContainer();
             this.grpPages = new System.Windows.Forms.GroupBox();
             this.lstPages = new System.Windows.Forms.ListBox();
+            this.btnSettingsPage = new System.Windows.Forms.Button();
             this.grpPreview = new System.Windows.Forms.GroupBox();
             this.picDeckPreview = new System.Windows.Forms.PictureBox();
             this.pnlBottom = new System.Windows.Forms.Panel();
@@ -53,10 +54,11 @@
             this.splitMain.Size = new System.Drawing.Size(871, 512);
             this.splitMain.SplitterDistance = 121;
             this.splitMain.TabIndex = 0;
-            // 
+            //
             // grpPages
-            // 
+            //
             this.grpPages.Controls.Add(this.lstPages);
+            this.grpPages.Controls.Add(this.btnSettingsPage);
             this.grpPages.Dock = System.Windows.Forms.DockStyle.Fill;
             this.grpPages.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.grpPages.Location = new System.Drawing.Point(0, 0);
@@ -77,9 +79,24 @@
             this.lstPages.ItemHeight = 14;
             this.lstPages.Location = new System.Drawing.Point(8, 19);
             this.lstPages.Name = "lstPages";
-            this.lstPages.Size = new System.Drawing.Size(105, 485);
+            this.lstPages.Size = new System.Drawing.Size(105, 449);
             this.lstPages.TabIndex = 0;
-            // 
+            //
+            // btnSettingsPage
+            //
+            this.btnSettingsPage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.btnSettingsPage.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.btnSettingsPage.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
+            this.btnSettingsPage.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSettingsPage.Font = new System.Drawing.Font("Consolas", 9F);
+            this.btnSettingsPage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.btnSettingsPage.Location = new System.Drawing.Point(8, 468);
+            this.btnSettingsPage.Name = "btnSettingsPage";
+            this.btnSettingsPage.Size = new System.Drawing.Size(105, 36);
+            this.btnSettingsPage.TabIndex = 1;
+            this.btnSettingsPage.Text = "Settings";
+            this.btnSettingsPage.UseVisualStyleBackColor = false;
+            //
             // grpPreview
             // 
             this.grpPreview.Controls.Add(this.picDeckPreview);
@@ -179,6 +196,7 @@
         private System.Windows.Forms.SplitContainer splitMain;
         private System.Windows.Forms.GroupBox grpPages;
         private System.Windows.Forms.ListBox lstPages;
+        private System.Windows.Forms.Button btnSettingsPage;
         private System.Windows.Forms.GroupBox grpPreview;
         private System.Windows.Forms.Panel pnlBottom;
         private System.Windows.Forms.Button btnSave;

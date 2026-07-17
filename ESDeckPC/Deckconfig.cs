@@ -11,6 +11,21 @@ namespace ESDeckPC
     {
         [JsonProperty("pages")]
         public List<PcPage> Pages { get; set; } = new List<PcPage>();
+
+        // Settings page's own bg_image/side_icon -- same "loaded from esp
+        // json on open, written back into esp json on save, never stored in
+        // pc json" convention as PcPage.BgImage/SideIcon below.
+        [JsonIgnore]
+        public PcSettings Settings { get; set; } = new PcSettings();
+    }
+
+    public class PcSettings
+    {
+        [JsonIgnore]
+        public string BgImage { get; set; } = "";
+
+        [JsonIgnore]
+        public string SideIcon { get; set; } = "";
     }
 
     public class PcPage
@@ -65,8 +80,20 @@ namespace ESDeckPC
 
     public class EspConfig
     {
+        [JsonProperty("settings")]
+        public EspSettings Settings { get; set; } = new EspSettings();
+
         [JsonProperty("pages")]
         public List<EspPage> Pages { get; set; } = new List<EspPage>();
+    }
+
+    public class EspSettings
+    {
+        [JsonProperty("bg_image")]
+        public string BgImage { get; set; } = "";
+
+        [JsonProperty("side_icon")]
+        public string SideIcon { get; set; } = "";
     }
 
     public class EspPage

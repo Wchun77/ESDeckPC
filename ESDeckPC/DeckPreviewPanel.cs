@@ -41,6 +41,15 @@ namespace ESDeckPC
         private Bitmap _bgBitmap = null;
         private string _assetsIconsDir = null;
 
+        /// <summary>
+        /// When false, the button grid/drag/context-menu-"Add Button" affordances
+        /// are suppressed -- used for the Settings entry, which only ever has a
+        /// background image (no buttons in the schema). SetPage() itself doesn't
+        /// need to change: passing a page with an empty Buttons list already
+        /// draws background-only; this flag just stops the user from adding one.
+        /// </summary>
+        public bool AllowButtons { get; set; } = true;
+
         // Icon bitmap cache: key = icon filename
         private readonly Dictionary<string, Bitmap> _iconCache = new Dictionary<string, Bitmap>();
 
@@ -351,9 +360,14 @@ namespace ESDeckPC
                 cms.Items.Add(new ToolStripSeparator());
             }
 
-            var miAdd = new ToolStripMenuItem("Add Button") { ForeColor = darkFg };
-            miAdd.Click += (s, e) => AddButtonRequested?.Invoke(this, EventArgs.Empty);
-            cms.Items.Add(miAdd);
+            if (AllowButtons)
+            {
+                var miAdd = new ToolStripMenuItem("Add Button") { ForeColor = darkFg };
+                miAdd.Click += (s, e) => AddButtonRequested?.Invoke(this, EventArgs.Empty);
+                cms.Items.Add(miAdd);
+            }
+
+            if (cms.Items.Count == 0) return;   // nothing applicable (e.g. Settings preview, empty area)
 
             cms.Show(this, location);
         }
