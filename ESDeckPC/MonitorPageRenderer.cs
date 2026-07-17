@@ -115,6 +115,23 @@ namespace ESDeckPC
             return bmp;
         }
 
+        /// <summary>
+        /// Renders just the background (zoom-fill + 50% mask, same convention
+        /// as Render()) with no cell grid -- used for the Settings entry,
+        /// which only ever has a bg_image (no data cells in the schema).
+        /// </summary>
+        public static Bitmap RenderBackgroundOnly(Bitmap bgBitmap)
+        {
+            var bmp = new Bitmap(ContentW, ContentH);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(Color.FromArgb(18, 18, 18));
+                DrawBackground(g, bgBitmap);
+            }
+            return bmp;
+        }
+
         private static void DrawBackground(Graphics g, Bitmap bgBitmap)
         {
             if (bgBitmap != null)

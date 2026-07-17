@@ -5,11 +5,27 @@ namespace ESDeckPC
 {
     public class MonitorConfig
     {
+        // Settings page's own bg_image/side_icon -- same "fixed entry, own
+        // top-level JSON object" convention as Clock, so the PC/ESP config
+        // stays a single 1:1 file (unlike Deck's split pc/esp json pair).
+        [JsonProperty("settings")]
+        public MonitorSettingsCfg Settings { get; set; } = new MonitorSettingsCfg();
+
         [JsonProperty("clock")]
         public MonitorClockCfg Clock { get; set; } = new MonitorClockCfg();
 
         [JsonProperty("pages")]
         public List<MonitorPageCfg> Pages { get; set; } = new List<MonitorPageCfg>();
+    }
+
+    public class MonitorSettingsCfg
+    {
+        [JsonProperty("bg_image")]
+        public string BgImage { get; set; } = "";
+
+        // filename only, under assets/side_icons; empty = show gear glyph on sidebar button
+        [JsonProperty("side_icon")]
+        public string SideIcon { get; set; } = "";
     }
 
     public class MonitorClockCfg

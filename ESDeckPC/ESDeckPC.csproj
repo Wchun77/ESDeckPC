@@ -154,6 +154,12 @@
     <Compile Include="UC_PageSettings.Designer.cs">
       <DependentUpon>UC_PageSettings.cs</DependentUpon>
     </Compile>
+    <Compile Include="UC_SettingsPanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UC_SettingsPanel.Designer.cs">
+      <DependentUpon>UC_SettingsPanel.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="FormBgImporter.resx">
       <DependentUpon>FormBgImporter.cs</DependentUpon>
     </EmbeddedResource>
@@ -196,6 +202,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="UC_PageSettings.resx">
       <DependentUpon>UC_PageSettings.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UC_SettingsPanel.resx">
+      <DependentUpon>UC_SettingsPanel.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.manifest" />
     <None Include="packages.config" />

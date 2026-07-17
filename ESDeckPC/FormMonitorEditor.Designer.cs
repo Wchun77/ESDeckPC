@@ -19,6 +19,7 @@
             this.paneltop = new System.Windows.Forms.Panel();
             this.btnClockPage = new System.Windows.Forms.Button();
             this.flpPages = new System.Windows.Forms.FlowLayoutPanel();
+            this.btnSettingsPage = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
             this.grpJson = new System.Windows.Forms.GroupBox();
             this.btnJsonSaveAs = new System.Windows.Forms.Button();
@@ -60,6 +61,7 @@
             // 
             this.paneltop.Controls.Add(this.btnClockPage);
             this.paneltop.Controls.Add(this.flpPages);
+            this.paneltop.Controls.Add(this.btnSettingsPage);
             this.paneltop.Controls.Add(this.grpJson);
             this.paneltop.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneltop.Location = new System.Drawing.Point(3, 3);
@@ -91,7 +93,15 @@
             this.button1.Size = new System.Drawing.Size(79, 55);
             this.button1.TabIndex = 5;
             this.button1.Text = "TestUse";
-            // 
+            //
+            // btnSettingsPage
+            //
+            this.btnSettingsPage.Location = new System.Drawing.Point(788, 25);
+            this.btnSettingsPage.Name = "btnSettingsPage";
+            this.btnSettingsPage.Size = new System.Drawing.Size(79, 55);
+            this.btnSettingsPage.TabIndex = 6;
+            this.btnSettingsPage.Text = "Settings";
+            //
             // grpJson
             // 
             this.grpJson.Controls.Add(this.btnJsonSaveAs);
@@ -250,6 +260,7 @@
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Button btnClockPage;
         private System.Windows.Forms.FlowLayoutPanel flpPages;
+        private System.Windows.Forms.Button btnSettingsPage;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button btnJsonSaveAs;
     }

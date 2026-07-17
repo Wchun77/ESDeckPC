@@ -26,10 +26,18 @@ namespace ESDeckPC
 
         private UC_ClockSettings _ucClock = null;
         private UC_PageSettings _ucPage = null;
+        private UC_SettingsPanel _ucSettings = null;
         private Bitmap _previewBmp = null;
 
-        // The data page currently selected in flpPages, or null when Clock is selected.
+        // The data page currently selected in flpPages, or null when Clock
+        // or Settings is selected (_settingsSelected distinguishes the two).
         private MonitorPageCfg _selectedPage = null;
+
+        // True when the fixed Settings entry is selected. bg_image is edited
+        // via _ucSettings (hosted in pnlSettingsHost, same as Clock/Page);
+        // side_icon is set directly from btnSettingsPage's right-click menu,
+        // same as Clock's side_icon, since it doesn't need a staged field.
+        private bool _settingsSelected = false;
 
         private static readonly Color ColPageSelected = Color.FromArgb(140, 30, 30); // dark red
         private static readonly Color ColPageNormal = Color.FromArgb(55, 55, 58);
@@ -77,6 +85,8 @@ namespace ESDeckPC
             btnJsonSaveAs.Click += BtnJsonSaveAs_Click;
             btnClockPage.Click += BtnClockPage_Click;
             btnClockPage.MouseUp += BtnClockPage_MouseUp;
+            btnSettingsPage.Click += (s, e) => ShowSettingsPage();
+            btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
 
             flpPages.AllowDrop = true;
             flpPages.MouseUp += FlpPages_MouseUp;
@@ -376,6 +386,7 @@ namespace ESDeckPC
         private void ShowClockSettings()
         {
             _selectedPage = null;
+            _settingsSelected = false;
 
             if (_ucClock == null)
             {
@@ -398,6 +409,7 @@ namespace ESDeckPC
         private void ShowPageSettings(MonitorPageCfg page)
         {
             _selectedPage = page;
+            _settingsSelected = false;
 
             if (_ucPage == null)
             {
@@ -418,9 +430,60 @@ namespace ESDeckPC
             RefreshPreview();
         }
 
+        // ------------------------------------------------------------------
+        // Settings entry (fixed, outside flpPages -- same idea as
+        // btnClockPage). bg_image is edited via _ucSettings hosted in
+        // pnlSettingsHost (same shape as Clock/Page); side_icon is written
+        // straight into _cfg.Settings from the right-click menu below, same
+        // as Clock's side_icon -- it doesn't need a staged UI field.
+        // ------------------------------------------------------------------
+
+        private void ShowSettingsPage()
+        {
+            _selectedPage = null;
+            _settingsSelected = true;
+
+            if (_ucSettings == null)
+            {
+                _ucSettings = new UC_SettingsPanel { Dock = DockStyle.Top };
+                _ucSettings.PreviewInvalidated += (s, e) => RefreshPreview();
+            }
+
+            pnlSettingsHost.SuspendLayout();
+            pnlSettingsHost.Controls.Clear();
+            pnlSettingsHost.Controls.Add(_ucSettings);
+            pnlSettingsHost.ResumeLayout();
+
+            _ucSettings.ApplyConfig(_cfg.Settings, _assetsBackgroundsDir);
+
+            SetSelectedButton(btnSettingsPage);
+            SetStatus("Settings");
+            RefreshPreview();
+        }
+
+        private void BtnSettingsPage_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right) return;
+
+            var cms = BuildDarkMenu();
+
+            var miSideIcon = new ToolStripMenuItem("Set Side Icon");
+            miSideIcon.Click += (s, ev) =>
+            {
+                string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
+                    _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
+                if (name == null) return;
+                _cfg.Settings.SideIcon = name;
+            };
+            cms.Items.Add(miSideIcon);
+
+            cms.Show(Cursor.Position);
+        }
+
         private void SetSelectedButton(Button selected)
         {
             btnClockPage.BackColor = (selected == btnClockPage) ? ColPageSelected : ColPageNormal;
+            btnSettingsPage.BackColor = (selected == btnSettingsPage) ? ColPageSelected : ColPageNormal;
             foreach (var btn in flpPages.Controls.OfType<Button>())
                 btn.BackColor = (btn == selected) ? ColPageSelected : ColPageNormal;
         }
@@ -548,7 +611,13 @@ namespace ESDeckPC
             ReadUiIntoConfig();
 
             Bitmap newBmp;
-            if (_selectedPage != null)
+            if (_settingsSelected)
+            {
+                if (_ucSettings == null) return; // nothing to render yet
+                newBmp = MonitorPageRenderer.RenderBackgroundOnly(_ucSettings.BgBitmap);
+                SetStatus("Settings");
+            }
+            else if (_selectedPage != null)
             {
                 // Data page selected: render the 2x2 cell grid layout.
                 newBmp = MonitorPageRenderer.Render(_selectedPage, _ucPage?.BgBitmap);
@@ -585,6 +654,7 @@ namespace ESDeckPC
         private void ApplyConfigToUi(MonitorConfig cfg)
         {
             _ucClock?.ApplyConfig(cfg.Clock);
+            _ucSettings?.ApplyConfig(cfg.Settings, _assetsBackgroundsDir);
             if (_ucPage != null && _selectedPage != null)
                 _ucPage.ApplyConfig(_selectedPage);
         }
@@ -592,6 +662,7 @@ namespace ESDeckPC
         private void ReadUiIntoConfig()
         {
             _ucClock?.ReadConfig(_cfg.Clock);
+            _ucSettings?.ReadConfig(_cfg.Settings);
             if (_ucPage != null && _selectedPage != null)
                 _ucPage.ReadConfig(_selectedPage);
         }
@@ -607,7 +678,7 @@ namespace ESDeckPC
             var lightFg = Color.FromArgb(220, 220, 220);
             var font = new Font("Consolas", 8.5f);
 
-            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs, btnClockPage })
+            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs, btnClockPage, btnSettingsPage })
             {
                 btn.BackColor = darkBg;
                 btn.ForeColor = lightFg;
