@@ -42,19 +42,25 @@ namespace ESDeckPC
         private Bitmap _source = null;
         private string _sourceFileName = null;
 
-        // Scaled bitmap dimensions in logical (non-DisplayScale) pixels.
-        // Fill mode: always >= OutputW x OutputH (zoom-fill, cropped by panning).
-        // Fit mode: always <= OutputW x OutputH (whole image visible, letterboxed).
+        // Current source-pixels -> canvas-pixels scale factor. Set to the
+        // auto-fit/auto-fill value whenever an image loads or the mode
+        // radio changes, then freely adjustable afterward via the mouse
+        // wheel (Canvas_MouseWheel) -- e.g. shrinking below the auto-Fill
+        // zoom so a non-square source doesn't fill every pixel.
+        private float _zoom = 1f;
+
+        // Scaled bitmap dimensions in logical pixels, derived from _zoom.
         private int _scaledW, _scaledH;
 
         // Current top-left offset of the scaled image relative to the output
-        // canvas, in logical pixels. Fill mode: always <= 0 on both axes
-        // (panning crops the overflow). Fit mode: always >= 0 (centered,
-        // clamped to the same position regardless of drag -- see
-        // ClampOffsetX/Y, there is no overflow to pan through).
+        // canvas, in logical pixels. Centered on any axis where the image is
+        // smaller than the canvas (nothing to pan there); clamped to keep
+        // the canvas fully covered on any axis where it's larger -- see
+        // ClampOffsetX/Y.
         private int _offsetX, _offsetY;
 
-        // Pan drag state (Fill mode only)
+        // Pan drag state (only while the image is larger than the canvas on
+        // at least one axis -- see Canvas_MouseDown)
         private bool _dragging = false;
         private Point _dragStart;
         private int _offsetXAtDrag, _offsetYAtDrag;
@@ -66,6 +72,7 @@ namespace ESDeckPC
         public FormSideIconImporter()
         {
             InitializeComponent();
+            UpdateHint();
         }
 
         // ------------------------------------------------------------------
@@ -114,42 +121,40 @@ namespace ESDeckPC
 
         private void Mode_CheckedChanged(object sender, EventArgs e)
         {
-            canvas.Cursor = rbFill.Checked ? Cursors.Hand : Cursors.Default;
-            lblHint.Text = rbFill.Checked
-                ? "Drag to pan (Fill mode)\r\nOutput: 64 x 56 PNG"
-                : "Whole image shown, letterboxed\r\nOutput: 64 x 56 PNG";
+            UpdateHint();
 
             if (_source == null) return;
             RecomputeLayout();
             canvas.Invalidate();
         }
 
+        private void UpdateHint()
+        {
+            lblHint.Text = rbFill.Checked
+                ? "Drag/arrows to pan, scroll to zoom\r\nOutput: 64 x 56 PNG"
+                : "Whole image shown, letterboxed\r\nDrag/arrows/scroll  |  64 x 56 PNG";
+        }
+
+        /// <summary>
+        /// Resets to the automatic Fill/Fit zoom for the current mode and
+        /// centers the image. Called on load and on mode switch -- manual
+        /// zoom (mouse wheel) always starts fresh from here.
+        /// </summary>
         private void RecomputeLayout()
         {
-            if (rbFill.Checked)
-            {
-                // Zoom-fill: scale so the image fully covers the output
-                // canvas, overflow on one axis gets cropped by panning.
-                float zx = (float)OutputW / _source.Width;
-                float zy = (float)OutputH / _source.Height;
-                float z = Math.Max(zx, zy);
-                _scaledW = (int)Math.Ceiling(_source.Width * z);
-                _scaledH = (int)Math.Ceiling(_source.Height * z);
-            }
-            else
-            {
-                // Fit: scale so the whole image is visible, no cropping.
-                // Whatever doesn't cover the canvas stays transparent, letting
-                // the button's own background color show through in firmware.
-                float zx = (float)OutputW / _source.Width;
-                float zy = (float)OutputH / _source.Height;
-                float z = Math.Min(zx, zy);
-                _scaledW = Math.Max(1, (int)Math.Round(_source.Width * z));
-                _scaledH = Math.Max(1, (int)Math.Round(_source.Height * z));
-            }
+            float zx = (float)OutputW / _source.Width;
+            float zy = (float)OutputH / _source.Height;
+            _zoom = rbFill.Checked ? Math.Max(zx, zy) : Math.Min(zx, zy);
 
+            ApplyZoom();
             _offsetX = (OutputW - _scaledW) / 2;
             _offsetY = (OutputH - _scaledH) / 2;
+        }
+
+        private void ApplyZoom()
+        {
+            _scaledW = Math.Max(1, (int)Math.Round(_source.Width * _zoom));
+            _scaledH = Math.Max(1, (int)Math.Round(_source.Height * _zoom));
         }
 
         // ------------------------------------------------------------------
@@ -206,14 +211,18 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // Pan (Fill mode only -- Fit mode's clamp always resolves back to the
-        // centered offset since there is no overflow to pan through, see
-        // ClampOffsetX/Y, but the drag is still gated here for a clean cursor)
+        // Pan -- draggable on any axis where the scaled image doesn't
+        // exactly match the canvas size, in either direction: bigger lets
+        // you slide which part gets cropped, smaller lets you slide the
+        // image to one side within its transparent margin (handy when the
+        // source itself is off-center) -- see ClampOffsetX/Y.
         // ------------------------------------------------------------------
+
+        private bool CanPan => _scaledW != OutputW || _scaledH != OutputH;
 
         private void Canvas_MouseDown(object sender, MouseEventArgs e)
         {
-            if (e.Button != MouseButtons.Left || _source == null || !rbFill.Checked) return;
+            if (e.Button != MouseButtons.Left || _source == null || !CanPan) return;
             _dragging = true;
             _dragStart = e.Location;
             _offsetXAtDrag = _offsetX;
@@ -234,16 +243,100 @@ namespace ESDeckPC
         private void Canvas_MouseUp(object sender, MouseEventArgs e)
         {
             _dragging = false;
-            canvas.Cursor = rbFill.Checked ? Cursors.Hand : Cursors.Default;
+            canvas.Cursor = CanPan ? Cursors.Hand : Cursors.Default;
         }
 
-        private int ClampOffsetX(int x) => Math.Max(OutputW - _scaledW, Math.Min(0, x));
-        private int ClampOffsetY(int y) => Math.Max(OutputH - _scaledH, Math.Min(0, y));
+        // ------------------------------------------------------------------
+        // Zoom (mouse wheel) -- keeps the point under the cursor stationary
+        // while zooming, like most image editors. Free to go smaller than
+        // the auto-Fill zoom (revealing transparent margin the button's own
+        // background shows through) or larger than auto-Fit.
+        // ------------------------------------------------------------------
+
+        private void Canvas_MouseWheel(object sender, MouseEventArgs e)
+        {
+            if (_source == null) return;
+
+            float oldZoom = _zoom;
+            float factor = e.Delta > 0 ? 1.1f : 1f / 1.1f;
+
+            // Bounds scale with the image's own fit/fill zoom, not a fixed
+            // number -- a large source photo can have a natural fit zoom
+            // well under 0.05, and a fixed floor above that would clamp
+            // every zoom-out right back UP past where you started (jumping
+            // bigger when scrolling "down", and getting stuck there since
+            // every further scroll re-clamps to the same floor).
+            float zx = (float)OutputW / _source.Width;
+            float zy = (float)OutputH / _source.Height;
+            float fitZoom = Math.Min(zx, zy);
+            float fillZoom = Math.Max(zx, zy);
+            float minZoom = fitZoom * 0.25f;
+            float maxZoom = fillZoom * 8f;
+            float newZoom = Math.Max(minZoom, Math.Min(maxZoom, oldZoom * factor));
+            if (Math.Abs(newZoom - oldZoom) < 0.0001f) return;
+
+            // Point under the cursor, in source-image pixel space.
+            float cursorSrcX = (e.X - _offsetX) / oldZoom;
+            float cursorSrcY = (e.Y - _offsetY) / oldZoom;
+
+            _zoom = newZoom;
+            ApplyZoom();
+
+            _offsetX = ClampOffsetX((int)Math.Round(e.X - cursorSrcX * _zoom));
+            _offsetY = ClampOffsetY((int)Math.Round(e.Y - cursorSrcY * _zoom));
+
+            canvas.Cursor = CanPan ? Cursors.Hand : Cursors.Default;
+            canvas.Invalidate();
+        }
 
         // ------------------------------------------------------------------
-        // Crop to 64x56 bitmap (always starts fully transparent -- Fill mode
-        // ends up covering every pixel anyway, Fit mode keeps its letterbox
-        // transparent so the firmware button's own background shows through)
+        // Arrow-key nudge -- intercepted at the form level (ProcessCmdKey)
+        // rather than a control KeyDown handler, because rbFill/rbFit are
+        // RadioButtons and would otherwise eat arrow keys themselves to
+        // switch Fill/Fit selection whenever one of them has focus. Plain
+        // arrow = 1px, Shift+arrow = 5px for faster large moves.
+        // ------------------------------------------------------------------
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (_source != null)
+            {
+                int step = (keyData & Keys.Shift) == Keys.Shift ? 5 : 1;
+                switch (keyData & Keys.KeyCode)
+                {
+                    case Keys.Left:  NudgeOffset(-step, 0); return true;
+                    case Keys.Right: NudgeOffset(step, 0); return true;
+                    case Keys.Up:    NudgeOffset(0, -step); return true;
+                    case Keys.Down:  NudgeOffset(0, step); return true;
+                }
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        private void NudgeOffset(int dx, int dy)
+        {
+            _offsetX = ClampOffsetX(_offsetX + dx);
+            _offsetY = ClampOffsetY(_offsetY + dy);
+            canvas.Invalidate();
+        }
+
+        // Bigger-than-canvas: offset ranges over [OutputW-scaledW, 0], i.e.
+        // the image can slide but must always fully cover the canvas.
+        // Smaller-than-canvas: OutputW-scaledW is positive, so the range
+        // flips to [0, OutputW-scaledW] -- the image can slide from flush
+        // left/top to flush right/bottom while staying fully inside the
+        // canvas the whole time. Either way it's just clamping between 0
+        // and (OutputW - scaledW) regardless of which one is bigger.
+        private int ClampOffsetX(int x) =>
+            Math.Max(Math.Min(0, OutputW - _scaledW), Math.Min(Math.Max(0, OutputW - _scaledW), x));
+        private int ClampOffsetY(int y) =>
+            Math.Max(Math.Min(0, OutputH - _scaledH), Math.Min(Math.Max(0, OutputH - _scaledH), y));
+
+        // ------------------------------------------------------------------
+        // Crop to 64x56 bitmap (always starts fully transparent -- covered
+        // completely if the zoomed image fills the canvas, otherwise the
+        // uncovered margin stays transparent so the firmware button's own
+        // background shows through)
         // ------------------------------------------------------------------
 
         private Bitmap CropToBitmap()

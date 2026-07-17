@@ -154,6 +154,9 @@
     <Compile Include="UC_PageSettings.Designer.cs">
       <DependentUpon>UC_PageSettings.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="FormBgImporter.resx">
+      <DependentUpon>FormBgImporter.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="FormButtonEditor.resx">
       <DependentUpon>FormButtonEditor.cs</DependentUpon>
     </EmbeddedResource>
@@ -174,6 +177,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormSideIconImporter.resx">
       <DependentUpon>FormSideIconImporter.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormSideIconPicker.resx">
+      <DependentUpon>FormSideIconPicker.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
