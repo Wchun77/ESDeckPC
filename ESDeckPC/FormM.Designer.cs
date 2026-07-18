@@ -31,6 +31,7 @@
             this.tsMenuImageBg = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuImageIco = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuImageSideIcon = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuImageBootAnim = new System.Windows.Forms.ToolStripMenuItem();
             this.tsSep1 = new System.Windows.Forms.ToolStripSeparator();
             this.tsBtnClearLog = new System.Windows.Forms.ToolStripButton();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
@@ -169,7 +170,8 @@
             this.tsMenuImage.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.tsMenuImageBg,
             this.tsMenuImageIco,
-            this.tsMenuImageSideIcon});
+            this.tsMenuImageSideIcon,
+            this.tsMenuImageBootAnim});
             this.tsMenuImage.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.tsMenuImage.Name = "tsMenuImage";
             this.tsMenuImage.ShowDropDownArrow = false;
@@ -196,7 +198,14 @@
             this.tsMenuImageSideIcon.Size = new System.Drawing.Size(180, 22);
             this.tsMenuImageSideIcon.Text = "Side Icon";
             this.tsMenuImageSideIcon.Click += new System.EventHandler(this.tsMenuImageSideIcon_Click);
-            // 
+            //
+            // tsMenuImageBootAnim
+            //
+            this.tsMenuImageBootAnim.Name = "tsMenuImageBootAnim";
+            this.tsMenuImageBootAnim.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuImageBootAnim.Text = "Boot Animation";
+            this.tsMenuImageBootAnim.Click += new System.EventHandler(this.tsMenuImageBootAnim_Click);
+            //
             // tsSep1
             // 
             this.tsSep1.Name = "tsSep1";
@@ -482,5 +491,6 @@
         private System.Windows.Forms.ToolStripMenuItem tsMenuImageBg;
         private System.Windows.Forms.ToolStripMenuItem tsMenuImageIco;
         private System.Windows.Forms.ToolStripMenuItem tsMenuImageSideIcon;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuImageBootAnim;
     }
 }

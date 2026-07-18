@@ -362,6 +362,11 @@ namespace ESDeckPC
             new FormSideIconImporter().Show();
         }
 
+        private void tsMenuImageBootAnim_Click(object sender, EventArgs e)
+        {
+            new FormBootAnimConverter().Show();
+        }
+
         // ------------------------------------------------------------------
         // Discord status update
         // ------------------------------------------------------------------
