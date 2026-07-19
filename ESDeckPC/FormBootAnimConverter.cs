@@ -516,6 +516,29 @@ namespace ESDeckPC
                             bmp.Dispose();
                             return;
                         }
+
+                        // Extra guard: this request could have been fired
+                        // by a drag, still be in flight (a real ffmpeg
+                        // process takes ~100-150ms), and only complete
+                        // AFTER the user pressed Play in the meantime --
+                        // mySeq alone doesn't catch that, since pressing
+                        // Play doesn't bump _frameRequestSeq. Without this
+                        // check, a late-arriving drag-preview frame could
+                        // hide _wmp and show a stale static image WHILE
+                        // it's actively playing, an occasional/hard-to-
+                        // pin-down flash with no obvious trigger. If
+                        // playback has since started, just drop this
+                        // result -- _wmp is already showing the right
+                        // (moving) thing.
+                        bool nowPlaying = false;
+                        try { nowPlaying = _wmp.playState == WMPLib.WMPPlayState.wmppsPlaying; }
+                        catch { /* best effort */ }
+                        if (nowPlaying)
+                        {
+                            bmp.Dispose();
+                            return;
+                        }
+
                         var old = _previewImage.Image;
                         _previewImage.Image = bmp;
                         old?.Dispose();
@@ -951,8 +974,18 @@ namespace ESDeckPC
             try { pos = _wmp.Ctlcontrols.currentPosition; }
             catch { pos = _pendingResumeSec; }
 
-            bool caughtUp = pos >= _pendingResumeSec - 0.1;
-            bool timedOut = (DateTime.UtcNow - _resumePollStartUtc).TotalMilliseconds >= ResumePollTimeoutMs;
+            double elapsedMs = (DateTime.UtcNow - _resumePollStartUtc).TotalMilliseconds;
+
+            // currentPosition may report the seeked-to target almost as
+            // soon as the seek is issued -- a logical stream position,
+            // not necessarily proof the decoder has actually produced and
+            // rendered that frame yet. Requiring a minimum real elapsed
+            // time in addition to the position check guards against
+            // revealing _wmp on the strength of an optimistic position
+            // readback before it's genuinely caught up.
+            const int MinSettleMs = 90;
+            bool caughtUp = pos >= _pendingResumeSec - 0.1 && elapsedMs >= MinSettleMs;
+            bool timedOut = elapsedMs >= ResumePollTimeoutMs;
 
             if (!caughtUp && !timedOut)
                 return; // keep polling next tick
