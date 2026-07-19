@@ -116,7 +116,12 @@ namespace ESDeckPC
         /// </summary>
         private void SeekTo(double sec)
         {
-            _currentSec = Math.Max(0, Math.Min(_totalSec, sec));
+            // Clamped to [Start, End], not [0, TotalDuration] -- scrubbing
+            // (dragging the playhead line or the middle of the timeline)
+            // is meant for previewing inside the trim selection, not the
+            // whole video, so it shouldn't be draggable out into the
+            // dimmed/excluded portions on either side.
+            _currentSec = Math.Max(_startSec, Math.Min(_endSec, sec));
             Invalidate();
             SeekRequested?.Invoke(this, _currentSec);
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -7,7 +8,6 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using LibVLCSharp.Shared;
 
 namespace ESDeckPC
 {
@@ -31,10 +31,38 @@ namespace ESDeckPC
     /// this project's Form/Form.Designer.cs split convention -- this file
     /// only has the constructor and business logic.
     ///
-    /// NOTE: this form depends on LibVLCSharp.WinForms + LibVLCSharp +
-    /// VideoLAN.LibVLC.Windows (NuGet). Those packages are not wired into
-    /// this project's packages.config/csproj yet -- add them via Visual
-    /// Studio's NuGet package manager before building.
+    /// Preview playback uses the Windows Media Player ActiveX control
+    /// (AxWMPLib.AxWindowsMediaPlayer) rather than LibVLC -- WMP ships
+    /// with Windows itself, so unlike the old LibVLCSharp +
+    /// VideoLAN.LibVLC.Windows NuGet trio (~380MB of bundled decoders),
+    /// this adds zero bytes to the install. The tradeoff is codec
+    /// coverage: WMP only decodes what Windows' built-in codecs support
+    /// (H.264 is the safe baseline; HEVC in particular is often NOT
+    /// installed by default). See ProbeVideo/SupportedPreviewCodecs
+    /// below -- unsupported files are rejected up front with a message
+    /// telling the user to convert first, rather than silently failing
+    /// to preview.
+    ///
+    /// WMP is ONLY ever touched when the user explicitly presses Play.
+    /// Loading a video, dragging a trim thumb or the playhead, and
+    /// landing on the End marker all show a static frame extracted via
+    /// ffmpeg instead (see ExtractFramePreview / _previewImage). Earlier
+    /// revisions also used WMP for that idle/scrubbing preview -- calling
+    /// Play() automatically on load, then racing to catch and pause it
+    /// before the user could see it move. WMP's asynchronous open/
+    /// buffer/play event sequence fires an unpredictable number of times
+    /// per load, and reacting to it correctly every single time proved
+    /// unreliable in practice (auto-play glitches, stale thumbnails, UI
+    /// stalls from overlapping ffmpeg processes spawned by a handler that
+    /// re-ran more often than expected). Routing everything except
+    /// actual playback through ffmpeg single-frame extraction sidesteps
+    /// all of that: it's WYSIWYG (same decoder path as the real export),
+    /// and WMP's event timing no longer matters for anything except the
+    /// brief window between pressing Play and the video actually starting
+    /// to move -- normal player startup latency, not a glitch.
+    ///
+    /// NOTE: the WMP COM reference needs a one-time Visual Studio step --
+    /// see the COMReference comment in ESDeckPC.csproj.
     /// </summary>
     public partial class FormBootAnimConverter : Form
     {
@@ -70,6 +98,48 @@ namespace ESDeckPC
             DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref v, sizeof(int));
         }
 
+        // _wmp's underlying ActiveX/COM object isn't actually alive until
+        // its own window handle is created, which is guaranteed to have
+        // happened for every child control by OnLoad -- unlike the Form
+        // constructor, it's safe to touch _wmp's COM properties here.
+        // Mostly just idle-state hygiene now since WMP isn't engaged
+        // until Play is pressed, but cheap and harmless to set early.
+        //
+        // _wmp.Visible = false here matters far more than it looks --
+        // _wmp is a windowed ActiveX control (it owns a real native HWND),
+        // and Windows always paints a windowed control's HWND on top of
+        // any plain GDI-drawn sibling (like _previewImage) that shares its
+        // screen area, regardless of Z-order or the sibling's own Visible
+        // property ("airspace" problem). Toggling only _previewImage's
+        // Visible never actually hid WMP's own output -- WMP's blank/
+        // playing surface was bleeding through on top of it the entire
+        // time, which is what made the preview look like it only ever
+        // showed anything correct while WMP itself was actually playing.
+        // The real fix is to hide _wmp itself (see StopPlaybackIfPlaying/
+        // BtnPlayPause_Click) whenever _previewImage should be the one
+        // visible.
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            _wmp.uiMode = "none"; // hide WMP's own transport bar -- we drive playback with our own controls/shortcuts
+            _wmp.settings.mute = true;
+            _wmp.settings.volume = 0;
+            _wmp.Visible = false;
+
+            // videoHost (the plain Panel hosting both _wmp and
+            // _previewImage stacked on top of each other) isn't double-
+            // buffered by default -- Panel doesn't expose that property
+            // publicly, so it's set via reflection here. Without it,
+            // toggling one child's Visible off while the other's flips on
+            // can show a flash of the panel's own background color for a
+            // frame in between, on top of whatever WMP/DirectShow-level
+            // causes are already in play.
+            typeof(Control).InvokeMember(
+                "DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null, videoHost, new object[] { true });
+        }
+
         // Space toggles play/pause no matter which control has focus --
         // none of this form's controls need a literal typed space
         // character (video/output paths are read-only, the combo is a
@@ -96,14 +166,94 @@ namespace ESDeckPC
         // State
         // ------------------------------------------------------------------
 
-        private LibVLC _libVLC;
-        private MediaPlayer _mediaPlayer;
-        private Media _media;
-
         private double _videoDurationSec = 0;
         private string _thumbTempDir;
         private System.Windows.Forms.Timer _previewWatchTimer;
         private bool _isConverting = false;
+
+        // Bumped on every LoadVideo() call. Background work kicked off by
+        // an older load (thumbnail extraction, frame preview extraction)
+        // captures the generation it was started for and checks it again
+        // before applying results, so a slow leftover task from a
+        // previous video can't clobber state for whatever video is
+        // actually loaded now.
+        private int _loadGeneration = 0;
+
+        // Debounces preview-frame requests while dragging a thumb or the
+        // playhead. Extracting a frame via ffmpeg spawns a real OS
+        // process -- doing that on every single mouse-move tick (which
+        // can fire dozens of times/sec) would spawn a pile of overlapping
+        // ffmpeg processes with their results racing each other.
+        // RequestFramePreview() resets this timer on every call, so while
+        // the drag keeps producing new positions the timer never actually
+        // fires; the instant the drag pauses or the mouse is released, it
+        // fires once and extracts exactly one frame at wherever things
+        // ended up.
+        private System.Windows.Forms.Timer _framePreviewTimer;
+        private double _pendingFramePreviewSec = double.NaN;
+
+        // Extra staleness guard alongside _loadGeneration -- if two frame
+        // requests are in flight (e.g. a slow one from a moment ago and a
+        // newer one from wherever the drag ended), only the most recently
+        // *requested* one's result should ever actually get applied.
+        private int _frameRequestSeq = 0;
+
+        // Path currently (or most recently) loaded into _wmp -- distinct
+        // from _txtVideoPath.Text, which reflects the selected video and
+        // may not match this at all if WMP hasn't been engaged for it yet
+        // (nothing touches _wmp until the user actually presses Play).
+        private string _wmpLoadedPath;
+
+        // Set right when _wmp.URL is (re)assigned in BtnPlayPause_Click.
+        // Wmp_PlayStateChange does exactly one seek to
+        // _pendingFirstSeekTarget the first time currentMedia becomes
+        // available afterwards, then leaves WMP alone to keep playing --
+        // unlike the old load-time logic, this only ever runs because the
+        // user just asked to play, so any brief startup latency here is
+        // expected player behavior, not an unwanted "sneaks forward"
+        // glitch.
+        private bool _pendingFirstSeek = false;
+        private double _pendingFirstSeekTarget = 0;
+
+        // Polls _wmp's actual position after a resume-from-drag seek+play,
+        // instead of blindly guessing a fixed delay before revealing it --
+        // see BtnPlayPause_Click's resume branch / ResumePlayTimer_Tick.
+        // A fixed-delay version of this was tried first and still let a
+        // stale frame (from wherever _wmp was before this seek) show
+        // through occasionally, because the fixed delay was a guess, not
+        // a confirmation that the seek had actually landed. Polling
+        // currentPosition until it reads at/past the target (or a safety
+        // timeout elapses) reveals _wmp only once we have real evidence
+        // it's caught up.
+        private System.Windows.Forms.Timer _resumePlayTimer;
+        private double _pendingResumeSec;
+        private DateTime _resumePollStartUtc;
+        private const int ResumePollTimeoutMs = 600;
+
+        // Guards BtnPlayPause_Click against rapid repeat presses (mashing
+        // Space, or OS key-repeat if held down). Each press issues a real
+        // synchronous COM call into WMP (pause/play, sometimes a
+        // currentPosition seek), but WMP's own internal state doesn't
+        // finish settling instantly -- firing another one before the
+        // previous command has taken effect queues up contradictory
+        // play/pause/seek requests faster than WMP can keep up with,
+        // which is what shows on screen as the video jittering back and
+        // forth. A short cooldown between toggles fixes it without
+        // making single deliberate presses feel any less responsive.
+        private DateTime _lastPlayPauseToggleUtc = DateTime.MinValue;
+        private const int PlayPauseCooldownMs = 200;
+
+        // Preview playback only trusts Windows' own built-in codecs (via
+        // WMP) -- this is the deliberate lightweight-install tradeoff, see
+        // the class doc comment. If ffmpeg reports something outside this
+        // list, LoadVideo refuses to preview it and tells the user to
+        // convert the file first instead of loading a black/broken player.
+        private static readonly HashSet<string> SupportedPreviewCodecs = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "h264", "mpeg4", "msmpeg4v3", "wmv3", "vc1",
+        };
+        private static readonly Regex VideoCodecRegex = new Regex(@"Video:\s*([a-zA-Z0-9_]+)", RegexOptions.Compiled);
+        private static readonly Regex DurationRegex = new Regex(@"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", RegexOptions.Compiled);
 
         // ------------------------------------------------------------------
         // Constructor
@@ -130,20 +280,14 @@ namespace ESDeckPC
                 _btnConvert.Enabled = false;
             }
 
-            try
-            {
-                Core.Initialize();
-                _libVLC = new LibVLC();
-                _mediaPlayer = new MediaPlayer(_libVLC) { Mute = true }; // this is a trim tool, preview audio is never needed
-                _videoView.MediaPlayer = _mediaPlayer;
-            }
-            catch (Exception ex)
-            {
-                AppendLog("LibVLC initialization failed, preview playback unavailable: " + ex.Message);
-            }
-
             _previewWatchTimer = new System.Windows.Forms.Timer { Interval = 50 };
             _previewWatchTimer.Tick += PreviewWatchTimer_Tick;
+
+            _framePreviewTimer = new System.Windows.Forms.Timer { Interval = 100 };
+            _framePreviewTimer.Tick += FramePreviewTimer_Tick;
+
+            _resumePlayTimer = new System.Windows.Forms.Timer { Interval = 20 };
+            _resumePlayTimer.Tick += ResumePlayTimer_Tick;
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -152,15 +296,15 @@ namespace ESDeckPC
 
             _previewWatchTimer?.Stop();
             _previewWatchTimer?.Dispose();
+            _framePreviewTimer?.Stop();
+            _framePreviewTimer?.Dispose();
+            _resumePlayTimer?.Stop();
+            _resumePlayTimer?.Dispose();
 
-            try
-            {
-                _mediaPlayer?.Stop();
-                _mediaPlayer?.Dispose();
-                _media?.Dispose();
-                _libVLC?.Dispose();
-            }
+            try { _wmp?.Ctlcontrols?.stop(); }
             catch { /* best effort cleanup */ }
+
+            _previewImage?.Image?.Dispose();
 
             CleanupThumbTempDir();
         }
@@ -177,72 +321,362 @@ namespace ESDeckPC
                 dlg.Filter = "Video files (*.mp4;*.mov;*.avi;*.mkv;*.webm)|*.mp4;*.mov;*.avi;*.mkv;*.webm|All files (*.*)|*.*";
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
-                _ = LoadVideoAsync(dlg.FileName);
+                LoadVideo(dlg.FileName);
             }
         }
 
-        private async Task LoadVideoAsync(string path)
+        private void LoadVideo(string path)
         {
-            if (_libVLC == null)
+            // Duration/codec both come from a single ffmpeg probe -- see
+            // ProbeVideo's doc comment.
+            ProbeVideo(path, out string codec, out double durationSec);
+
+            if (codec != null && !SupportedPreviewCodecs.Contains(codec))
             {
-                AppendLog("LibVLC not initialized, cannot load video.");
+                AppendLog($"Preview not supported for codec \"{codec}\". Please convert the video to H.264 (MP4) first -- e.g. with HandBrake or any online video converter -- then select it again.");
+                MessageBox.Show(
+                    $"This video uses the \"{codec}\" codec, which the built-in preview player can't decode.\n\n" +
+                    "Please convert it to H.264 (MP4) using a tool like HandBrake or an online converter, then select the converted file.",
+                    "Unsupported Video Format", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+            if (durationSec <= 0)
+            {
+                AppendLog("Could not read video duration -- please check the file is valid.");
+                return;
+            }
+
+            // Drop back to a stopped state -- if a previous video was
+            // still mid-playback, switching away from it shouldn't leave
+            // WMP running underneath.
+            StopPlaybackIfPlaying();
 
             _txtVideoPath.Text = path;
             AppendLog("Loading video: " + path);
 
+            _loadGeneration++;
+            int myGeneration = _loadGeneration;
+
+            // Clear both immediately rather than waiting for the new
+            // extraction to finish -- otherwise the previous video's
+            // frame/thumbnail strip visibly lingers for however long the
+            // new one takes to generate.
+            _slider.SetThumbnails(null);
+            var oldImg = _previewImage.Image;
+            _previewImage.Image = null;
+            oldImg?.Dispose();
+
+            _videoDurationSec = durationSec;
+            _slider.TotalDurationSec = _videoDurationSec;
+            _slider.SetRange(0, Math.Min(_videoDurationSec, 3.0));
+            _slider.CurrentSec = _slider.StartSec;
+            UpdateRangeLabel();
+            RefreshEstimate();
+
+            StartThumbnailExtraction(path, _videoDurationSec, myGeneration);
+
+            // Called directly (not through the drag-debounce path) -- this
+            // is a single one-off request, not a burst of mouse-move
+            // events, so there's no reason to add the debounce's extra
+            // ~100ms delay before the frame even starts extracting.
+            ExtractFramePreview(_slider.StartSec, myGeneration);
+
+            // Deliberately NOT touching _wmp here at all -- see the class
+            // doc comment. It's only ever loaded/played the first time
+            // the user actually presses Play for this video (see
+            // BtnPlayPause_Click).
+        }
+
+        /// <summary>
+        /// Runs the bundled ffmpeg.exe with no output (just -i) to read the
+        /// input stream info from stderr, pulling out both the video codec
+        /// name and duration in one shot. Codec/duration are left at
+        /// null/0 (not thrown) if probing isn't possible -- callers treat
+        /// that as "let WMP try anyway" for codec, but treat duration
+        /// &lt;= 0 as a hard failure since nothing else in this form works
+        /// without it.
+        /// </summary>
+        private static void ProbeVideo(string path, out string codec, out double durationSec)
+        {
+            codec = null;
+            durationSec = 0;
+
+            if (!FfmpegRunner.IsAvailable()) return;
+
             try
             {
-                _media?.Dispose();
-                _media = new Media(_libVLC, path, FromType.FromPath);
-
-                await _media.Parse(MediaParseOptions.ParseLocal);
-
-                long durationMs = _media.Duration;
-                if (durationMs <= 0)
+                var psi = new ProcessStartInfo
                 {
-                    AppendLog("Could not read video duration -- please check the file is valid.");
-                    return;
-                }
-
-                _videoDurationSec = durationMs / 1000.0;
-                _slider.TotalDurationSec = _videoDurationSec;
-                _slider.SetRange(0, Math.Min(_videoDurationSec, 3.0));
-                _slider.CurrentSec = _slider.StartSec;
-                UpdateRangeLabel();
-                RefreshEstimate();
-
-                _mediaPlayer.Media = _media;
-
-                // Play then immediately pause once playback actually starts,
-                // so the view shows frame 0 (rather than a black VideoView)
-                // and MediaPlayer.Time-based seeking works right away.
-                EventHandler<EventArgs> onPlaying = null;
-                onPlaying = (s, e) =>
-                {
-                    _mediaPlayer.Playing -= onPlaying;
-                    BeginInvoke(new Action(() => _mediaPlayer.Pause()));
+                    FileName = FfmpegRunner.GetFfmpegPath(),
+                    Arguments = $"-hide_banner -i \"{path}\"",
+                    UseShellExecute = false,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true,
                 };
-                _mediaPlayer.Playing += onPlaying;
-                _mediaPlayer.Play();
 
-                StartThumbnailExtraction(path, _videoDurationSec);
+                using (var proc = Process.Start(psi))
+                {
+                    string stderr = proc.StandardError.ReadToEnd();
+                    proc.WaitForExit(5000);
+
+                    var codecMatch = VideoCodecRegex.Match(stderr);
+                    if (codecMatch.Success)
+                        codec = codecMatch.Groups[1].Value.ToLowerInvariant();
+
+                    var durMatch = DurationRegex.Match(stderr);
+                    if (durMatch.Success)
+                    {
+                        double h = double.Parse(durMatch.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                        double m = double.Parse(durMatch.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+                        double s = double.Parse(durMatch.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture);
+                        durationSec = h * 3600 + m * 60 + s;
+                    }
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                AppendLog("Failed to load video: " + ex.Message);
+                // codec/durationSec stay at their default null/0 -- caller
+                // handles that as "probing failed".
             }
+        }
+
+        /// <summary>
+        /// Extracts a single JPEG frame at the given position via ffmpeg
+        /// and shows it in _previewImage. This -- not WMP -- drives the
+        /// visible preview for everything except actual playback: it's
+        /// WYSIWYG (same decoder path as the real export) and has no
+        /// asynchronous open/buffer/play state machine to race against.
+        /// generation/mySeq both guard against a slow request finishing
+        /// after a newer one (or a newer video) has already superseded it.
+        /// </summary>
+        private void ExtractFramePreview(double sec, int generation)
+        {
+            string path = _txtVideoPath.Text;
+            if (string.IsNullOrEmpty(path) || !FfmpegRunner.IsAvailable()) return;
+
+            int mySeq = ++_frameRequestSeq;
+
+            Task.Run(() =>
+            {
+                string tmpFile = Path.Combine(Path.GetTempPath(), "esdeck_boot_frame_" + Guid.NewGuid().ToString("N") + ".jpg");
+                try
+                {
+                    // Two-stage seek -- NOT plain "-ss sec -i path" (fast
+                    // but only keyframe-accurate: for a video with a
+                    // sparse-keyframe/scene-cut-heavy GOP structure, that
+                    // snaps to a keyframe that can be a full scene away
+                    // from the requested time, which was the actual cause
+                    // of every "rolls back"/"shows the wrong frame" symptom
+                    // chased earlier in this file's history) and NOT plain
+                    // "-i path -ss sec" either (frame-accurate but decodes
+                    // sequentially from the nearest keyframe all the way to
+                    // sec, which can take well over a second if sec is far
+                    // from any keyframe -- that showed up as the SAME
+                    // symptom again, just delayed: the correct frame still
+                    // arrived, but late enough to look like the picture
+                    // "changes on its own" after a pause with no
+                    // interaction). Coarse input-seek to 5s before the
+                    // target, then a precise output-seek for the small
+                    // remainder, caps the decode distance so this is
+                    // consistently fast AND exact regardless of where sec
+                    // falls relative to the video's keyframes.
+                    double fastSeek = Math.Max(0, sec - 5.0);
+                    double fineSeek = sec - fastSeek;
+                    var args = new[]
+                    {
+                        "-y",
+                        "-ss", fastSeek.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        "-i", path,
+                        "-ss", fineSeek.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        "-frames:v", "1",
+                        "-q:v", "3",
+                        tmpFile,
+                    };
+
+                    FfmpegRunner.Run(args, 0, line => { }, pct => { }, out string err);
+
+                    if (generation != _loadGeneration || mySeq != _frameRequestSeq || !File.Exists(tmpFile))
+                        return; // superseded, or extraction failed -- leave whatever was showing
+
+                    Bitmap bmp;
+                    using (var fs = new FileStream(tmpFile, FileMode.Open, FileAccess.Read))
+                        bmp = new Bitmap(Image.FromStream(fs));
+
+                    if (IsDisposed)
+                    {
+                        bmp.Dispose();
+                        return;
+                    }
+
+                    BeginInvoke(new Action(() =>
+                    {
+                        if (generation != _loadGeneration || mySeq != _frameRequestSeq)
+                        {
+                            bmp.Dispose();
+                            return;
+                        }
+                        var old = _previewImage.Image;
+                        _previewImage.Image = bmp;
+                        old?.Dispose();
+
+                        // Swap away from _wmp only now, once _previewImage
+                        // actually holds the matching frame -- avoids ever
+                        // showing _previewImage before it has the right
+                        // contents (that ordering is what fixed the
+                        // original "pause rolls back" flash). Every pause
+                        // path (PauseWmpInPlace + this swap) ends up here,
+                        // including plain in-place pauses -- not just
+                        // because it's the source-of-truth frame, but
+                        // because _wmp is a windowed ActiveX control whose
+                        // own surface can go stale (show old cached
+                        // content) if the form is moved, covered, or
+                        // otherwise repainted while paused, since nothing
+                        // is decoding new frames to refresh it. A plain
+                        // GDI PictureBox like _previewImage doesn't have
+                        // that problem -- it always repaints correctly.
+                        _wmp.Visible = false;
+                        _previewImage.Visible = true;
+                    }));
+                }
+                catch
+                {
+                    /* best effort -- leave whatever was showing */
+                }
+                finally
+                {
+                    try { if (File.Exists(tmpFile)) File.Delete(tmpFile); }
+                    catch { /* best effort */ }
+                }
+            });
+        }
+
+        private void RequestFramePreview(double sec)
+        {
+            _pendingFramePreviewSec = sec;
+            _framePreviewTimer.Stop();
+            _framePreviewTimer.Start();
+        }
+
+        private void FramePreviewTimer_Tick(object sender, EventArgs e)
+        {
+            _framePreviewTimer.Stop();
+            if (double.IsNaN(_pendingFramePreviewSec)) return;
+
+            double sec = _pendingFramePreviewSec;
+            _pendingFramePreviewSec = double.NaN;
+            ExtractFramePreview(sec, _loadGeneration);
+        }
+
+        /// <summary>
+        /// Plain pause -- pauses WMP if it's actively playing and resets
+        /// the Play/Pause button and watch timer, nothing else. Used by
+        /// Slider_RangeChanged/Slider_SeekRequested, which pause and then
+        /// immediately seek/extract a frame for wherever the drag ended
+        /// up anyway via RequestFramePreview -- no need for the extra
+        /// PauseWmpInPlace redraw-forcing work first.
+        ///
+        /// Callers that are pausing "in place" instead (the user hit
+        /// Pause/Space, playback reached End, Set-End-Here while playing)
+        /// use PauseWmpInPlace, not this.
+        /// </summary>
+        private void StopPlaybackIfPlaying()
+        {
+            try
+            {
+                if (_wmp?.currentMedia != null && _wmp.playState == WMPLib.WMPPlayState.wmppsPlaying)
+                    _wmp.Ctlcontrols.pause();
+            }
+            catch { /* best effort */ }
+
+            _previewWatchTimer.Stop();
+            _btnPlayPause.Text = "Play";
+        }
+
+        /// <summary>
+        /// Pauses WMP at the current position, syncs _slider.CurrentSec to
+        /// it, and returns that position (NaN if nothing was playing).
+        ///
+        /// Does NOT force an extra redraw seek here (an earlier revision
+        /// did -- immediately re-asserting currentPosition after pause()
+        /// to work around AxWindowsMediaPlayer's render buffer lagging a
+        /// frame or two behind on pause). That's no longer needed: every
+        /// caller of this follows up with ExtractFramePreview, which
+        /// shows the actually-correct frame (via ffmpeg, not WMP's own
+        /// rendering) within a couple hundred ms regardless, and it turns
+        /// out that extra forced seek was itself causing a visible flash
+        /// on _wmp's surface right at the moment of pausing -- fixing the
+        /// precision of a frame that's about to be covered up anyway
+        /// wasn't worth that cost.
+        ///
+        /// Syncing _slider.CurrentSec here matters on its own, though:
+        /// it's otherwise only updated once per _previewWatchTimer tick
+        /// (every 50ms) during playback, so by the moment pause actually
+        /// happens it can be lagging up to one tick behind.
+        /// BtnPlayPause_Click's resume branch reads _slider.CurrentSec to
+        /// decide where to resume -- without this sync it would resume
+        /// from that stale, slightly-earlier value and visibly seek
+        /// backward before playing.
+        /// </summary>
+        private double PauseWmpInPlace()
+        {
+            double pos = double.NaN;
+            try
+            {
+                if (_wmp?.currentMedia != null && _wmp.playState == WMPLib.WMPPlayState.wmppsPlaying)
+                {
+                    pos = _wmp.Ctlcontrols.currentPosition;
+                    _wmp.Ctlcontrols.pause();
+                    _slider.CurrentSec = pos;
+                }
+            }
+            catch { /* best effort */ }
+
+            _previewWatchTimer.Stop();
+            _btnPlayPause.Text = "Play";
+            return pos;
+        }
+
+        /// <summary>
+        /// Fires on every WMP play-state transition. Only does anything
+        /// while _pendingFirstSeek is set (right after BtnPlayPause_Click
+        /// (re)assigns _wmp.URL): the first time currentMedia becomes
+        /// available afterwards, seek once to _pendingFirstSeekTarget and
+        /// then get out of the way, letting playback continue. The
+        /// early-out matters -- this can fire many times in a row while
+        /// WMP works through its own internal buffering/transitioning
+        /// states, and it should be a cheap no-op for all of those except
+        /// the one that actually matters.
+        /// </summary>
+        private void Wmp_PlayStateChange(object sender, AxWMPLib._WMPOCXEvents_PlayStateChangeEvent e)
+        {
+            if (!_pendingFirstSeek || _wmp.currentMedia == null) return;
+
+            _pendingFirstSeek = false;
+
+            _wmp.settings.mute = true;
+            _wmp.settings.volume = 0;
+            _wmp.Ctlcontrols.currentPosition = _pendingFirstSeekTarget;
         }
 
         // ------------------------------------------------------------------
         // Thumbnail strip (background ffmpeg extraction, full video length)
         // ------------------------------------------------------------------
 
-        private void StartThumbnailExtraction(string videoPath, double durationSec)
+        private void StartThumbnailExtraction(string videoPath, double durationSec, int generation)
         {
             CleanupThumbTempDir();
-            _thumbTempDir = Path.Combine(Path.GetTempPath(), "esdeck_boot_thumbs_" + Guid.NewGuid().ToString("N"));
+
+            // Captured into a local instead of read back from the
+            // _thumbTempDir field inside the background Task below -- if
+            // the user picks another video before this extraction
+            // finishes, LoadVideo's next call reassigns the field (and
+            // calls CleanupThumbTempDir again) out from under this still-
+            // running Task. Using a local means this Task always operates
+            // on the folder it actually created, regardless of what the
+            // field points to by the time it gets around to reading it.
+            string thumbDir = Path.Combine(Path.GetTempPath(), "esdeck_boot_thumbs_" + Guid.NewGuid().ToString("N"));
+            _thumbTempDir = thumbDir;
 
             const int thumbW = 160, thumbH = 90;
             const int targetCount = 30;
@@ -253,11 +687,11 @@ namespace ESDeckPC
             {
                 try
                 {
-                    Directory.CreateDirectory(_thumbTempDir);
+                    Directory.CreateDirectory(thumbDir);
 
                     string vf = $"fps=1/{interval.ToString(System.Globalization.CultureInfo.InvariantCulture)}," +
                                 $"scale={thumbW}:{thumbH}:force_original_aspect_ratio=increase,crop={thumbW}:{thumbH}";
-                    string outPattern = Path.Combine(_thumbTempDir, "thumb_%04d.jpg");
+                    string outPattern = Path.Combine(thumbDir, "thumb_%04d.jpg");
 
                     var args = new[]
                     {
@@ -271,11 +705,12 @@ namespace ESDeckPC
                     FfmpegRunner.Run(args, expectedCount, line => { }, pct => { }, out string err);
                     if (err != null)
                     {
-                        BeginInvoke(new Action(() => AppendLog("Thumbnail extraction failed: " + err)));
+                        if (generation == _loadGeneration && !IsDisposed)
+                            BeginInvoke(new Action(() => AppendLog("Thumbnail extraction failed: " + err)));
                         return;
                     }
 
-                    var files = Directory.GetFiles(_thumbTempDir, "thumb_*.jpg").OrderBy(f => f).ToList();
+                    var files = Directory.GetFiles(thumbDir, "thumb_*.jpg").OrderBy(f => f).ToList();
                     var bitmaps = new List<Bitmap>();
                     foreach (var f in files)
                     {
@@ -287,6 +722,11 @@ namespace ESDeckPC
                         catch { /* skip unreadable thumb */ }
                     }
 
+                    // Discard results from a superseded load -- if the user
+                    // picked another video while this was still running,
+                    // applying these now would show the wrong video's strip.
+                    if (generation != _loadGeneration) return;
+
                     if (bitmaps.Count > 0 && !IsDisposed)
                     {
                         BeginInvoke(new Action(() => _slider.SetThumbnails(bitmaps)));
@@ -294,7 +734,7 @@ namespace ESDeckPC
                 }
                 catch (Exception ex)
                 {
-                    if (!IsDisposed)
+                    if (generation == _loadGeneration && !IsDisposed)
                         BeginInvoke(new Action(() => AppendLog("Thumbnail extraction exception: " + ex.Message)));
                 }
             });
@@ -317,30 +757,21 @@ namespace ESDeckPC
             UpdateRangeLabel();
             RefreshEstimate();
 
-            if (_mediaPlayer == null) return;
-
-            // Only touch playback if the trim range moved out from under
-            // where the playhead already is -- otherwise leave it exactly
-            // where it was. Nudging one thumb shouldn't yank the preview
-            // over to it every time; it should only move if the playhead
-            // is no longer inside [Start, End] at all, in which case it
-            // snaps to whichever edge it fell past.
+            // Only touch the preview if the trim range moved out from
+            // under where the playhead already is -- otherwise leave it
+            // exactly where it was. Nudging one thumb shouldn't yank the
+            // preview over to it every time; it should only move if the
+            // playhead is no longer inside [Start, End] at all, in which
+            // case it snaps to whichever edge it fell past.
             double curSec = _slider.CurrentSec;
             if (curSec < 0) return; // nothing has played/positioned yet
 
             double clamped = Math.Max(_slider.StartSec, Math.Min(_slider.EndSec, curSec));
             if (Math.Abs(clamped - curSec) < 0.001) return; // still inside the range, leave it alone
 
-            if (_mediaPlayer.IsPlaying)
-            {
-                _mediaPlayer.Pause();
-                _previewWatchTimer.Stop();
-                _btnPlayPause.Text = "Play";
-            }
-
-            if (_mediaPlayer.IsSeekable)
-                _mediaPlayer.Time = (long)(clamped * 1000);
+            StopPlaybackIfPlaying();
             _slider.CurrentSec = clamped;
+            RequestFramePreview(clamped);
         }
 
         /// <summary>
@@ -350,17 +781,8 @@ namespace ESDeckPC
         /// </summary>
         private void Slider_SeekRequested(object sender, double sec)
         {
-            if (_mediaPlayer == null) return;
-
-            if (_mediaPlayer.IsPlaying)
-            {
-                _mediaPlayer.Pause();
-                _previewWatchTimer.Stop();
-                _btnPlayPause.Text = "Play";
-            }
-
-            if (_mediaPlayer.IsSeekable)
-                _mediaPlayer.Time = (long)(sec * 1000);
+            StopPlaybackIfPlaying();
+            RequestFramePreview(sec);
         }
 
         private void UpdateRangeLabel()
@@ -380,30 +802,165 @@ namespace ESDeckPC
         /// selected range -- if the current position is outside [Start,
         /// End) (or a previous preview already ran to the end), it first
         /// rewinds to Start; otherwise it resumes from wherever Pause left
-        /// off.
+        /// off. This is the ONLY place that ever touches _wmp.URL/Play --
+        /// see the class doc comment for why.
         /// </summary>
         private void BtnPlayPause_Click(object sender, EventArgs e)
         {
-            if (_mediaPlayer == null) return;
+            string path = _txtVideoPath.Text;
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
 
-            if (_mediaPlayer.IsPlaying)
+            var nowUtc = DateTime.UtcNow;
+            if ((nowUtc - _lastPlayPauseToggleUtc).TotalMilliseconds < PlayPauseCooldownMs)
+                return; // still settling from the last toggle -- ignore this repeat
+            _lastPlayPauseToggleUtc = nowUtc;
+
+            if (_wmp.currentMedia != null && _wmp.playState == WMPLib.WMPPlayState.wmppsPlaying)
             {
-                _mediaPlayer.Pause();
-                _previewWatchTimer.Stop();
-                _btnPlayPause.Text = "Play";
+                // Just pausing -- deliberately NOT calling ExtractFramePreview
+                // here anymore. _wmp's own paused frame is already correct
+                // (confirmed once the forced re-seek in PauseWmpInPlace was
+                // removed -- see that method's comment), so swapping over
+                // to a freshly-ffmpeg-extracted _previewImage ~100-140ms
+                // later was pure overhead: log data confirmed the position
+                // is always right and applies quickly, but the swap itself
+                // (WMP's live-decoded frame vs. a JPEG re-encode of the same
+                // instant, plus the Visible toggle between the two
+                // controls) still reads as a visible blink on every single
+                // pause. The previewImage hand-off exists to cover a
+                // narrower case -- _wmp's windowed surface going stale if
+                // the form is moved/covered while paused (see
+                // ExtractFramePreview's comment) -- which is rare enough
+                // that it's a better trade to accept vs. flickering on
+                // every ordinary pause.
+                PauseWmpInPlace();
                 return;
             }
 
-            double curSec = _mediaPlayer.Time / 1000.0;
-            if (curSec < _slider.StartSec || curSec >= _slider.EndSec)
-            {
+            double curSec = _slider.CurrentSec;
+
+            // Epsilon tolerance on the End-boundary check -- a drag that
+            // lands the playhead visually "right at" the End thumb (via
+            // DualRangeSlider.SeekTo's own Math.Min(_endSec, sec) clamp)
+            // can still end up a tiny fraction below _slider.EndSec due to
+            // floating-point rounding in the pixel-to-seconds conversion,
+            // so a strict ">=" comparison could miss it and treat "at the
+            // end" as "still playable", letting playback continue instead
+            // of resetting to Start like the user would expect.
+            const double EndBoundaryEpsilon = 0.05;
+            bool outOfRange = curSec < 0 || curSec < _slider.StartSec || curSec >= _slider.EndSec - EndBoundaryEpsilon;
+            if (outOfRange)
                 curSec = _slider.StartSec;
-                _mediaPlayer.Time = (long)(curSec * 1000);
+
+            _wmp.settings.mute = true;
+            _wmp.settings.volume = 0;
+            _wmp.uiMode = "none";
+
+            if (_wmpLoadedPath != path)
+            {
+                // First time playing this particular video in this
+                // session -- WMP has nothing loaded yet (LoadVideo never
+                // touches it). Load it now; Wmp_PlayStateChange does a
+                // one-time seek to curSec once it's actually ready. Some
+                // startup latency here is normal since the user just
+                // pressed Play themselves.
+                _previewImage.Visible = false;
+                _wmp.Visible = true; // must show the ActiveX control itself -- see OnLoad's comment
+                _wmpLoadedPath = path;
+                _pendingFirstSeek = true;
+                _pendingFirstSeekTarget = curSec;
+                _wmp.URL = path;
+                _wmp.Ctlcontrols.play();
+
+                _previewWatchTimer.Start();
+                _btnPlayPause.Text = "Pause";
+            }
+            else if (_wmp.Visible && !outOfRange)
+            {
+                // Plain resume from an in-place pause, still within
+                // [Start, End) -- _wmp was never hidden (pausing no longer
+                // swaps to _previewImage, see that branch above), so it's
+                // already sitting on the exact right frame with nothing
+                // stale to clear first. No seek, no delay -- just
+                // continue.
+                //
+                // Deliberately gated on !outOfRange too -- if curSec got
+                // reset to Start above (e.g. this is a re-press right
+                // after auto-stopping at End), _wmp is still sitting at/
+                // past End internally even though it's Visible, and
+                // blindly calling play() here would just resume forward
+                // from there instead of actually restarting at Start.
+                // That case falls through to the else branch below, which
+                // does seek first.
+                _wmp.Ctlcontrols.play();
+                _previewWatchTimer.Start();
+                _btnPlayPause.Text = "Pause";
+            }
+            else
+            {
+                // Resuming after _previewImage took over -- i.e. the user
+                // dragged/scrubbed elsewhere while paused, which does
+                // still swap to _previewImage (see Slider_RangeChanged/
+                // Slider_SeekRequested). _previewImage stays showing the
+                // correct target frame while _wmp seeks and starts
+                // playing in the background, still hidden -- Resume
+                // PlayTimer_Tick polls _wmp's actual position and only
+                // reveals it (swapping away from _previewImage) once
+                // there's real evidence it has caught up to curSec, not
+                // just a guessed delay. See that field's comment for why
+                // a fixed delay wasn't reliable enough.
+                _wmp.Ctlcontrols.currentPosition = curSec;
+                _wmp.Ctlcontrols.play();
+                _pendingResumeSec = curSec;
+                _resumePollStartUtc = DateTime.UtcNow;
+                _resumePlayTimer.Stop();
+                _resumePlayTimer.Start();
+
+                _btnPlayPause.Text = "Pause";
+            }
+        }
+
+        /// <summary>
+        /// Ticks every 20ms after BtnPlayPause_Click's resume branch
+        /// issues the seek+play to _pendingResumeSec, polling _wmp's own
+        /// reported position. _previewImage keeps showing the correct
+        /// frame the whole time this is polling, so there's nothing wrong
+        /// on screen while it waits -- _wmp is only revealed (swapping
+        /// away from _previewImage) once its currentPosition confirms it
+        /// has actually reached the target, or the safety timeout runs
+        /// out (best-effort fallback in case a hidden control's position
+        /// genuinely doesn't advance until shown -- reveals it anyway
+        /// rather than getting stuck).
+        ///
+        /// An earlier revision used a single fixed ~120ms delay instead of
+        /// polling, guessing that was enough time for the seek to land.
+        /// That guess wasn't reliable -- the delay either wasn't always
+        /// long enough, or a redundant reseek right before reveal (since
+        /// removed) reintroduced the same race it was meant to avoid.
+        /// Polling replaces the guess with an actual check.
+        /// </summary>
+        private void ResumePlayTimer_Tick(object sender, EventArgs e)
+        {
+            if (_wmp?.currentMedia == null)
+            {
+                _resumePlayTimer.Stop();
+                return;
             }
 
-            _mediaPlayer.Play();
+            double pos;
+            try { pos = _wmp.Ctlcontrols.currentPosition; }
+            catch { pos = _pendingResumeSec; }
+
+            bool caughtUp = pos >= _pendingResumeSec - 0.1;
+            bool timedOut = (DateTime.UtcNow - _resumePollStartUtc).TotalMilliseconds >= ResumePollTimeoutMs;
+
+            if (!caughtUp && !timedOut)
+                return; // keep polling next tick
+
+            _resumePlayTimer.Stop();
+            _previewImage.Visible = false;
+            _wmp.Visible = true;
             _previewWatchTimer.Start();
-            _btnPlayPause.Text = "Pause";
         }
 
         /// <summary>
@@ -416,15 +973,12 @@ namespace ESDeckPC
         /// </summary>
         private void BtnSetEndHere_Click(object sender, EventArgs e)
         {
-            // Pause first -- otherwise playback keeps rolling right past
-            // the new End the instant it's set (the auto-stop-at-End check
-            // in PreviewWatchTimer_Tick was captured from the End at the
-            // time Play was pressed, so it doesn't know End just moved).
-            if (_mediaPlayer != null && _mediaPlayer.IsPlaying)
+            if (_wmp?.currentMedia != null && _wmp.playState == WMPLib.WMPPlayState.wmppsPlaying)
             {
-                _mediaPlayer.Pause();
-                _previewWatchTimer.Stop();
-                _btnPlayPause.Text = "Play";
+                // PauseWmpInPlace already syncs _slider.CurrentSec to the
+                // exact pause position. No ExtractFramePreview hand-off
+                // here either -- see BtnPlayPause_Click's pause branch.
+                PauseWmpInPlace();
             }
 
             _slider.SetEndToCurrent();
@@ -432,9 +986,9 @@ namespace ESDeckPC
 
         private void PreviewWatchTimer_Tick(object sender, EventArgs e)
         {
-            if (_mediaPlayer == null) return;
+            if (_wmp?.currentMedia == null) return;
 
-            double curSec = _mediaPlayer.Time / 1000.0;
+            double curSec = _wmp.Ctlcontrols.currentPosition;
             _slider.CurrentSec = curSec;
 
             // Read End live rather than a snapshot from when Play was
@@ -442,9 +996,9 @@ namespace ESDeckPC
             // playback would still pause at the old position.
             if (curSec >= _slider.EndSec)
             {
-                _mediaPlayer.Pause();
-                _previewWatchTimer.Stop();
-                _btnPlayPause.Text = "Play";
+                // Auto-stop at End -- same reasoning as the other pause
+                // sites, no ExtractFramePreview hand-off.
+                PauseWmpInPlace();
             }
         }
 
@@ -572,11 +1126,25 @@ namespace ESDeckPC
                 string vf = BuildFfmpegVf(aspectMode, ScreenW, ScreenH);
                 string outPattern = Path.Combine(outDir, FrameFilePattern);
 
+                // Two-stage seek, same reasoning as ExtractFramePreview's
+                // comment: a single "-ss startSec -i videoPath" is fast but
+                // only keyframe-accurate, so the exported sequence's first
+                // frame (and everything after it, since -t/-r count frames
+                // from there) could start at a noticeably different point
+                // than what the preview showed -- especially on sparse-
+                // keyframe video. Splitting into a coarse input-seek to
+                // 5s before the target, then a precise output-seek for the
+                // remainder, keeps this fast for long videos while landing
+                // exactly on startSec.
+                double fastSeek = Math.Max(0, startSec - 5.0);
+                double fineSeek = startSec - fastSeek;
+
                 var args = new[]
                 {
                     "-y",
-                    "-ss", startSec.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    "-ss", fastSeek.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "-i", videoPath,
+                    "-ss", fineSeek.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "-t", durationSec.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     "-r", fps.ToString(),
                     "-vf", vf,

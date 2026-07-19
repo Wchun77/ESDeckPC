@@ -38,7 +38,9 @@ namespace ESDeckPC
             this._txtVideoPath = new System.Windows.Forms.TextBox();
             this._btnBrowseVideo = new System.Windows.Forms.Button();
             this.previewPanel = new System.Windows.Forms.TableLayoutPanel();
-            this._videoView = new LibVLCSharp.WinForms.VideoView();
+            this.videoHost = new System.Windows.Forms.Panel();
+            this._wmp = new AxWMPLib.AxWindowsMediaPlayer();
+            this._previewImage = new System.Windows.Forms.PictureBox();
             this.previewCtlRow = new System.Windows.Forms.FlowLayoutPanel();
             this._btnPlayPause = new System.Windows.Forms.Button();
             this._btnSetEndHere = new System.Windows.Forms.Button();
@@ -66,7 +68,9 @@ namespace ESDeckPC
             this.grpVideo.SuspendLayout();
             this.videoRow.SuspendLayout();
             this.previewPanel.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this._videoView)).BeginInit();
+            this.videoHost.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this._wmp)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this._previewImage)).BeginInit();
             this.previewCtlRow.SuspendLayout();
             this.grpParams.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this._numFps)).BeginInit();
@@ -163,7 +167,7 @@ namespace ESDeckPC
             // 
             this.previewPanel.ColumnCount = 1;
             this.previewPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.previewPanel.Controls.Add(this._videoView, 0, 0);
+            this.previewPanel.Controls.Add(this.videoHost, 0, 0);
             this.previewPanel.Controls.Add(this.previewCtlRow, 0, 1);
             this.previewPanel.Controls.Add(this._slider, 0, 2);
             this.previewPanel.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -175,17 +179,50 @@ namespace ESDeckPC
             this.previewPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 65F));
             this.previewPanel.Size = new System.Drawing.Size(734, 252);
             this.previewPanel.TabIndex = 1;
-            // 
-            // _videoView
-            // 
-            this._videoView.BackColor = System.Drawing.Color.Black;
-            this._videoView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this._videoView.Location = new System.Drawing.Point(3, 3);
-            this._videoView.MediaPlayer = null;
-            this._videoView.Name = "_videoView";
-            this._videoView.Size = new System.Drawing.Size(728, 142);
-            this._videoView.TabIndex = 0;
-            // 
+            //
+            // videoHost
+            //
+            // Plain Panel (not a TableLayoutPanel cell) hosting _wmp and
+            // _previewImage stacked on top of each other -- TableLayoutPanel
+            // only reliably supports one control per cell; putting both
+            // controls directly into the same (col,row) cell collapsed the
+            // whole layout (previewCtlRow/buttons vanished, the video area
+            // shrank to nothing). A plain Panel with two Dock=Fill children
+            // is the well-supported way to do overlay UI in WinForms.
+            this.videoHost.Controls.Add(this._wmp);
+            this.videoHost.Controls.Add(this._previewImage);
+            this.videoHost.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.videoHost.Location = new System.Drawing.Point(3, 3);
+            this.videoHost.Name = "videoHost";
+            this.videoHost.Size = new System.Drawing.Size(728, 142);
+            this.videoHost.TabIndex = 0;
+            //
+            // _wmp
+            //
+            this._wmp.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._wmp.Enabled = true;
+            this._wmp.Location = new System.Drawing.Point(0, 0);
+            this._wmp.Name = "_wmp";
+            this._wmp.Size = new System.Drawing.Size(728, 142);
+            this._wmp.TabIndex = 0;
+            this._wmp.PlayStateChange += new AxWMPLib._WMPOCXEvents_PlayStateChangeEventHandler(this.Wmp_PlayStateChange);
+            //
+            // _previewImage
+            //
+            // Stacked on top of _wmp in the same host panel -- shows a
+            // static frame extracted via ffmpeg for everything except
+            // actual playback (loading, dragging thumbs/playhead, paused/
+            // auto-stopped at End). Hidden only while _wmp is genuinely
+            // playing (see BtnPlayPause_Click/StopPlaybackIfPlaying).
+            this._previewImage.BackColor = System.Drawing.Color.Black;
+            this._previewImage.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._previewImage.Location = new System.Drawing.Point(0, 0);
+            this._previewImage.Name = "_previewImage";
+            this._previewImage.Size = new System.Drawing.Size(728, 142);
+            this._previewImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this._previewImage.TabIndex = 1;
+            this._previewImage.TabStop = false;
+            //
             // previewCtlRow
             // 
             this.previewCtlRow.Anchor = System.Windows.Forms.AnchorStyles.Left;
@@ -539,7 +576,9 @@ namespace ESDeckPC
             this.videoRow.ResumeLayout(false);
             this.videoRow.PerformLayout();
             this.previewPanel.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this._videoView)).EndInit();
+            this.videoHost.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this._wmp)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this._previewImage)).EndInit();
             this.previewCtlRow.ResumeLayout(false);
             this.previewCtlRow.PerformLayout();
             this.grpParams.ResumeLayout(false);
@@ -564,7 +603,9 @@ namespace ESDeckPC
         private System.Windows.Forms.TextBox _txtVideoPath;
         private System.Windows.Forms.Button _btnBrowseVideo;
         private System.Windows.Forms.TableLayoutPanel previewPanel;
-        private LibVLCSharp.WinForms.VideoView _videoView;
+        private System.Windows.Forms.Panel videoHost;
+        private AxWMPLib.AxWindowsMediaPlayer _wmp;
+        private System.Windows.Forms.PictureBox _previewImage;
         private System.Windows.Forms.FlowLayoutPanel previewCtlRow;
         private System.Windows.Forms.Button _btnPlayPause;
         private System.Windows.Forms.Button _btnSetEndHere;
