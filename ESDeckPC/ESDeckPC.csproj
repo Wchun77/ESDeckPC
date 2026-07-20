@@ -158,6 +158,7 @@
     <Compile Include="AudioLevelWatcher.cs" />
     <Compile Include="MonitorSender.cs" />
     <Compile Include="NowPlayingSender.cs" />
+    <Compile Include="NowPlayingImageSender.cs" />
     <Compile Include="NowPlayingWatcher.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

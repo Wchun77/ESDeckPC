@@ -51,6 +51,15 @@ namespace ESDeckPC
         // icon quickly instead of up to ~1s later.
         public event Action OnStateChanged;
 
+        // Fires whenever the OS reports new media properties (title/artist/
+        // thumbnail) for the focused session -- i.e. on track change, or
+        // null when focus is lost. NowPlayingImageSender hooks this to
+        // re-render/re-send the title-artist strip and cover art. Also
+        // available as CurrentProperties for anyone (e.g. a late Subscribe())
+        // that wants "whatever's current" without waiting for the next change.
+        public event Action<GlobalSystemMediaTransportControlsSessionMediaProperties> OnMediaPropertiesChanged;
+        public GlobalSystemMediaTransportControlsSessionMediaProperties CurrentProperties { get; private set; }
+
         // ------------------------------------------------------------------
         // Live state -- read by NowPlayingSender to build HID reports.
         //
@@ -166,6 +175,8 @@ namespace ESDeckPC
                 _positionBaseAt = DateTime.UtcNow;
                 Duration        = TimeSpan.Zero;
                 IsPlaying       = false;
+                CurrentProperties = null;
+                OnMediaPropertiesChanged?.Invoke(null);
                 return;
             }
 
@@ -291,13 +302,22 @@ namespace ESDeckPC
 
         private void LogMediaProperties(GlobalSystemMediaTransportControlsSessionMediaProperties props)
         {
+            CurrentProperties = props;
+
             string title = string.IsNullOrEmpty(props?.Title) ? "(unknown)" : props.Title;
             string artist = string.IsNullOrEmpty(props?.Artist) ? props?.AlbumArtist : props.Artist;
             string line = $"NowPlaying: title=\"{title}\" artist=\"{artist}\"";
 
-            if (line == _lastMediaLine) return;
-            _lastMediaLine = line;
-            Log(line);
+            if (line != _lastMediaLine)
+            {
+                _lastMediaLine = line;
+                Log(line);
+            }
+
+            // Not gated on the de-dupe above -- thumbnail (or other
+            // properties) can change even when title/artist text didn't
+            // (e.g. album art loading in slightly after the text does).
+            OnMediaPropertiesChanged?.Invoke(props);
         }
 
         private void LogPlaybackStatus(GlobalSystemMediaTransportControlsSessionPlaybackStatus? status)

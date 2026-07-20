@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
 namespace ESDeckPC
@@ -20,6 +22,19 @@ namespace ESDeckPC
         private WasapiLoopbackCapture _capture;
         private bool _started = false;
         private bool _disposed = false;
+
+        // WasapiLoopbackCapture()'s parameterless constructor grabs
+        // whatever the default render device happens to be *at
+        // construction time* and stays bound to it -- if the user later
+        // switches Windows' default output (e.g. speakers -> headphones),
+        // the capture keeps listening to the old (now silent) device and
+        // Level reads 0 forever, even though audio is clearly playing.
+        // Poll the actual default device id at a low rate and restart
+        // capture on it whenever it changes, rather than a one-shot bind.
+        private MMDeviceEnumerator _enumerator;
+        private string _deviceId;
+        private Timer _deviceCheckTimer;
+        private static readonly TimeSpan DeviceCheckInterval = TimeSpan.FromSeconds(2);
 
         // Live level -- read by AudioLevelSender to build HID reports.
         // Updated every buffer (~10-20ms), independent of the log throttle
@@ -64,21 +79,15 @@ namespace ESDeckPC
             if (_started) return;
             _started = true;
 
-            try
-            {
-                _capture = new WasapiLoopbackCapture();
-                _capture.DataAvailable += OnDataAvailable;
-                _capture.RecordingStopped += OnRecordingStopped;
-                _capture.StartRecording();
+            _enumerator = new MMDeviceEnumerator();
 
-                var fmt = _capture.WaveFormat;
-                Log($"Audio: loopback capture started ({fmt.SampleRate}Hz, {fmt.BitsPerSample}bit, {fmt.Encoding}, {fmt.Channels}ch)");
-            }
-            catch (Exception ex)
+            if (!StartCaptureOnDefaultDevice())
             {
-                Log($"Audio: failed to start loopback capture ({ex.Message})");
                 _started = false;
+                return;
             }
+
+            _deviceCheckTimer = new Timer(CheckDefaultDeviceChanged, null, DeviceCheckInterval, DeviceCheckInterval);
         }
 
         public void Stop()
@@ -86,16 +95,89 @@ namespace ESDeckPC
             if (!_started) return;
             _started = false;
 
-            if (_capture != null)
+            _deviceCheckTimer?.Dispose();
+            _deviceCheckTimer = null;
+
+            StopCapture();
+
+            _enumerator?.Dispose();
+            _enumerator = null;
+        }
+
+        private bool StartCaptureOnDefaultDevice()
+        {
+            try
             {
-                try
-                {
-                    _capture.StopRecording();
-                }
-                catch (Exception ex)
-                {
-                    Log($"Audio: error while stopping ({ex.Message})");
-                }
+                var device = _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                _deviceId = device.ID;
+
+                _capture = new WasapiLoopbackCapture(device);
+                _capture.DataAvailable += OnDataAvailable;
+                _capture.RecordingStopped += OnRecordingStopped;
+                _capture.StartRecording();
+
+                var fmt = _capture.WaveFormat;
+                Log($"Audio: loopback capture started on \"{device.FriendlyName}\" ({fmt.SampleRate}Hz, {fmt.BitsPerSample}bit, {fmt.Encoding}, {fmt.Channels}ch)");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log($"Audio: failed to start loopback capture ({ex.Message})");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Stops and disposes the current capture without touching
+        /// _started/_deviceCheckTimer/_enumerator -- shared by Stop() and
+        /// the device-swap path in CheckDefaultDeviceChanged().
+        /// Unsubscribes RecordingStopped first so that event (which fires
+        /// asynchronously) doesn't race with a subsequently-started
+        /// replacement capture touching the same _capture field.
+        /// </summary>
+        private void StopCapture()
+        {
+            if (_capture == null) return;
+
+            try
+            {
+                _capture.DataAvailable -= OnDataAvailable;
+                _capture.RecordingStopped -= OnRecordingStopped;
+                _capture.StopRecording();
+                _capture.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Log($"Audio: error while stopping ({ex.Message})");
+            }
+            _capture = null;
+        }
+
+        /// <summary>
+        /// Runs on a ThreadPool timer thread, not the capture thread or UI
+        /// thread -- StartCaptureOnDefaultDevice()/StopCapture() don't
+        /// touch anything UI-affine, and Log() already marshals through
+        /// OnLog same as everywhere else in this class.
+        /// </summary>
+        private void CheckDefaultDeviceChanged(object state)
+        {
+            if (!_started) return;
+
+            try
+            {
+                var current = _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                if (current.ID == _deviceId) return;
+
+                Log($"Audio: default output device changed to \"{current.FriendlyName}\", restarting capture");
+                StopCapture();
+                StartCaptureOnDefaultDevice();
+            }
+            catch (Exception ex)
+            {
+                // e.g. no active render device at all momentarily -- next
+                // tick will retry, nothing to clean up here since we
+                // haven't torn down the still-working old capture (if any).
+                Log($"Audio: default device check failed ({ex.Message})");
             }
         }
 

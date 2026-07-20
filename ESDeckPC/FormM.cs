@@ -18,6 +18,7 @@ namespace ESDeckPC
         private MonitorSender _monitor;
         private NowPlayingWatcher _nowPlaying;
         private NowPlayingSender _nowPlayingSender;
+        private NowPlayingImageSender _nowPlayingImageSender;
         private AudioLevelWatcher _audioLevel;
         private AudioLevelSender _audioLevelSender;
         private bool _hidConnected = false;
@@ -91,6 +92,14 @@ namespace ESDeckPC
             _nowPlayingSender = new NowPlayingSender(_receiver, _nowPlaying);
             _nowPlayingSender.OnLog += msg => AppendLog(msg, Color.MediumPurple);
 
+            // Cover art + PC-rendered title/artist strip (CJK text, no
+            // on-device font) -- sent on track change only, not a fixed
+            // cadence like the senders above. Shares the same Subscribe()/
+            // Unsubscribe() gating as Now Playing (see OnMediaControl,
+            // OnModeReport below).
+            _nowPlayingImageSender = new NowPlayingImageSender(_receiver, _nowPlaying);
+            _nowPlayingImageSender.OnLog += msg => AppendLog(msg, Color.MediumPurple);
+
             // Send immediately on a real state change (play/pause/seek/
             // track change -- from the ESP's own buttons or anything else)
             // instead of waiting out the rest of the 1s cycle, so the ESP's
@@ -152,6 +161,7 @@ namespace ESDeckPC
                 _monitor.Unsubscribe();
                 _nowPlayingSender.Unsubscribe();
                 _audioLevelSender.Unsubscribe();
+                _nowPlayingImageSender.Unsubscribe();
                 _receiver.Stop();
                 _hidConnected = false;
                 ssLblHid.Text = "HID: Disconnected";
@@ -225,12 +235,14 @@ namespace ESDeckPC
                     case SUBSCRIBE:
                         _nowPlayingSender.Subscribe();
                         _audioLevelSender.Subscribe();
+                        _nowPlayingImageSender.Subscribe();
                         AppendLog("NowPlaying: subscribed", Color.MediumPurple);
                         break;
 
                     case UNSUBSCRIBE:
                         _nowPlayingSender.Unsubscribe();
                         _audioLevelSender.Unsubscribe();
+                        _nowPlayingImageSender.Unsubscribe();
                         AppendLog("NowPlaying: unsubscribed", Color.MediumPurple);
                         break;
 
@@ -285,6 +297,7 @@ namespace ESDeckPC
                         // stuck showing its own local fake-data fallback.
                         _nowPlayingSender.Subscribe();
                         _audioLevelSender.Subscribe();
+                        _nowPlayingImageSender.Subscribe();
                         AppendLog("NowPlaying: ESP already in media mode, subscribed", Color.MediumPurple);
                         break;
 
@@ -525,6 +538,7 @@ namespace ESDeckPC
             _monitor.Dispose();
             _nowPlaying.Dispose();
             _nowPlayingSender.Dispose();
+            _nowPlayingImageSender.Dispose();
             _audioLevel.Dispose();
             _audioLevelSender.Dispose();
             _receiver.Stop();
