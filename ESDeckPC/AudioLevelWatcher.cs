@@ -21,12 +21,6 @@ namespace ESDeckPC
         private bool _started = false;
         private bool _disposed = false;
 
-        // DataAvailable fires roughly every ~10-20ms; logging every buffer
-        // would flood the log, so only log the peak seen since the last tick.
-        private static readonly TimeSpan LogInterval = TimeSpan.FromMilliseconds(500);
-        private DateTime _lastLogTime = DateTime.MinValue;
-        private float _peakSinceLastLog = 0f;
-
         // Live level -- read by AudioLevelSender to build HID reports.
         // Updated every buffer (~10-20ms), independent of the log throttle
         // above, so a poller always sees a fresh value regardless of its
@@ -127,15 +121,6 @@ namespace ESDeckPC
 
             _currentPeak = _smoothedPeak;
             _lastDataAt  = now;
-
-            if (peak > _peakSinceLastLog) _peakSinceLastLog = peak;
-
-            if (now - _lastLogTime < LogInterval) return;
-            _lastLogTime = now;
-
-            int level = (int)Math.Round(Math.Min(1f, _peakSinceLastLog) * 100);
-            Log($"Audio: level={level}");
-            _peakSinceLastLog = 0f;
         }
 
         /// <summary>
