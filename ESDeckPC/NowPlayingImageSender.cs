@@ -168,8 +168,22 @@ namespace ESDeckPC
             var bmp = new Bitmap(INFO_W, INFO_H, PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(bmp))
             {
-                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+                /* Graphics.Clear() still respects the current
+                 * CompositingMode -- under the default SourceOver, clearing
+                 * to a fully-transparent color (alpha=0) is mathematically
+                 * a no-op on the destination (src*0 + dst*1 = dst), so the
+                 * bitmap's uninitialized backing memory (often opaque)
+                 * shows through untouched instead of actually becoming
+                 * transparent. SourceCopy forces a real overwrite
+                 * (including alpha) instead of a blend; switch back to
+                 * SourceOver afterward so DrawString below blends its
+                 * anti-aliased edges normally against the now-genuinely-
+                 * transparent background. */
+                g.CompositingMode = CompositingMode.SourceCopy;
                 g.Clear(Color.Transparent);
+                g.CompositingMode = CompositingMode.SourceOver;
+
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
                 string titleText = string.IsNullOrEmpty(title) ? "None" : title;
                 string artistText = artist ?? "";
