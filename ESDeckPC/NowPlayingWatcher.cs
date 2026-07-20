@@ -44,6 +44,41 @@ namespace ESDeckPC
 
         public event Action<string> OnLog;
 
+        // Fires whenever playback state or timeline actually changes (play/
+        // pause/seek/track change) -- NowPlayingSender hooks this to
+        // Nudge() an immediate HID send instead of waiting out its normal
+        // 1s cycle, so e.g. an ESP button press shows up on the ESP's own
+        // icon quickly instead of up to ~1s later.
+        public event Action OnStateChanged;
+
+        // ------------------------------------------------------------------
+        // Live state -- read by NowPlayingSender to build HID reports.
+        //
+        // Windows only fires TimelinePropertiesChanged on discrete events
+        // (play, pause, seek, track change) -- NOT continuously while a
+        // track is playing. So the raw Position from the OS is a snapshot
+        // that goes stale between those events. Position below interpolates
+        // from that snapshot using real elapsed time while IsPlaying, the
+        // same way the OS-level SMTC API expects consumers to do it.
+        // ------------------------------------------------------------------
+        private TimeSpan _positionBase   = TimeSpan.Zero;   // last known Position from Windows
+        private DateTime _positionBaseAt = DateTime.UtcNow; // wall-clock time _positionBase was captured
+
+        public TimeSpan Position
+        {
+            get
+            {
+                if (!IsPlaying) return _positionBase;
+
+                TimeSpan interpolated = _positionBase + (DateTime.UtcNow - _positionBaseAt);
+                if (Duration > TimeSpan.Zero && interpolated > Duration) return Duration;
+                return interpolated;
+            }
+        }
+
+        public TimeSpan Duration { get; private set; } = TimeSpan.Zero;
+        public bool IsPlaying { get; private set; } = false;
+
         // ------------------------------------------------------------------
         // Lifecycle
         // ------------------------------------------------------------------
@@ -123,7 +158,17 @@ namespace ESDeckPC
                 Log(line);
             }
 
-            if (session == null) return;
+            if (session == null)
+            {
+                // No source to report -- don't leave stale position/duration
+                // sitting around claiming playback is still happening.
+                _positionBase   = TimeSpan.Zero;
+                _positionBaseAt = DateTime.UtcNow;
+                Duration        = TimeSpan.Zero;
+                IsPlaying       = false;
+                return;
+            }
+
             LogCurrentProperties(session);
         }
 
@@ -147,10 +192,7 @@ namespace ESDeckPC
             if (!IsFocused(sender)) return;
             if (args == null) return;
 
-            string line = $"NowPlaying: position={args.Position:hh\\:mm\\:ss} / duration={args.EndTime:hh\\:mm\\:ss}";
-            if (line == _lastPositionLine) return;
-            _lastPositionLine = line;
-            Log(line);
+            LogTimeline(args.Position, args.EndTime, args.LastUpdatedTime.UtcDateTime);
         }
 
         // ------------------------------------------------------------------
@@ -172,6 +214,29 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
+        // Playback control -- ESP button presses arrive here via
+        // FormM.OnMediaControl. Fire-and-forget: the resulting state change
+        // (if any) comes back through the normal OnAnyPlaybackStateChanged /
+        // OnAnyTimelinePropertyChanged events like any other change, there's
+        // no separate "did it work" path.
+        // ------------------------------------------------------------------
+
+        public void TogglePlayPause()
+        {
+            _ = _focusedSession?.ControlSession?.TryTogglePlayPauseAsync();
+        }
+
+        public void Next()
+        {
+            _ = _focusedSession?.ControlSession?.TrySkipNextAsync();
+        }
+
+        public void Previous()
+        {
+            _ = _focusedSession?.ControlSession?.TrySkipPreviousAsync();
+        }
+
+        // ------------------------------------------------------------------
         // Helpers
         // ------------------------------------------------------------------
 
@@ -189,6 +254,10 @@ namespace ESDeckPC
 
                 var playback = session.ControlSession.GetPlaybackInfo();
                 LogPlaybackStatus(playback?.PlaybackStatus);
+
+                var timeline = session.ControlSession.GetTimelineProperties();
+                if (timeline != null)
+                    LogTimeline(timeline.Position, timeline.EndTime, timeline.LastUpdatedTime.UtcDateTime);
             }
             catch (Exception ex)
             {
@@ -209,10 +278,54 @@ namespace ESDeckPC
 
         private void LogPlaybackStatus(GlobalSystemMediaTransportControlsSessionPlaybackStatus? status)
         {
+            bool nowPlaying = status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+
+            if (nowPlaying != IsPlaying)
+            {
+                // Freeze the interpolated position at the transition instant
+                // (reads Position under the *old* IsPlaying before flipping
+                // it below) -- makes pause/resume correct even if this event
+                // arrives without an accompanying TimelinePropertiesChanged,
+                // instead of drifting forward by however long we were paused.
+                _positionBase   = Position;
+                _positionBaseAt = DateTime.UtcNow;
+                IsPlaying       = nowPlaying;
+                OnStateChanged?.Invoke();
+            }
+
             string line = $"NowPlaying: playback status = {status}";
 
             if (line == _lastStatusLine) return;
             _lastStatusLine = line;
+            Log(line);
+        }
+
+        private void LogTimeline(TimeSpan position, TimeSpan duration, DateTime capturedAtUtc)
+        {
+            // Anchor interpolation to when the *app* says it captured this
+            // position (LastUpdatedTime), not when we happened to receive
+            // the notification. Some apps (observed with Chrome) push
+            // updates with a delay or reuse an older checkpoint, so using
+            // "now" here made the interpolated position start out wrong
+            // whenever you tuned in mid-playback -- it would only correct
+            // itself once a fresh pause/resume forced an accurate update.
+            // Guard against a missing/bogus LastUpdatedTime (default value,
+            // in the future, or implausibly old) by falling back to "now".
+            if (capturedAtUtc == default ||
+                capturedAtUtc > DateTime.UtcNow ||
+                capturedAtUtc < DateTime.UtcNow.AddDays(-1))
+            {
+                capturedAtUtc = DateTime.UtcNow;
+            }
+
+            _positionBase   = position;
+            _positionBaseAt = capturedAtUtc;
+            Duration        = duration;
+            OnStateChanged?.Invoke();
+
+            string line = $"NowPlaying: position={position:hh\\:mm\\:ss} / duration={duration:hh\\:mm\\:ss}";
+            if (line == _lastPositionLine) return;
+            _lastPositionLine = line;
             Log(line);
         }
 

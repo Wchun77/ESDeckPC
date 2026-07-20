@@ -27,6 +27,38 @@ namespace ESDeckPC
         private DateTime _lastLogTime = DateTime.MinValue;
         private float _peakSinceLastLog = 0f;
 
+        // Live level -- read by AudioLevelSender to build HID reports.
+        // Updated every buffer (~10-20ms), independent of the log throttle
+        // above, so a poller always sees a fresh value regardless of its
+        // own cadence. WasapiLoopbackCapture simply stops firing
+        // DataAvailable entirely during true silence (no "silent buffer"
+        // events), so without SilenceTimeout this would freeze at whatever
+        // the last loud value was instead of dropping to 0 when audio stops.
+        private static readonly TimeSpan SilenceTimeout = TimeSpan.FromMilliseconds(300);
+        private float _currentPeak = 0f;
+        private DateTime _lastDataAt = DateTime.MinValue;
+
+        // Attack/release envelope -- a real VU meter doesn't jump straight
+        // to the instantaneous sample peak every buffer (that reads as
+        // jittery/rigid, since raw peaks swing wildly buffer to buffer).
+        // Real meters rise fast on a transient and fall back slower, which
+        // is what actually reads as "smooth" motion. Attack is fast enough
+        // to still feel responsive to beats; release is slow enough to
+        // avoid visible flicker.
+        private static readonly double AttackSeconds = 0.03;
+        private static readonly double ReleaseSeconds = 0.25;
+        private float _smoothedPeak = 0f;
+        private DateTime _lastSmoothAt = DateTime.UtcNow;
+
+        public int Level
+        {
+            get
+            {
+                if (DateTime.UtcNow - _lastDataAt > SilenceTimeout) return 0;
+                return (int)Math.Round(Math.Min(1f, _currentPeak) * 100);
+            }
+        }
+
         public event Action<string> OnLog;
 
         // ------------------------------------------------------------------
@@ -83,9 +115,21 @@ namespace ESDeckPC
         private void OnDataAvailable(object sender, WaveInEventArgs e)
         {
             float peak = ReadPeak(e);
+            var now = DateTime.UtcNow;
+
+            double dt = (now - _lastSmoothAt).TotalSeconds;
+            _lastSmoothAt = now;
+            if (dt < 0 || dt > 1) dt = 0;   // guard first call / any clock weirdness
+
+            double tau = peak > _smoothedPeak ? AttackSeconds : ReleaseSeconds;
+            double coeff = 1.0 - Math.Exp(-dt / tau);
+            _smoothedPeak += (float)((peak - _smoothedPeak) * coeff);
+
+            _currentPeak = _smoothedPeak;
+            _lastDataAt  = now;
+
             if (peak > _peakSinceLastLog) _peakSinceLastLog = peak;
 
-            var now = DateTime.UtcNow;
             if (now - _lastLogTime < LogInterval) return;
             _lastLogTime = now;
 

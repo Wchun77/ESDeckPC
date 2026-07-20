@@ -17,7 +17,9 @@ namespace ESDeckPC
         private HidReceiver _receiver;
         private MonitorSender _monitor;
         private NowPlayingWatcher _nowPlaying;
+        private NowPlayingSender _nowPlayingSender;
         private AudioLevelWatcher _audioLevel;
+        private AudioLevelSender _audioLevelSender;
         private bool _hidConnected = false;
         private PcConfig _config = null;
         private string _pcJsonPath = null;
@@ -69,23 +71,42 @@ namespace ESDeckPC
             _receiver = new HidReceiver();
             _receiver.OnButtonPressed += OnButtonPressed;
             _receiver.OnMonitorControl += OnMonitorControl;
+            _receiver.OnMediaControl += OnMediaControl;
             _receiver.OnModeReport += OnModeReport;
 
             _monitor = new MonitorSender(_receiver);
             _monitor.OnLog += msg => AppendLog(msg, Color.CornflowerBlue);
 
-            // TEMP: Media mode Now Playing probe -- just confirms we can read
-            // song info from Windows via Media Session API. Not wired to HID
-            // yet, see doc/ESDeck_Media模式開發筆記.md 第 4 節.
+            // Media mode Now Playing: watches Windows Media Session locally,
+            // sender pushes position/duration/playing to the ESP over HID
+            // (CMD_NOWPLAYING_PROGRESS=0x06) while the ESP is on the Media
+            // page (subscribe/unsubscribe via OnMediaControl below).
+            // Title/artist are not part of this protocol yet -- see
+            // doc/ESDeck_Media模式開發筆記.md 第 4 節.
             _nowPlaying = new NowPlayingWatcher();
             _nowPlaying.OnLog += msg => AppendLog(msg, Color.MediumPurple);
             _nowPlaying.Start();
 
-            // TEMP: Media mode audio visualization probe -- WASAPI loopback
-            // volume level only, see doc/ESDeck_Media模式開發筆記.md 第 5 節.
+            _nowPlayingSender = new NowPlayingSender(_receiver, _nowPlaying);
+            _nowPlayingSender.OnLog += msg => AppendLog(msg, Color.MediumPurple);
+
+            // Send immediately on a real state change (play/pause/seek/
+            // track change -- from the ESP's own buttons or anything else)
+            // instead of waiting out the rest of the 1s cycle, so the ESP's
+            // icon updates promptly rather than up to ~1s late.
+            _nowPlaying.OnStateChanged += () => _nowPlayingSender.Nudge();
+
+            // Media mode audio visualization: WASAPI loopback volume level,
+            // sent to the ESP sidebar VU-meter bar (CMD_AUDIO_LEVEL=0x07)
+            // while the ESP is on the Media page, same subscribe channel as
+            // Now Playing. Single-value "簡單版" only -- see
+            // doc/ESDeck_Media模式開發筆記.md 第 5 節.
             _audioLevel = new AudioLevelWatcher();
             _audioLevel.OnLog += msg => AppendLog(msg, Color.SkyBlue);
             _audioLevel.Start();
+
+            _audioLevelSender = new AudioLevelSender(_receiver, _audioLevel);
+            _audioLevelSender.OnLog += msg => AppendLog(msg, Color.SkyBlue);
 
             tsBtnClearLog.Click += tsBtnClearLog_Click;
 
@@ -128,6 +149,8 @@ namespace ESDeckPC
             else if (!detected && _hidConnected)
             {
                 _monitor.Unsubscribe();
+                _nowPlayingSender.Unsubscribe();
+                _audioLevelSender.Unsubscribe();
                 _receiver.Stop();
                 _hidConnected = false;
                 ssLblHid.Text = "HID: Disconnected";
@@ -182,18 +205,82 @@ namespace ESDeckPC
             }));
         }
 
-        private void OnModeReport(bool inMonitor)
+        // ------------------------------------------------------------------
+        // Media control event (page=0xFE from ESP, fired from background thread)
+        // ------------------------------------------------------------------
+
+        private void OnMediaControl(byte cmd)
+        {
+            const byte SUBSCRIBE = 0x01;
+            const byte UNSUBSCRIBE = 0x02;
+            const byte PLAY_PAUSE = 0x03;
+            const byte NEXT = 0x04;
+            const byte PREV = 0x05;
+
+            this.BeginInvoke((Action)(() =>
+            {
+                switch (cmd)
+                {
+                    case SUBSCRIBE:
+                        _nowPlayingSender.Subscribe();
+                        _audioLevelSender.Subscribe();
+                        AppendLog("NowPlaying: subscribed", Color.MediumPurple);
+                        break;
+
+                    case UNSUBSCRIBE:
+                        _nowPlayingSender.Unsubscribe();
+                        _audioLevelSender.Unsubscribe();
+                        AppendLog("NowPlaying: unsubscribed", Color.MediumPurple);
+                        break;
+
+                    case PLAY_PAUSE:
+                        _nowPlaying.TogglePlayPause();
+                        AppendLog("NowPlaying: play/pause (from ESP)", Color.MediumPurple);
+                        break;
+
+                    case NEXT:
+                        _nowPlaying.Next();
+                        AppendLog("NowPlaying: next (from ESP)", Color.MediumPurple);
+                        break;
+
+                    case PREV:
+                        _nowPlaying.Previous();
+                        AppendLog("NowPlaying: prev (from ESP)", Color.MediumPurple);
+                        break;
+
+                    default:
+                        AppendLog($"NowPlaying: unknown cmd 0x{cmd:X2}", Color.Gray);
+                        break;
+                }
+            }));
+        }
+
+        private void OnModeReport(HidReceiver.EspMode mode)
         {
             this.BeginInvoke((Action)(() =>
             {
-                if (inMonitor)
+                switch (mode)
                 {
-                    _monitor.Subscribe();
-                    AppendLog("Monitor: ESP already in monitor mode, subscribed", Color.CornflowerBlue);
-                }
-                else
-                {
-                    AppendLog("Monitor: ESP in deck mode", Color.Gray);
+                    case HidReceiver.EspMode.Monitor:
+                        _monitor.Subscribe();
+                        AppendLog("Monitor: ESP already in monitor mode, subscribed", Color.CornflowerBlue);
+                        break;
+
+                    case HidReceiver.EspMode.Media:
+                        // Covers the case where the ESP was already on the
+                        // Media page before this app started (or restarted)
+                        // -- ESP already sent its one-shot subscribe while
+                        // nothing was listening, so without this the PC side
+                        // would never start sending and the ESP would be
+                        // stuck showing its own local fake-data fallback.
+                        _nowPlayingSender.Subscribe();
+                        _audioLevelSender.Subscribe();
+                        AppendLog("NowPlaying: ESP already in media mode, subscribed", Color.MediumPurple);
+                        break;
+
+                    default:
+                        AppendLog("Monitor: ESP in deck mode", Color.Gray);
+                        break;
                 }
             }));
         }
@@ -427,7 +514,9 @@ namespace ESDeckPC
             _forceClose = true;
             _monitor.Dispose();
             _nowPlaying.Dispose();
+            _nowPlayingSender.Dispose();
             _audioLevel.Dispose();
+            _audioLevelSender.Dispose();
             _receiver.Stop();
             DiscordRpcClient.Instance.Dispose();
             notifyIcon.Visible = false;

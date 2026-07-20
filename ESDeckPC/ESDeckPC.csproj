@@ -154,8 +154,10 @@
     <Compile Include="MonitorClockRenderer.cs" />
     <Compile Include="MonitorConfig.cs" />
     <Compile Include="MonitorPageRenderer.cs" />
+    <Compile Include="AudioLevelSender.cs" />
     <Compile Include="AudioLevelWatcher.cs" />
     <Compile Include="MonitorSender.cs" />
+    <Compile Include="NowPlayingSender.cs" />
     <Compile Include="NowPlayingWatcher.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
