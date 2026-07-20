@@ -32,6 +32,7 @@ namespace ESDeckPC
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormBootAnimConverter));
             this.root = new System.Windows.Forms.TableLayoutPanel();
             this.grpVideo = new System.Windows.Forms.GroupBox();
             this.videoRow = new System.Windows.Forms.TableLayoutPanel();
@@ -179,16 +180,9 @@ namespace ESDeckPC
             this.previewPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 65F));
             this.previewPanel.Size = new System.Drawing.Size(734, 252);
             this.previewPanel.TabIndex = 1;
-            //
+            // 
             // videoHost
-            //
-            // Plain Panel (not a TableLayoutPanel cell) hosting _wmp and
-            // _previewImage stacked on top of each other -- TableLayoutPanel
-            // only reliably supports one control per cell; putting both
-            // controls directly into the same (col,row) cell collapsed the
-            // whole layout (previewCtlRow/buttons vanished, the video area
-            // shrank to nothing). A plain Panel with two Dock=Fill children
-            // is the well-supported way to do overlay UI in WinForms.
+            // 
             this.videoHost.Controls.Add(this._wmp);
             this.videoHost.Controls.Add(this._previewImage);
             this.videoHost.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -196,24 +190,20 @@ namespace ESDeckPC
             this.videoHost.Name = "videoHost";
             this.videoHost.Size = new System.Drawing.Size(728, 142);
             this.videoHost.TabIndex = 0;
-            //
+            // 
             // _wmp
-            //
+            // 
             this._wmp.Dock = System.Windows.Forms.DockStyle.Fill;
             this._wmp.Enabled = true;
             this._wmp.Location = new System.Drawing.Point(0, 0);
             this._wmp.Name = "_wmp";
+            this._wmp.OcxState = ((System.Windows.Forms.AxHost.State)(resources.GetObject("_wmp.OcxState")));
             this._wmp.Size = new System.Drawing.Size(728, 142);
             this._wmp.TabIndex = 0;
             this._wmp.PlayStateChange += new AxWMPLib._WMPOCXEvents_PlayStateChangeEventHandler(this.Wmp_PlayStateChange);
-            //
+            // 
             // _previewImage
-            //
-            // Stacked on top of _wmp in the same host panel -- shows a
-            // static frame extracted via ffmpeg for everything except
-            // actual playback (loading, dragging thumbs/playhead, paused/
-            // auto-stopped at End). Hidden only while _wmp is genuinely
-            // playing (see BtnPlayPause_Click/StopPlaybackIfPlaying).
+            // 
             this._previewImage.BackColor = System.Drawing.Color.Black;
             this._previewImage.Dock = System.Windows.Forms.DockStyle.Fill;
             this._previewImage.Location = new System.Drawing.Point(0, 0);
@@ -222,7 +212,7 @@ namespace ESDeckPC
             this._previewImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this._previewImage.TabIndex = 1;
             this._previewImage.TabStop = false;
-            //
+            // 
             // previewCtlRow
             // 
             this.previewCtlRow.Anchor = System.Windows.Forms.AnchorStyles.Left;

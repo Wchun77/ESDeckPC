@@ -16,6 +16,8 @@ namespace ESDeckPC
 
         private HidReceiver _receiver;
         private MonitorSender _monitor;
+        private NowPlayingWatcher _nowPlaying;
+        private AudioLevelWatcher _audioLevel;
         private bool _hidConnected = false;
         private PcConfig _config = null;
         private string _pcJsonPath = null;
@@ -71,6 +73,19 @@ namespace ESDeckPC
 
             _monitor = new MonitorSender(_receiver);
             _monitor.OnLog += msg => AppendLog(msg, Color.CornflowerBlue);
+
+            // TEMP: Media mode Now Playing probe -- just confirms we can read
+            // song info from Windows via Media Session API. Not wired to HID
+            // yet, see doc/ESDeck_Media模式開發筆記.md 第 4 節.
+            _nowPlaying = new NowPlayingWatcher();
+            _nowPlaying.OnLog += msg => AppendLog(msg, Color.MediumPurple);
+            _nowPlaying.Start();
+
+            // TEMP: Media mode audio visualization probe -- WASAPI loopback
+            // volume level only, see doc/ESDeck_Media模式開發筆記.md 第 5 節.
+            _audioLevel = new AudioLevelWatcher();
+            _audioLevel.OnLog += msg => AppendLog(msg, Color.SkyBlue);
+            _audioLevel.Start();
 
             tsBtnClearLog.Click += tsBtnClearLog_Click;
 
@@ -411,6 +426,8 @@ namespace ESDeckPC
         {
             _forceClose = true;
             _monitor.Dispose();
+            _nowPlaying.Dispose();
+            _audioLevel.Dispose();
             _receiver.Stop();
             DiscordRpcClient.Instance.Dispose();
             notifyIcon.Visible = false;
