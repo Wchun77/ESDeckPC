@@ -25,6 +25,10 @@ public class HidReceiver
     // unsubscribe (0x02) -- independent namespace from monitor's page=0xFF.
     public event Action<byte> OnMediaControl;
 
+    // Fires when ESP sends a seek request (page=0xFE, btn=0x06) with the
+    // target position in milliseconds.
+    public event Action<uint> OnMediaSeek;
+
     // Fires when ESP replies to a mode query with its current UI mode
     public event Action<EspMode> OnModeReport;
 
@@ -130,7 +134,17 @@ public class HidReceiver
                 }
                 else if (page == 0xFE)
                 {
-                    OnMediaControl?.Invoke(btn);
+                    const byte BTN_SEEK = 0x06;
+
+                    if (btn == BTN_SEEK && len >= 7)
+                    {
+                        uint positionMs = (uint)(buf[3] | (buf[4] << 8) | (buf[5] << 16) | (buf[6] << 24));
+                        OnMediaSeek?.Invoke(positionMs);
+                    }
+                    else
+                    {
+                        OnMediaControl?.Invoke(btn);
+                    }
                 }
                 else
                 {

@@ -72,6 +72,7 @@ namespace ESDeckPC
             _receiver.OnButtonPressed += OnButtonPressed;
             _receiver.OnMonitorControl += OnMonitorControl;
             _receiver.OnMediaControl += OnMediaControl;
+            _receiver.OnMediaSeek += OnMediaSeek;
             _receiver.OnModeReport += OnModeReport;
 
             _monitor = new MonitorSender(_receiver);
@@ -252,6 +253,15 @@ namespace ESDeckPC
                         AppendLog($"NowPlaying: unknown cmd 0x{cmd:X2}", Color.Gray);
                         break;
                 }
+            }));
+        }
+
+        private void OnMediaSeek(uint positionMs)
+        {
+            this.BeginInvoke((Action)(() =>
+            {
+                _nowPlaying.SeekTo(TimeSpan.FromMilliseconds(positionMs));
+                AppendLog($"NowPlaying: seek to {TimeSpan.FromMilliseconds(positionMs):hh\\:mm\\:ss} (from ESP)", Color.MediumPurple);
             }));
         }
 

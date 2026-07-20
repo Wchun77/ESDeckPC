@@ -236,6 +236,30 @@ namespace ESDeckPC
             _ = _focusedSession?.ControlSession?.TrySkipPreviousAsync();
         }
 
+        /// <summary>
+        /// Seeks the focused session to an absolute position (from an ESP
+        /// slider release). Updates the local interpolation base optimistically
+        /// so Position/OnStateChanged reflect the new target immediately
+        /// rather than waiting for TimelinePropertiesChanged to round-trip
+        /// back from the OS -- that event still arrives afterward and will
+        /// simply confirm (or correct) this.
+        /// </summary>
+        public void SeekTo(TimeSpan position)
+        {
+            var session = _focusedSession?.ControlSession;
+            if (session == null) return;
+
+            if (position < TimeSpan.Zero) position = TimeSpan.Zero;
+            if (Duration > TimeSpan.Zero && position > Duration) position = Duration;
+
+            _positionBase   = position;
+            _positionBaseAt = DateTime.UtcNow;
+            OnStateChanged?.Invoke();
+
+            long ticks = (long)(position.TotalMilliseconds * TimeSpan.TicksPerMillisecond);
+            _ = session.TryChangePlaybackPositionAsync(ticks);
+        }
+
         // ------------------------------------------------------------------
         // Helpers
         // ------------------------------------------------------------------
