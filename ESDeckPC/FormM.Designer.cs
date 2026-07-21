@@ -438,7 +438,8 @@
             this.tsMenuMediaEdit.Name = "tsMenuMediaEdit";
             this.tsMenuMediaEdit.Size = new System.Drawing.Size(180, 22);
             this.tsMenuMediaEdit.Text = "Edit";
-            // 
+            this.tsMenuMediaEdit.Click += new System.EventHandler(this.tsMenuMediaEdit_Click);
+            //
             // FormM
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);

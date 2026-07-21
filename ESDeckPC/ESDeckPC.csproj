@@ -132,6 +132,12 @@
     <Compile Include="FormMonitorEditor.Designer.cs">
       <DependentUpon>FormMonitorEditor.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormMediaEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormMediaEditor.Designer.cs">
+      <DependentUpon>FormMediaEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormPageNamePrompt.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -154,6 +160,8 @@
     <Compile Include="MonitorClockRenderer.cs" />
     <Compile Include="MonitorConfig.cs" />
     <Compile Include="MonitorPageRenderer.cs" />
+    <Compile Include="MediaConfig.cs" />
+    <Compile Include="MediaPreviewRenderer.cs" />
     <Compile Include="AudioLevelSender.cs" />
     <Compile Include="AudioLevelWatcher.cs" />
     <Compile Include="MonitorSender.cs" />
@@ -181,6 +189,12 @@
     <Compile Include="UC_SettingsPanel.Designer.cs">
       <DependentUpon>UC_SettingsPanel.cs</DependentUpon>
     </Compile>
+    <Compile Include="UC_MediaBgPanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UC_MediaBgPanel.Designer.cs">
+      <DependentUpon>UC_MediaBgPanel.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="FormBgImporter.resx">
       <DependentUpon>FormBgImporter.cs</DependentUpon>
     </EmbeddedResource>
@@ -204,6 +218,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormMonitorEditor.resx">
       <DependentUpon>FormMonitorEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormMediaEditor.resx">
+      <DependentUpon>FormMediaEditor.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormSideIconImporter.resx">
       <DependentUpon>FormSideIconImporter.cs</DependentUpon>
@@ -229,6 +246,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="UC_SettingsPanel.resx">
       <DependentUpon>UC_SettingsPanel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UC_MediaBgPanel.resx">
+      <DependentUpon>UC_MediaBgPanel.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.manifest" />
     <None Include="Properties\Settings.settings">
