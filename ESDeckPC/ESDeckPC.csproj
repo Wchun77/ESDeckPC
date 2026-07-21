@@ -72,160 +72,160 @@
   -->
   <ItemGroup>
     <Compile Include="ActionExecutor.cs" />
-    <Compile Include="ConfigLoader.cs" />
-    <Compile Include="DarkColorTable.cs" />
-    <Compile Include="Deckconfig.cs" />
-    <Compile Include="DeckPreviewPanel.cs">
+    <Compile Include="Config\ConfigLoader.cs" />
+    <Compile Include="Controls\DarkColorTable.cs" />
+    <Compile Include="Config\Deckconfig.cs" />
+    <Compile Include="Controls\DeckPreviewPanel.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Discordrpcclient.cs" />
-    <Compile Include="DualRangeSlider.cs">
+    <Compile Include="Integrations\Discordrpcclient.cs" />
+    <Compile Include="Controls\DualRangeSlider.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="FfmpegRunner.cs" />
-    <Compile Include="FontBinLoader.cs" />
-    <Compile Include="FormBgImporter.cs">
+    <Compile Include="Tools\FfmpegRunner.cs" />
+    <Compile Include="Tools\FontBinLoader.cs" />
+    <Compile Include="Forms\FormBgImporter.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormBgImporter.Designer.cs">
+    <Compile Include="Forms\FormBgImporter.Designer.cs">
       <DependentUpon>FormBgImporter.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormBootAnimConverter.cs">
+    <Compile Include="Forms\FormBootAnimConverter.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormBootAnimConverter.Designer.cs">
+    <Compile Include="Forms\FormBootAnimConverter.Designer.cs">
       <DependentUpon>FormBootAnimConverter.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormButtonEditor.cs">
+    <Compile Include="Forms\FormButtonEditor.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormButtonEditor.Designer.cs">
+    <Compile Include="Forms\FormButtonEditor.Designer.cs">
       <DependentUpon>FormButtonEditor.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormConfigEditor.cs">
+    <Compile Include="Forms\FormConfigEditor.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormConfigEditor.Designer.cs">
+    <Compile Include="Forms\FormConfigEditor.Designer.cs">
       <DependentUpon>FormConfigEditor.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormFontBuilder.cs">
+    <Compile Include="Forms\FormFontBuilder.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormFontBuilder.Designer.cs">
+    <Compile Include="Forms\FormFontBuilder.Designer.cs">
       <DependentUpon>FormFontBuilder.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormIcoImporter.cs">
+    <Compile Include="Forms\FormIcoImporter.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormIcoImporter.Designer.cs">
+    <Compile Include="Forms\FormIcoImporter.Designer.cs">
       <DependentUpon>FormIcoImporter.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormM.cs">
+    <Compile Include="Forms\FormM.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormM.Designer.cs">
+    <Compile Include="Forms\FormM.Designer.cs">
       <DependentUpon>FormM.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormMonitorEditor.cs">
+    <Compile Include="Forms\FormMonitorEditor.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormMonitorEditor.Designer.cs">
+    <Compile Include="Forms\FormMonitorEditor.Designer.cs">
       <DependentUpon>FormMonitorEditor.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormMediaEditor.cs">
+    <Compile Include="Forms\FormMediaEditor.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormMediaEditor.Designer.cs">
+    <Compile Include="Forms\FormMediaEditor.Designer.cs">
       <DependentUpon>FormMediaEditor.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormPageNamePrompt.cs">
+    <Compile Include="Forms\FormPageNamePrompt.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormPageNamePrompt.Designer.cs">
+    <Compile Include="Forms\FormPageNamePrompt.Designer.cs">
       <DependentUpon>FormPageNamePrompt.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormSideIconImporter.cs">
+    <Compile Include="Forms\FormSideIconImporter.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormSideIconImporter.Designer.cs">
+    <Compile Include="Forms\FormSideIconImporter.Designer.cs">
       <DependentUpon>FormSideIconImporter.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormSideIconPicker.cs">
+    <Compile Include="Forms\FormSideIconPicker.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormSideIconPicker.Designer.cs">
+    <Compile Include="Forms\FormSideIconPicker.Designer.cs">
       <DependentUpon>FormSideIconPicker.cs</DependentUpon>
     </Compile>
-    <Compile Include="HidReceiver.cs" />
-    <Compile Include="MonitorClockRenderer.cs" />
-    <Compile Include="MonitorConfig.cs" />
-    <Compile Include="MonitorPageRenderer.cs" />
-    <Compile Include="MediaConfig.cs" />
-    <Compile Include="MediaPreviewRenderer.cs" />
-    <Compile Include="AudioLevelSender.cs" />
-    <Compile Include="AudioLevelWatcher.cs" />
-    <Compile Include="MonitorSender.cs" />
-    <Compile Include="NowPlayingSender.cs" />
-    <Compile Include="NowPlayingImageSender.cs" />
-    <Compile Include="NowPlayingWatcher.cs" />
+    <Compile Include="Hid\HidReceiver.cs" />
+    <Compile Include="Renderers\MonitorClockRenderer.cs" />
+    <Compile Include="Config\MonitorConfig.cs" />
+    <Compile Include="Renderers\MonitorPageRenderer.cs" />
+    <Compile Include="Config\MediaConfig.cs" />
+    <Compile Include="Renderers\MediaPreviewRenderer.cs" />
+    <Compile Include="Hid\AudioLevelSender.cs" />
+    <Compile Include="Hid\AudioLevelWatcher.cs" />
+    <Compile Include="Hid\MonitorSender.cs" />
+    <Compile Include="Hid\NowPlayingSender.cs" />
+    <Compile Include="Hid\NowPlayingImageSender.cs" />
+    <Compile Include="Hid\NowPlayingWatcher.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SidebarButtonPreview.cs" />
-    <Compile Include="UC_ClockSettings.cs">
+    <Compile Include="Controls\SidebarButtonPreview.cs" />
+    <Compile Include="Controls\UC_ClockSettings.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="UC_ClockSettings.Designer.cs">
+    <Compile Include="Controls\UC_ClockSettings.Designer.cs">
       <DependentUpon>UC_ClockSettings.cs</DependentUpon>
     </Compile>
-    <Compile Include="UC_PageSettings.cs">
+    <Compile Include="Controls\UC_PageSettings.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="UC_PageSettings.Designer.cs">
+    <Compile Include="Controls\UC_PageSettings.Designer.cs">
       <DependentUpon>UC_PageSettings.cs</DependentUpon>
     </Compile>
-    <Compile Include="UC_SettingsPanel.cs">
+    <Compile Include="Controls\UC_SettingsPanel.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="UC_SettingsPanel.Designer.cs">
+    <Compile Include="Controls\UC_SettingsPanel.Designer.cs">
       <DependentUpon>UC_SettingsPanel.cs</DependentUpon>
     </Compile>
-    <Compile Include="UC_MediaBgPanel.cs">
+    <Compile Include="Controls\UC_MediaBgPanel.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="UC_MediaBgPanel.Designer.cs">
+    <Compile Include="Controls\UC_MediaBgPanel.Designer.cs">
       <DependentUpon>UC_MediaBgPanel.cs</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="FormBgImporter.resx">
+    <EmbeddedResource Include="Forms\FormBgImporter.resx">
       <DependentUpon>FormBgImporter.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormBootAnimConverter.resx">
+    <EmbeddedResource Include="Forms\FormBootAnimConverter.resx">
       <DependentUpon>FormBootAnimConverter.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormButtonEditor.resx">
+    <EmbeddedResource Include="Forms\FormButtonEditor.resx">
       <DependentUpon>FormButtonEditor.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormConfigEditor.resx">
+    <EmbeddedResource Include="Forms\FormConfigEditor.resx">
       <DependentUpon>FormConfigEditor.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormFontBuilder.resx">
+    <EmbeddedResource Include="Forms\FormFontBuilder.resx">
       <DependentUpon>FormFontBuilder.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormIcoImporter.resx">
+    <EmbeddedResource Include="Forms\FormIcoImporter.resx">
       <DependentUpon>FormIcoImporter.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormM.resx">
+    <EmbeddedResource Include="Forms\FormM.resx">
       <DependentUpon>FormM.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormMonitorEditor.resx">
+    <EmbeddedResource Include="Forms\FormMonitorEditor.resx">
       <DependentUpon>FormMonitorEditor.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormMediaEditor.resx">
+    <EmbeddedResource Include="Forms\FormMediaEditor.resx">
       <DependentUpon>FormMediaEditor.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormSideIconImporter.resx">
+    <EmbeddedResource Include="Forms\FormSideIconImporter.resx">
       <DependentUpon>FormSideIconImporter.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormSideIconPicker.resx">
+    <EmbeddedResource Include="Forms\FormSideIconPicker.resx">
       <DependentUpon>FormSideIconPicker.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -238,16 +238,16 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <EmbeddedResource Include="UC_ClockSettings.resx">
+    <EmbeddedResource Include="Controls\UC_ClockSettings.resx">
       <DependentUpon>UC_ClockSettings.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="UC_PageSettings.resx">
+    <EmbeddedResource Include="Controls\UC_PageSettings.resx">
       <DependentUpon>UC_PageSettings.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="UC_SettingsPanel.resx">
+    <EmbeddedResource Include="Controls\UC_SettingsPanel.resx">
       <DependentUpon>UC_SettingsPanel.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="UC_MediaBgPanel.resx">
+    <EmbeddedResource Include="Controls\UC_MediaBgPanel.resx">
       <DependentUpon>UC_MediaBgPanel.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.manifest" />
@@ -319,5 +319,6 @@
       <Version>4.3.1</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
