@@ -322,7 +322,7 @@ namespace ESDeckPC
         // Toolbar handlers
         // ------------------------------------------------------------------
 
-        private void tsMenuSettingsLoad_Click(object sender, EventArgs e)
+        private void tsMenuDeckLoad_Click(object sender, EventArgs e)
         {
             using (var dlg = new OpenFileDialog())
             {
@@ -344,7 +344,7 @@ namespace ESDeckPC
             txtLog.Clear();
         }
 
-        private void tsMenuSettingsEdit_Click(object sender, EventArgs e)
+        private void tsMenuDeckEdit_Click(object sender, EventArgs e)
         {
             if (_editorOpen)
             {
@@ -428,13 +428,13 @@ namespace ESDeckPC
         // Settings menu handlers
         // ------------------------------------------------------------------
 
-        private void tsMenuSettingsReload_Click(object sender, EventArgs e)
+        private void tsMenuDeckReload_Click(object sender, EventArgs e)
         {
             if (_pcJsonPath == null) return;
             LoadConfig(_pcJsonPath);
         }
 
-        private void tsMenuSettingsOpenFolder_Click(object sender, EventArgs e)
+        private void tsMenuDeckOpenFolder_Click(object sender, EventArgs e)
         {
             string exeDir = AppDomain.CurrentDomain.BaseDirectory;
             string cfgFolder = Path.Combine(exeDir, "cfg");
@@ -467,27 +467,31 @@ namespace ESDeckPC
             new FormMonitorEditor().Show();
         }
 
-        private void tsMenuFontBuilder_Click(object sender, EventArgs e)
+        // ------------------------------------------------------------------
+        // Assets
+        // ------------------------------------------------------------------
+
+        private void tsMenuAssetsFontBuilder_Click(object sender, EventArgs e)
         {
             new FormFontBuilder().Show();
         }
 
-        private void tsMenuImageBg_Click(object sender, EventArgs e)
+        private void tsMenuAssetsBg_Click(object sender, EventArgs e)
         {
             new FormBgImporter().Show();
         }
 
-        private void tsMenuImageIco_Click(object sender, EventArgs e)
+        private void tsMenuAssetsIco_Click(object sender, EventArgs e)
         {
             new FormIcoImporter().Show();
         }
 
-        private void tsMenuImageSideIcon_Click(object sender, EventArgs e)
+        private void tsMenuAssetsSideIcon_Click(object sender, EventArgs e)
         {
             new FormSideIconImporter().Show();
         }
 
-        private void tsMenuImageBootAnim_Click(object sender, EventArgs e)
+        private void tsMenuAssetsBootAnim_Click(object sender, EventArgs e)
         {
             new FormBootAnimConverter().Show();
         }
@@ -567,7 +571,7 @@ namespace ESDeckPC
                 Properties.Settings.Default.LastPcJson = path;
                 Properties.Settings.Default.Save();
                 lblPcName.Text = Path.GetFileName(path);
-                tsMenuSettingsReload.Enabled = true;
+                tsMenuDeckReload.Enabled = true;
                 lstPages.Items.Clear();
                 foreach (var pg in _config.Pages)
                     lstPages.Items.Add($"{pg.Name} ({pg.Buttons.Count})");
