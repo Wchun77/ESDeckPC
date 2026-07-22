@@ -702,11 +702,19 @@ namespace ESDeckPC
 
         /// <summary>
         /// USB layout convention: {root}\config\monitor\xxx.json alongside
-        /// {root}\assets\backgrounds\ and {root}\assets\fonts\. If the
-        /// current _jsonPath matches this layout, resolves the two asset
-        /// folders; otherwise both are set to null and filename-only preview
-        /// (existing JSON's bg_image/font_* fields) is simply skipped.
-        /// Does not affect Browse-to-load, which always works regardless.
+        /// {root}\assets\backgrounds\ and {root}\assets\fonts\bin\clock\. The
+        /// fonts folder now splits by mechanism, not by feature -- .bin
+        /// (pre-rasterized, what the clock uses) vs .ttf (raw outline font,
+        /// rasterized on demand on the device for CJK notification text) are
+        /// two different loading paths, so they live in separate subtrees;
+        /// "bin" additionally has a per-feature leaf ("clock" here) since a
+        /// .bin is baked for one specific pixel size/feature and isn't
+        /// reusable the way a .ttf is. Matches SD_DIR_ASSETS_FONTS_BIN_CLOCK
+        /// in the firmware's app_config.h. If the current _jsonPath matches
+        /// this layout, resolves the asset folders; otherwise all are set to
+        /// null and filename-only preview (existing JSON's bg_image/font_*
+        /// fields) is simply skipped. Does not affect Browse-to-load, which
+        /// always works regardless.
         /// </summary>
         private void ResolveAssetDirsFromJsonPath()
         {
@@ -731,7 +739,7 @@ namespace ESDeckPC
             if (string.IsNullOrEmpty(root)) return;
 
             _assetsBackgroundsDir = Path.Combine(root, "assets", "backgrounds");
-            _assetsFontsDir = Path.Combine(root, "assets", "fonts");
+            _assetsFontsDir = Path.Combine(root, "assets", "fonts", "bin", "clock");
             _assetsSideIconsDir = Path.Combine(root, "assets", "side_icons");
         }
 
