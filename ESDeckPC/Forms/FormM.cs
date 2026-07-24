@@ -152,9 +152,24 @@ namespace ESDeckPC
                     ssLblHid.ForeColor = Color.Green;
                     AppendLog("HID connected", Color.LimeGreen);
 
+                    /* Send current time immediately on connect so the ESP
+                     * has a valid clock right away, then keep correcting
+                     * it in the background below every poll tick
+                     * regardless of mode. */
+                    _monitor.SendTimeNow();
+
                     /* Query ESP for current mode — reply arrives via OnModeReport */
                     _monitor.SendQuery();
                 }
+            }
+            else if (detected && _hidConnected)
+            {
+                /* Background time correction, independent of mode/subscribe
+                 * state — the ESP free-runs its own clock between syncs
+                 * (sys_clock.c) but this keeps it honest even outside
+                 * Monitor mode, which already gets its own once-a-second
+                 * stream from MonitorSender's worker loop while subscribed. */
+                _monitor.SendTimeNow();
             }
             else if (!detected && _hidConnected)
             {

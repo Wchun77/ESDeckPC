@@ -189,7 +189,7 @@ namespace ESDeckPC
                     if (tick % STORAGE_PERIOD == 0)
                         CollectStorageSensors();
 
-                    SendTimeSync();
+                    SendTimeNow();
                     SendData(data);
                 }
                 catch (Exception ex)
@@ -489,7 +489,15 @@ namespace ESDeckPC
                 Log("Monitor: write failed (device disconnected?)");
         }
 
-        private void SendTimeSync()
+        /// <summary>
+        /// Sends CMD_TIME once. Public and independent of Subscribe/_computer
+        /// -- called continuously by WorkerLoop while subscribed (ongoing
+        /// drift correction), and also called once by FormM right after HID
+        /// connects, regardless of what mode the ESP is currently in, so the
+        /// ESP has a valid clock to display the moment it later enters
+        /// Monitor mode instead of waiting for the first subscribed tick.
+        /// </summary>
+        public void SendTimeNow()
         {
             var now = DateTime.Now;
 
