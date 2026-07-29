@@ -24,13 +24,17 @@
             this.tsMenuDeckOpenFolder = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuMonitor = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuMonitorEdit = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuMeida = new System.Windows.Forms.ToolStripDropDownButton();
+            this.tsMenuMediaEdit = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuDiscord = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuDiscordReconnect = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuAssets = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuAssetsBg = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuAssetsIco = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuAssetsSideIcon = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsMenuAssetsFontBuilder = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuAssetsFont = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuAssetsFontClock = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuAssetsFontNotify = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuAssetsBootAnim = new System.Windows.Forms.ToolStripMenuItem();
             this.tsSep1 = new System.Windows.Forms.ToolStripSeparator();
             this.tsBtnClearLog = new System.Windows.Forms.ToolStripButton();
@@ -53,8 +57,6 @@
             this.trayMenuOpen = new System.Windows.Forms.ToolStripMenuItem();
             this.trayMenuSep = new System.Windows.Forms.ToolStripSeparator();
             this.trayMenuExit = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsMenuMeida = new System.Windows.Forms.ToolStripDropDownButton();
-            this.tsMenuMediaEdit = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
@@ -100,14 +102,14 @@
             // tsMenuDeckLoad
             // 
             this.tsMenuDeckLoad.Name = "tsMenuDeckLoad";
-            this.tsMenuDeckLoad.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuDeckLoad.Size = new System.Drawing.Size(145, 22);
             this.tsMenuDeckLoad.Text = "Load";
             this.tsMenuDeckLoad.Click += new System.EventHandler(this.tsMenuDeckLoad_Click);
             // 
             // tsMenuDeckEdit
             // 
             this.tsMenuDeckEdit.Name = "tsMenuDeckEdit";
-            this.tsMenuDeckEdit.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuDeckEdit.Size = new System.Drawing.Size(145, 22);
             this.tsMenuDeckEdit.Text = "Edit";
             this.tsMenuDeckEdit.Click += new System.EventHandler(this.tsMenuDeckEdit_Click);
             // 
@@ -115,14 +117,14 @@
             // 
             this.tsMenuDeckReload.Enabled = false;
             this.tsMenuDeckReload.Name = "tsMenuDeckReload";
-            this.tsMenuDeckReload.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuDeckReload.Size = new System.Drawing.Size(145, 22);
             this.tsMenuDeckReload.Text = "Reload";
             this.tsMenuDeckReload.Click += new System.EventHandler(this.tsMenuDeckReload_Click);
             // 
             // tsMenuDeckOpenFolder
             // 
             this.tsMenuDeckOpenFolder.Name = "tsMenuDeckOpenFolder";
-            this.tsMenuDeckOpenFolder.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuDeckOpenFolder.Size = new System.Drawing.Size(145, 22);
             this.tsMenuDeckOpenFolder.Text = "Open Folder";
             this.tsMenuDeckOpenFolder.Click += new System.EventHandler(this.tsMenuDeckOpenFolder_Click);
             // 
@@ -139,9 +141,26 @@
             // tsMenuMonitorEdit
             // 
             this.tsMenuMonitorEdit.Name = "tsMenuMonitorEdit";
-            this.tsMenuMonitorEdit.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuMonitorEdit.Size = new System.Drawing.Size(96, 22);
             this.tsMenuMonitorEdit.Text = "Edit";
             this.tsMenuMonitorEdit.Click += new System.EventHandler(this.tsMenuMonitorEdit_Click);
+            // 
+            // tsMenuMeida
+            // 
+            this.tsMenuMeida.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsMenuMediaEdit});
+            this.tsMenuMeida.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.tsMenuMeida.Name = "tsMenuMeida";
+            this.tsMenuMeida.ShowDropDownArrow = false;
+            this.tsMenuMeida.Size = new System.Drawing.Size(48, 22);
+            this.tsMenuMeida.Text = "Media";
+            // 
+            // tsMenuMediaEdit
+            // 
+            this.tsMenuMediaEdit.Name = "tsMenuMediaEdit";
+            this.tsMenuMediaEdit.Size = new System.Drawing.Size(96, 22);
+            this.tsMenuMediaEdit.Text = "Edit";
+            this.tsMenuMediaEdit.Click += new System.EventHandler(this.tsMenuMediaEdit_Click);
             // 
             // tsMenuDiscord
             // 
@@ -156,7 +175,7 @@
             // tsMenuDiscordReconnect
             // 
             this.tsMenuDiscordReconnect.Name = "tsMenuDiscordReconnect";
-            this.tsMenuDiscordReconnect.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuDiscordReconnect.Size = new System.Drawing.Size(134, 22);
             this.tsMenuDiscordReconnect.Text = "Reconnect";
             this.tsMenuDiscordReconnect.Click += new System.EventHandler(this.tsMenuDiscordReconnect_Click);
             // 
@@ -166,7 +185,7 @@
             this.tsMenuAssetsBg,
             this.tsMenuAssetsIco,
             this.tsMenuAssetsSideIcon,
-            this.tsMenuAssetsFontBuilder,
+            this.tsMenuAssetsFont,
             this.tsMenuAssetsBootAnim});
             this.tsMenuAssets.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.tsMenuAssets.Name = "tsMenuAssets";
@@ -195,13 +214,31 @@
             this.tsMenuAssetsSideIcon.Text = "Side Icon";
             this.tsMenuAssetsSideIcon.Click += new System.EventHandler(this.tsMenuAssetsSideIcon_Click);
             // 
-            // tsMenuAssetsFontBuilder
+            // tsMenuAssetsFont
             // 
-            this.tsMenuAssetsFontBuilder.Name = "tsMenuAssetsFontBuilder";
-            this.tsMenuAssetsFontBuilder.Size = new System.Drawing.Size(180, 22);
-            this.tsMenuAssetsFontBuilder.Text = "Font Builder";
-            this.tsMenuAssetsFontBuilder.Click += new System.EventHandler(this.tsMenuAssetsFontBuilder_Click);
+            this.tsMenuAssetsFont.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsMenuAssetsFontClock,
+            this.tsMenuAssetsFontNotify});
+            this.tsMenuAssetsFont.Name = "tsMenuAssetsFont";
+            this.tsMenuAssetsFont.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuAssetsFont.Text = "Font";
             // 
+            // tsMenuAssetsFontClock
+            // 
+            this.tsMenuAssetsFontClock.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.tsMenuAssetsFontClock.Name = "tsMenuAssetsFontClock";
+            this.tsMenuAssetsFontClock.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuAssetsFontClock.Text = "Clock";
+            this.tsMenuAssetsFontClock.Click += new System.EventHandler(this.tsMenuAssetsFontClock_Click);
+            //
+            // tsMenuAssetsFontNotify
+            //
+            this.tsMenuAssetsFontNotify.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.tsMenuAssetsFontNotify.Name = "tsMenuAssetsFontNotify";
+            this.tsMenuAssetsFontNotify.Size = new System.Drawing.Size(180, 22);
+            this.tsMenuAssetsFontNotify.Text = "Notify";
+            this.tsMenuAssetsFontNotify.Click += new System.EventHandler(this.tsMenuAssetsFontNotify_Click);
+            //
             // tsMenuAssetsBootAnim
             // 
             this.tsMenuAssetsBootAnim.Name = "tsMenuAssetsBootAnim";
@@ -423,23 +460,6 @@
             this.trayMenuExit.Text = "Exit";
             this.trayMenuExit.Click += new System.EventHandler(this.trayMenuExit_Click);
             // 
-            // tsMenuMeida
-            // 
-            this.tsMenuMeida.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsMenuMediaEdit});
-            this.tsMenuMeida.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.tsMenuMeida.Name = "tsMenuMeida";
-            this.tsMenuMeida.ShowDropDownArrow = false;
-            this.tsMenuMeida.Size = new System.Drawing.Size(48, 22);
-            this.tsMenuMeida.Text = "Media";
-            // 
-            // tsMenuMediaEdit
-            // 
-            this.tsMenuMediaEdit.Name = "tsMenuMediaEdit";
-            this.tsMenuMediaEdit.Size = new System.Drawing.Size(180, 22);
-            this.tsMenuMediaEdit.Text = "Edit";
-            this.tsMenuMediaEdit.Click += new System.EventHandler(this.tsMenuMediaEdit_Click);
-            //
             // FormM
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -511,8 +531,10 @@
         private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsIco;
         private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsSideIcon;
         private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsBootAnim;
-        private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsFontBuilder;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsFont;
         private System.Windows.Forms.ToolStripDropDownButton tsMenuMeida;
         private System.Windows.Forms.ToolStripMenuItem tsMenuMediaEdit;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsFontClock;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsFontNotify;
     }
 }

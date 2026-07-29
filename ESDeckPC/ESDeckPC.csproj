@@ -108,11 +108,17 @@
     <Compile Include="Forms\FormConfigEditor.Designer.cs">
       <DependentUpon>FormConfigEditor.cs</DependentUpon>
     </Compile>
-    <Compile Include="Forms\FormFontBuilder.cs">
+    <Compile Include="Forms\FormFontClockBuilder.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Forms\FormFontBuilder.Designer.cs">
-      <DependentUpon>FormFontBuilder.cs</DependentUpon>
+    <Compile Include="Forms\FormFontClockBuilder.Designer.cs">
+      <DependentUpon>FormFontClockBuilder.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\FormFontNotifyBuilder.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormFontNotifyBuilder.Designer.cs">
+      <DependentUpon>FormFontNotifyBuilder.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\FormIcoImporter.cs">
       <SubType>Form</SubType>
@@ -207,8 +213,11 @@
     <EmbeddedResource Include="Forms\FormConfigEditor.resx">
       <DependentUpon>FormConfigEditor.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Forms\FormFontBuilder.resx">
-      <DependentUpon>FormFontBuilder.cs</DependentUpon>
+    <EmbeddedResource Include="Forms\FormFontClockBuilder.resx">
+      <DependentUpon>FormFontClockBuilder.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FormFontNotifyBuilder.resx">
+      <DependentUpon>FormFontNotifyBuilder.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormIcoImporter.resx">
       <DependentUpon>FormIcoImporter.cs</DependentUpon>
@@ -268,6 +277,9 @@
     <Content Include="Resources\computer.ico" />
     <Content Include="Resources\playstation.ico" />
     <Content Include="Tools\ffmpeg.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Tools\common_hanzi.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

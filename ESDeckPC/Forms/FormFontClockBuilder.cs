@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace ESDeckPC
 {
-    public partial class FormFontBuilder : Form
+    public partial class FormFontClockBuilder : Form
     {
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
@@ -20,7 +20,7 @@ namespace ESDeckPC
             DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref v, sizeof(int));
         }
 
-        public FormFontBuilder()
+        public FormFontClockBuilder()
         {
             InitializeComponent();
         }

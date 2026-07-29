@@ -494,9 +494,14 @@ namespace ESDeckPC
         // Assets
         // ------------------------------------------------------------------
 
-        private void tsMenuAssetsFontBuilder_Click(object sender, EventArgs e)
+        private void tsMenuAssetsFontClock_Click(object sender, EventArgs e)
         {
-            new FormFontBuilder().Show();
+            new FormFontClockBuilder().Show();
+        }
+
+        private void tsMenuAssetsFontNotify_Click(object sender, EventArgs e)
+        {
+            new FormFontNotifyBuilder().Show();
         }
 
         private void tsMenuAssetsBg_Click(object sender, EventArgs e)

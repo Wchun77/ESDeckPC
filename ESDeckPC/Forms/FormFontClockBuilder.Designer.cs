@@ -1,6 +1,6 @@
 ﻿namespace ESDeckPC
 {
-    partial class FormFontBuilder
+    partial class FormFontClockBuilder
     {
         private System.ComponentModel.IContainer components = null;
 
