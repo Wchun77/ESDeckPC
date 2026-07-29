@@ -191,7 +191,7 @@
             this.btnBuild.UseVisualStyleBackColor = false;
             this.btnBuild.Click += new System.EventHandler(this.btnBuild_Click);
             // 
-            // FormFontBuilder
+            // FormFontClockBuilder
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -212,9 +212,9 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "FormFontBuilder";
+            this.Name = "FormFontClockBuilder";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Font Builder";
+            this.Text = "Font Clock Builder";
             ((System.ComponentModel.ISupportInitialize)(this.nudTime)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudSec)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudDate)).EndInit();
