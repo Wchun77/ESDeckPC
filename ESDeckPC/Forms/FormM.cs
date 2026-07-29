@@ -44,7 +44,7 @@ namespace ESDeckPC
         {
             InitializeComponent();
 
-            var darkRenderer = new ToolStripProfessionalRenderer(new DarkColorTable());
+            var darkRenderer = new DarkToolStripRenderer(new DarkColorTable());
             ToolStripManager.Renderer = darkRenderer;
             toolStrip.Renderer = darkRenderer;
 

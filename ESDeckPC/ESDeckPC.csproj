@@ -74,6 +74,7 @@
     <Compile Include="ActionExecutor.cs" />
     <Compile Include="Config\ConfigLoader.cs" />
     <Compile Include="Controls\DarkColorTable.cs" />
+    <Compile Include="Controls\DarkToolStripRenderer.cs" />
     <Compile Include="Config\Deckconfig.cs" />
     <Compile Include="Controls\DeckPreviewPanel.cs">
       <SubType>Component</SubType>
