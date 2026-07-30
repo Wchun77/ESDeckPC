@@ -173,8 +173,32 @@ namespace ESDeckPC
                 IsStorageEnabled = true,
             };
             _computer = computer;
-            computer.Open();
-            computer.Accept(new UpdateVisitor());
+
+            // Open()/first Accept() run LibreHardwareMonitorLib's hardware
+            // detection (CPU/GPU/storage enumeration, Ring0 driver init).
+            // This is third-party code we do not control, and it has been
+            // observed to throw uncaught exceptions on some machines during
+            // init (e.g. NullReferenceException deep inside CPU TSC frequency
+            // calibration). An unhandled exception on a background thread
+            // takes down the whole process, so this must never run unguarded
+            // -- if init fails, we log it and bail out of monitoring instead
+            // of crashing ESDeckPC.
+            try
+            {
+                computer.Open();
+                computer.Accept(new UpdateVisitor());
+            }
+            catch (Exception ex)
+            {
+                Log($"Monitor: hardware init failed, monitor disabled for this session: {ex.Message}");
+                _subscribed = false;
+
+                try { computer.Close(); }
+                catch { /* best effort -- computer may be only partially open */ }
+
+                _computer = null;
+                return;
+            }
 
             int tick = 0;
 
