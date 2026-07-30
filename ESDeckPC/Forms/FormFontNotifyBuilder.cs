@@ -179,7 +179,6 @@ namespace ESDeckPC
         // -r 0x20-0x7E       : ASCII (digits, upper/lower letters, half-width punctuation)
         // -r 0x3000-0x303F   : CJK Symbols and Punctuation (、。「」『』...)
         // -r 0xFF00-0xFFEF   : Halfwidth and Fullwidth Forms (，：full-width digits/letters, etc.)
-        // See doc/ESDeck_Monitor_字體轉換指南.md "通知用中文字體" section.
         private static bool RunLvFontConvNotify(string workingDir, string ttfFileName, int size,
                                                  string symbols, string outBin, out string err)
         {
