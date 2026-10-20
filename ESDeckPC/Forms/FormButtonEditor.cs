@@ -42,6 +42,9 @@ namespace ESDeckPC
         // mouse_click
         private ComboBox _dynCmbClickType;
 
+        // power
+        private ComboBox _dynCmbPowerTarget;
+
         public FormButtonEditor(PcButton button, bool isNew = false, string iconsDir = null)
         {
             InitializeComponent();
@@ -60,7 +63,7 @@ namespace ESDeckPC
             cmbAction.Items.AddRange(new object[]
             {
                 "launch", "hotkey", "media", "discord",
-                "scroll", "sequence", "text", "mouse_click",
+                "scroll", "sequence", "text", "mouse_click", "power",
             });
 
             cmbAction.SelectedItem = button.Action ?? "launch";
@@ -118,6 +121,7 @@ namespace ESDeckPC
             _dynLblSequenceKeys = null;
             _dynTxtSequenceKeys = null;
             _dynCmbClickType = null;
+            _dynCmbPowerTarget = null;
 
             switch (action?.ToLower())
             {
@@ -275,6 +279,31 @@ namespace ESDeckPC
                     pnlDynamic.Controls.Add(_dynLabel);
                     pnlDynamic.Controls.Add(_dynCmbClickType);
                     break;
+
+                case "power":
+                    _dynLabel = MakeLabel("Power action");
+                    _dynLabel.Location = new Point(0, 0);
+
+                    _dynCmbPowerTarget = new ComboBox
+                    {
+                        DropDownStyle = ComboBoxStyle.DropDownList,
+                        Location = new Point(0, 16),
+                        Size = new Size(352, 22),
+                        BackColor = System.Drawing.Color.FromArgb(45, 45, 48),
+                        ForeColor = System.Drawing.Color.FromArgb(220, 220, 220),
+                        FlatStyle = FlatStyle.Flat,
+                        Font = this.Font,
+                    };
+                    _dynCmbPowerTarget.Items.AddRange(new object[]
+                    {
+                        "shutdown", "restart", "logoff", "lock", "sleep"
+                    });
+                    _dynCmbPowerTarget.SelectedItem = _button.Target ?? "shutdown";
+                    if (_dynCmbPowerTarget.SelectedIndex < 0) _dynCmbPowerTarget.SelectedIndex = 0;
+
+                    pnlDynamic.Controls.Add(_dynLabel);
+                    pnlDynamic.Controls.Add(_dynCmbPowerTarget);
+                    break;
             }
         }
 
@@ -357,6 +386,13 @@ namespace ESDeckPC
                 _button.ChannelId = null;
                 _button.Amount = null;
                 _button.Target = _dynCmbClickType?.SelectedItem?.ToString() ?? "single";
+            }
+            else if (action == "power")
+            {
+                _button.Keys = null;
+                _button.ChannelId = null;
+                _button.Amount = null;
+                _button.Target = _dynCmbPowerTarget?.SelectedItem?.ToString() ?? "shutdown";
             }
 
             this.DialogResult = DialogResult.OK;

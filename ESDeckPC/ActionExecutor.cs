@@ -21,6 +21,9 @@ namespace ESDeckPC
         [DllImport("user32.dll")]
         private static extern short VkKeyScan(char ch);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool LockWorkStation();
+
         [StructLayout(LayoutKind.Sequential)]
         private struct INPUT
         {
@@ -227,6 +230,7 @@ namespace ESDeckPC
                 case "sequence": return ExecSequence(button.Keys);
                 case "text": return ExecText(button.Target);
                 case "mouse_click": return ExecMouseClick(button.Target);
+                case "power": return ExecPower(button.Target);
                 default: return $"unknown action: {button.Action}";
             }
         }
@@ -291,6 +295,49 @@ namespace ESDeckPC
             keybd_event(vk, 0, 0, UIntPtr.Zero);
             keybd_event(vk, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
             return $"media: {target}";
+        }
+
+        // ------------------------------------------------------------------
+        // power action handler
+        // target: shutdown | restart | logoff | lock | sleep
+        // ------------------------------------------------------------------
+        private static string ExecPower(string target)
+        {
+            if (string.IsNullOrEmpty(target))
+                return "power failed: target is empty";
+
+            try
+            {
+                switch (target.ToLower())
+                {
+                    case "shutdown":
+                        Process.Start(new ProcessStartInfo("shutdown", "/s /t 0") { UseShellExecute = true, CreateNoWindow = true });
+                        return "power: shutdown";
+
+                    case "restart":
+                        Process.Start(new ProcessStartInfo("shutdown", "/r /t 0") { UseShellExecute = true, CreateNoWindow = true });
+                        return "power: restart";
+
+                    case "logoff":
+                        Process.Start(new ProcessStartInfo("shutdown", "/l") { UseShellExecute = true, CreateNoWindow = true });
+                        return "power: logoff";
+
+                    case "lock":
+                        LockWorkStation();
+                        return "power: lock";
+
+                    case "sleep":
+                        Application.SetSuspendState(PowerState.Suspend, false, false);
+                        return "power: sleep";
+
+                    default:
+                        return $"power failed: unknown target '{target}'";
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"power failed: {ex.Message}";
+            }
         }
 
         // ------------------------------------------------------------------
