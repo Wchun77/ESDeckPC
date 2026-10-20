@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace ESDeckPC
@@ -311,6 +312,7 @@ namespace ESDeckPC
                 case "sequence":
                 case "scroll":
                 case "text":
+                case "power":
                     MessageBox.Show(
                         $"Action \"{button.Action}\" is not supported in preview mode.",
                         "Not supported",
@@ -345,47 +347,179 @@ namespace ESDeckPC
         // Save / Discard
         // ------------------------------------------------------------------
 
+        // ESP backup copies live in {pc folder}\esp_bak\ next to pc_XXXX.json.
+        private const string EspBakDirName = "esp_bak";
+
+        // Exact names produced by Crc16().ToString("X4"). Case-sensitive on
+        // purpose: anything renamed by hand (test.json, pc_1a2b.json,
+        // pc_1A2B(1).json ...) never matches, so it is never offered for delete.
+        private static readonly Regex RxPcName  = new Regex(@"^pc_([0-9A-F]{4})\.json$");
+
+        // Firmware always reads /sdcard/config/deck/ (incl. startup.txt), so
+        // the selected ESP JSON must sit in a {root}\config\deck\ folder.
+        // Same structure check as ResolveAssetDirs().
+        private static bool IsEspDeckDir(string espPath)
+        {
+            var deckDir = Path.GetDirectoryName(espPath);
+            if (string.IsNullOrEmpty(deckDir)) return false;
+            if (!string.Equals(Path.GetFileName(deckDir), "deck",
+                StringComparison.OrdinalIgnoreCase)) return false;
+
+            var configDir = Path.GetDirectoryName(deckDir);
+            if (string.IsNullOrEmpty(configDir)) return false;
+            if (!string.Equals(Path.GetFileName(configDir), "config",
+                StringComparison.OrdinalIgnoreCase)) return false;
+
+            return !string.IsNullOrEmpty(Path.GetDirectoryName(configDir));
+        }
+
+        private static void AddUnique(List<string> list, string path)
+        {
+            foreach (var p in list)
+                if (string.Equals(Path.GetFullPath(p), Path.GetFullPath(path),
+                    StringComparison.OrdinalIgnoreCase)) return;
+            list.Add(path);
+        }
+
+        // Old-version files that may be deleted after a successful save.
+        // Only the exact paths opened in this editor (plus the matching
+        // esp_bak copy) are ever returned -- the folders are never scanned,
+        // so unrelated files in the same folder can't be touched.
+        // Returns an empty list unless:
+        //   - PC file is named pc_XXXX.json
+        //   - the selected ESP file (if any) is named esp_XXXX.json, same XXXX
+        //   - XXXX differs from the new CRC (same CRC = the save just
+        //     overwrote these very files, deleting them would lose the save)
+        private List<string> CollectOldFiles(string newCrc, string bakFolder, bool espValid)
+        {
+            var list = new List<string>();
+
+            var m = RxPcName.Match(Path.GetFileName(_pcPath) ?? "");
+            if (!m.Success) return list;
+
+            string oldCrc = m.Groups[1].Value;
+            if (oldCrc == newCrc) return list;
+
+            string oldEspName = $"esp_{oldCrc}.json";
+
+            if (!string.IsNullOrEmpty(_espPath))
+            {
+                if (!string.Equals(Path.GetFileName(_espPath), oldEspName,
+                    StringComparison.Ordinal)) return list;
+
+                // Only delete the device-side file when it is in the real
+                // config\deck folder; an ESP file picked from anywhere else
+                // is left alone.
+                if (espValid && File.Exists(_espPath)) AddUnique(list, _espPath);
+            }
+
+            if (File.Exists(_pcPath)) AddUnique(list, _pcPath);
+
+            string oldBak = Path.Combine(bakFolder, oldEspName);
+            if (File.Exists(oldBak)) AddUnique(list, oldBak);
+
+            return list;
+        }
+
         private void btnSave_Click(object sender, EventArgs e)
         {
             try
             {
-                string folder = Path.GetDirectoryName(_pcPath);
+                string pcFolder  = Path.GetDirectoryName(_pcPath);
+                string bakFolder = Path.Combine(pcFolder, EspBakDirName);
 
-                // Pre-calculate CRC the same way SavePair does, so we can
-                // check for existing files before committing the write.
-                string pcJson = Newtonsoft.Json.JsonConvert.SerializeObject(
-                    _pcConfig, Newtonsoft.Json.Formatting.Indented);
-                string crc = ConfigLoader.Crc16(pcJson).ToString("X4");
+                bool espSelected = !string.IsNullOrEmpty(_espPath);
+                bool espValid    = espSelected && IsEspDeckDir(_espPath);
+                string espFolder = espValid ? Path.GetDirectoryName(_espPath) : null;
 
-                string newPcPath = Path.Combine(folder, $"pc_{crc}.json");
-                string newEspPath = Path.Combine(folder, $"esp_{crc}.json");
-                bool pcExists = File.Exists(newPcPath);
-                bool espExists = File.Exists(newEspPath);
-
-                if (pcExists || espExists)
+                if (espSelected && !espValid)
                 {
-                    string existing = (pcExists && espExists)
-                        ? $"pc_{crc}.json and esp_{crc}.json"
-                        : pcExists ? $"pc_{crc}.json" : $"esp_{crc}.json";
-
-                    var confirm = MessageBox.Show(
-                        $"{existing} already exist.\n\nOverwrite?",
+                    var r = MessageBox.Show(
+                        "The selected ESP JSON is not inside a ...\\config\\deck\\ folder:\n" +
+                        _espPath + "\n\n" +
+                        "The ESP file will only be saved to " + EspBakDirName + "\\ " +
+                        "(no device copy, no startup.txt).\n\nContinue?",
                         "Config Editor",
                         MessageBoxButtons.YesNo,
                         MessageBoxIcon.Warning);
+                    if (r != DialogResult.Yes) return;
+                }
 
+                // Same serialization as ConfigLoader.SavePair so the CRC /
+                // file names stay identical to before.
+                EspConfig espConfig = ConfigLoader.BuildEspFromPc(_pcConfig);
+                string pcJson  = Newtonsoft.Json.JsonConvert.SerializeObject(_pcConfig, Newtonsoft.Json.Formatting.Indented);
+                string espJson = Newtonsoft.Json.JsonConvert.SerializeObject(espConfig, Newtonsoft.Json.Formatting.Indented);
+                string crc     = ConfigLoader.Crc16(pcJson).ToString("X4");
+
+                string pcName  = $"pc_{crc}.json";
+                string espName = $"esp_{crc}.json";
+
+                string newPcPath  = Path.Combine(pcFolder, pcName);
+                string newBakPath = Path.Combine(bakFolder, espName);
+                string newEspPath = espValid ? Path.Combine(espFolder, espName) : null;
+
+                var existing = new List<string>();
+                if (File.Exists(newPcPath))  existing.Add(newPcPath);
+                if (File.Exists(newBakPath)) existing.Add(newBakPath);
+                if (newEspPath != null && File.Exists(newEspPath)) existing.Add(newEspPath);
+
+                if (existing.Count > 0)
+                {
+                    var confirm = MessageBox.Show(
+                        "Already exist:\n" + string.Join("\n", existing) + "\n\nOverwrite?",
+                        "Config Editor",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning);
                     if (confirm != DialogResult.Yes) return;
                 }
 
-                ConfigLoader.SavePair(_pcConfig, folder);
+                // Write order: PC -> backup -> device JSON -> startup.txt.
+                // Any exception stops here before anything is deleted.
+                Directory.CreateDirectory(bakFolder);
+                File.WriteAllText(newPcPath, pcJson);
+                File.WriteAllText(newBakPath, espJson);
 
-                string startupTxt = Path.Combine(folder, "startup.txt");
-                File.WriteAllText(startupTxt, $"esp_{crc}.json", Encoding.ASCII);
+                var saved = new List<string> { newPcPath, newBakPath };
+                if (newEspPath != null)
+                {
+                    string startupTxt = Path.Combine(espFolder, "startup.txt");
+                    File.WriteAllText(newEspPath, espJson);
+                    File.WriteAllText(startupTxt, espName, Encoding.ASCII);
+                    saved.Add(newEspPath);
+                    saved.Add(startupTxt);
+                }
 
-                MessageBox.Show($"Saved as pc_{crc}.json / esp_{crc}.json", "Config Editor",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                string savedMsg = "Saved:\n" + string.Join("\n", saved);
 
-                Process.Start("explorer.exe", folder);
+                var oldFiles = CollectOldFiles(crc, bakFolder, espValid);
+                if (oldFiles.Count == 0)
+                {
+                    MessageBox.Show(savedMsg, "Config Editor",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    var del = MessageBox.Show(
+                        savedMsg + "\n\nDelete the old version?\n" + string.Join("\n", oldFiles),
+                        "Config Editor",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (del == DialogResult.Yes)
+                    {
+                        var failed = new List<string>();
+                        foreach (var f in oldFiles)
+                        {
+                            try { File.Delete(f); }
+                            catch (Exception dex) { failed.Add($"{f}  ({dex.Message})"); }
+                        }
+
+                        if (failed.Count > 0)
+                            MessageBox.Show("Could not delete:\n" + string.Join("\n", failed),
+                                "Config Editor", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
 
                 ConfigSaved?.Invoke(this, newPcPath);
                 this.Close();
