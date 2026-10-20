@@ -7,6 +7,7 @@ namespace ESDeckPC
     //
     //   {
     //       "bg_image": "desk.jpg",
+    //       "keyboard_icon": "kb.png",
     //       "settings": {
     //           "bg_image": "panel_bg.jpg",
     //           "side_icon": "mouse.png"
@@ -14,13 +15,17 @@ namespace ESDeckPC
     //   }
     //
     // Own model rather than reusing MediaConfig, same "each mode owns its own
-    // copy" convention as the other configs. The sidebar keyboard button
-    // icon is fixed on the device for now, so it's not in the schema.
+    // copy" convention as the other configs.
     public class TouchpadConfig
     {
         // Touchpad content background, empty = flat color (0x222222).
         [JsonProperty("bg_image")]
         public string BgImage { get; set; } = "";
+
+        // Sidebar keyboard button image, filename only under assets/side_icons;
+        // empty = keyboard glyph.
+        [JsonProperty("keyboard_icon")]
+        public string KeyboardIcon { get; set; } = "";
 
         [JsonProperty("settings")]
         public TouchpadSettingsCfg Settings { get; set; } = new TouchpadSettingsCfg();

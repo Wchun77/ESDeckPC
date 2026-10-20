@@ -80,6 +80,7 @@ namespace ESDeckPC
             btnTouchpadPage.Click += (s, e) => ShowTouchpadSettings();
             btnSettingsPage.Click += (s, e) => ShowSettingsPage();
             btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
+            btnTouchpadPage.MouseUp += BtnTouchpadPage_MouseUp;
 
             ShowTouchpadSettings();
         }
@@ -116,6 +117,27 @@ namespace ESDeckPC
         // as Monitor's Clock/Settings side_icon), set directly from the
         // right-click menu. Touchpad has no side_icon at all in the schema.
         // ------------------------------------------------------------------
+
+        // Touchpad entry -- the sidebar keyboard button's icon, set from the
+        // right-click menu the same way Settings' side_icon is.
+        private void BtnTouchpadPage_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right) return;
+
+            var cms = BuildDarkMenu();
+            var miKbIcon = new ToolStripMenuItem("Set Keyboard Icon");
+            miKbIcon.Click += (s, ev) =>
+            {
+                string name = FormSideIconPicker.Show(this, "Set Keyboard Icon",
+                    _cfg.KeyboardIcon ?? "", "KB", _assetsSideIconsDir);
+                if (name == null) return;
+                _cfg.KeyboardIcon = name;
+                if (!_settingsSelected) RefreshPreview();   // updates the status line
+            };
+            cms.Items.Add(miKbIcon);
+
+            cms.Show(Cursor.Position);
+        }
 
         private void BtnSettingsPage_MouseUp(object sender, MouseEventArgs e)
         {
@@ -327,7 +349,10 @@ namespace ESDeckPC
 
                 string bgNote = (!string.IsNullOrEmpty(_cfg.BgImage) && _ucTouchpadBg.BgBitmap == null)
                     ? "  [bg image not found on disk]" : "";
-                SetStatus($"Touchpad{bgNote}");
+                // keyboard_icon has no staged field either (right-click),
+                // so show it here like Settings shows its side_icon.
+                string kbIcon = string.IsNullOrEmpty(_cfg.KeyboardIcon) ? "(none)" : _cfg.KeyboardIcon;
+                SetStatus($"Touchpad  |  keyboard_icon: {kbIcon}{bgNote}");
             }
 
             picPreview.Image = null; // detach before dispose
