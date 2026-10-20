@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 
 public class HidReceiver
 {
-    // Mirrors ui_mode_t in ESDeck's ui_settings.h (0=deck, 1=monitor, 2=media)
-    public enum EspMode { Deck = 0, Monitor = 1, Media = 2 }
+    // Mirrors ui_mode_t in ESDeck's ui_settings.h (0=deck, 1=monitor, 2=media, 3=touchpad)
+    public enum EspMode { Deck = 0, Monitor = 1, Media = 2, Touchpad = 3 }
 
     private const int VendorId = 0x303A;
     private const int ProductId = 0x4004;
@@ -31,6 +31,11 @@ public class HidReceiver
 
     // Fires when ESP replies to a mode query with its current UI mode
     public event Action<EspMode> OnModeReport;
+
+    // Fires for Touchpad mode reports (page=0xFD), raw buffer + length as
+    // read. Invoked synchronously on the read thread (low latency); the
+    // buffer is reused by the next Read(), so handlers must not keep it.
+    public event Action<byte[], int> OnTouchpadReport;
 
     public bool Open()
     {
@@ -121,16 +126,23 @@ public class HidReceiver
                     const byte BTN_MODE_DECK = 0x03;
                     const byte BTN_MODE_MONITOR = 0x04;
                     const byte BTN_MODE_MEDIA = 0x05;
+                    const byte BTN_MODE_TOUCHPAD = 0x06;
 
-                    if (btn == BTN_MODE_DECK || btn == BTN_MODE_MONITOR || btn == BTN_MODE_MEDIA)
+                    if (btn == BTN_MODE_DECK || btn == BTN_MODE_MONITOR || btn == BTN_MODE_MEDIA ||
+                        btn == BTN_MODE_TOUCHPAD)
                     {
-                        EspMode mode = btn == BTN_MODE_MONITOR ? EspMode.Monitor
-                                     : btn == BTN_MODE_MEDIA   ? EspMode.Media
+                        EspMode mode = btn == BTN_MODE_MONITOR  ? EspMode.Monitor
+                                     : btn == BTN_MODE_MEDIA    ? EspMode.Media
+                                     : btn == BTN_MODE_TOUCHPAD ? EspMode.Touchpad
                                      : EspMode.Deck;
                         OnModeReport?.Invoke(mode);
                     }
                     else
                         OnMonitorControl?.Invoke(btn);
+                }
+                else if (page == 0xFD)
+                {
+                    OnTouchpadReport?.Invoke(buf, len);
                 }
                 else if (page == 0xFE)
                 {

@@ -22,6 +22,7 @@ namespace ESDeckPC
         private AudioLevelWatcher _audioLevel;
         private AudioLevelSender _audioLevelSender;
         private bool _hidConnected = false;
+        private readonly TouchpadInput _touchpad = new TouchpadInput();
         private PcConfig _config = null;
         private string _pcJsonPath = null;
         private bool _forceClose = false;
@@ -75,6 +76,8 @@ namespace ESDeckPC
             _receiver.OnMediaControl += OnMediaControl;
             _receiver.OnMediaSeek += OnMediaSeek;
             _receiver.OnModeReport += OnModeReport;
+            // Touchpad mode: handled on the HID read thread, no UI hop.
+            _receiver.OnTouchpadReport += _touchpad.Process;
 
             _monitor = new MonitorSender(_receiver);
             _monitor.OnLog += msg => AppendLog(msg, Color.CornflowerBlue);
@@ -178,6 +181,7 @@ namespace ESDeckPC
                 _audioLevelSender.Unsubscribe();
                 _nowPlayingImageSender.Unsubscribe();
                 _receiver.Stop();
+                _touchpad.ReleaseAll();   // unplugged mid-drag: don't leave a button held
                 _hidConnected = false;
                 ssLblHid.Text = "HID: Disconnected";
                 ssLblHid.ForeColor = Color.Red;
@@ -314,6 +318,10 @@ namespace ESDeckPC
                         _audioLevelSender.Subscribe();
                         _nowPlayingImageSender.Subscribe();
                         AppendLog("NowPlaying: ESP already in media mode, subscribed", Color.MediumPurple);
+                        break;
+
+                    case HidReceiver.EspMode.Touchpad:
+                        AppendLog("Touchpad: ESP in touchpad mode", Color.Gray);
                         break;
 
                     default:

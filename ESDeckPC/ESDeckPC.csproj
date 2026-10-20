@@ -175,6 +175,7 @@
     <Compile Include="Hid\NowPlayingSender.cs" />
     <Compile Include="Hid\NowPlayingImageSender.cs" />
     <Compile Include="Hid\NowPlayingWatcher.cs" />
+    <Compile Include="Hid\TouchpadInput.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Controls\SidebarButtonPreview.cs" />
