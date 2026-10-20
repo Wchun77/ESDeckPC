@@ -177,6 +177,9 @@
     <Compile Include="Renderers\MediaPreviewRenderer.cs" />
     <Compile Include="Config\TouchpadConfig.cs" />
     <Compile Include="Renderers\TouchpadPreviewRenderer.cs" />
+    <Compile Include="Controls\UC_TouchpadSidebarPanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="Hid\AudioLevelSender.cs" />
     <Compile Include="Hid\AudioLevelWatcher.cs" />
     <Compile Include="Hid\MonitorSender.cs" />

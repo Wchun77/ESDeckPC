@@ -109,6 +109,25 @@ namespace ESDeckPC
             }
         }
 
+        /// <summary>
+        /// Placeholder for editor entries that have no content-area preview
+        /// (Sidebar -- the 720x480 preview box only covers the content area).
+        /// </summary>
+        public static Bitmap RenderNoPreview(string text = "No preview")
+        {
+            var bmp = new Bitmap(ContentW, ContentH);
+            using (var g = Graphics.FromImage(bmp))
+            using (var font = new Font("Segoe UI", 14f))
+            using (var brush = new SolidBrush(ColHint))
+            using (var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+            {
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+                g.Clear(Color.FromArgb(18, 18, 18));
+                g.DrawString(text, font, brush, new RectangleF(0, 0, ContentW, ContentH), fmt);
+            }
+            return bmp;
+        }
+
         private static GraphicsPath RoundedRect(Rectangle r, int radius)
         {
             int d = radius * 2;

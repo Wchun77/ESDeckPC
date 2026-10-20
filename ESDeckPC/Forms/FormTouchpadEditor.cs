@@ -32,10 +32,12 @@ namespace ESDeckPC
         // both "just a bg_image", so one control type covers both entries.
         private UC_MediaBgPanel _ucTouchpadBg = null;
         private UC_MediaBgPanel _ucSettingsBg = null;
+        private UC_TouchpadSidebarPanel _ucSidebar = null;
         private Bitmap _previewBmp = null;
 
         // True when the Settings entry is selected; false = Touchpad.
         private bool _settingsSelected = false;
+        private bool _sidebarSelected = false;
 
         private static readonly Color ColSelected = Color.FromArgb(140, 30, 30); // dark red
         private static readonly Color ColNormal = Color.FromArgb(55, 55, 58);
@@ -81,6 +83,7 @@ namespace ESDeckPC
             btnSettingsPage.Click += (s, e) => ShowSettingsPage();
             btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
             btnTouchpadPage.MouseUp += BtnTouchpadPage_MouseUp;
+            btnSidebarPage.Click += (s, e) => ShowSidebarPage();
 
             ShowTouchpadSettings();
         }
@@ -132,7 +135,7 @@ namespace ESDeckPC
                     _cfg.KeyboardIcon ?? "", "KB", _assetsSideIconsDir);
                 if (name == null) return;
                 _cfg.KeyboardIcon = name;
-                if (!_settingsSelected) RefreshPreview();   // updates the status line
+                RefreshPreview();   // status line / sidebar preview
             };
             cms.Items.Add(miKbIcon);
 
@@ -164,6 +167,7 @@ namespace ESDeckPC
         private void ShowTouchpadSettings()
         {
             _settingsSelected = false;
+            _sidebarSelected = false;
 
             if (_ucTouchpadBg == null)
             {
@@ -185,6 +189,7 @@ namespace ESDeckPC
         private void ShowSettingsPage()
         {
             _settingsSelected = true;
+            _sidebarSelected = false;
 
             if (_ucSettingsBg == null)
             {
@@ -203,10 +208,47 @@ namespace ESDeckPC
             RefreshPreview();
         }
 
+        private void ShowSidebarPage()
+        {
+            _settingsSelected = false;
+            _sidebarSelected = true;
+
+            if (_ucSidebar == null)
+            {
+                _ucSidebar = new UC_TouchpadSidebarPanel { Dock = DockStyle.Top };
+                _ucSidebar.PreviewInvalidated += (s, e) => RefreshPreview();
+            }
+
+            pnlSettingsHost.SuspendLayout();
+            pnlSettingsHost.Controls.Clear();
+            pnlSettingsHost.Controls.Add(_ucSidebar);
+            pnlSettingsHost.ResumeLayout();
+
+            _ucSidebar.ApplyConfig(_cfg, _assetsSideIconsDir);
+
+            SetSelectedButton(btnSidebarPage);
+            RefreshPreview();
+        }
+
+        /// <summary>
+        /// Drop the entry panels after New/Open: ReadUiIntoConfig() copies
+        /// every existing panel back into _cfg, so a panel still holding the
+        /// previous file's values would overwrite the freshly loaded config.
+        /// They're recreated (and re-bound) the next time their entry is shown.
+        /// </summary>
+        private void ResetEntryPanels()
+        {
+            pnlSettingsHost.Controls.Clear();
+            _ucTouchpadBg?.Dispose(); _ucTouchpadBg = null;
+            _ucSettingsBg?.Dispose(); _ucSettingsBg = null;
+            _ucSidebar?.Dispose();    _ucSidebar = null;
+        }
+
         private void SetSelectedButton(Button selected)
         {
             btnTouchpadPage.BackColor = (selected == btnTouchpadPage) ? ColSelected : ColNormal;
             btnSettingsPage.BackColor = (selected == btnSettingsPage) ? ColSelected : ColNormal;
+            btnSidebarPage.BackColor = (selected == btnSidebarPage) ? ColSelected : ColNormal;
         }
 
         // ------------------------------------------------------------------
@@ -222,6 +264,7 @@ namespace ESDeckPC
                 dlg.Filter = "JSON files (*.json)|*.json";
                 dlg.FileName = "touchpad.json";
                 if (dlg.ShowDialog() != DialogResult.OK) return;
+                ResetEntryPanels();
                 _cfg = new TouchpadConfig();
                 _jsonPath = dlg.FileName;
                 ResolveAssetDirsFromJsonPath();
@@ -244,6 +287,8 @@ namespace ESDeckPC
                     var cfg = JsonConvert.DeserializeObject<TouchpadConfig>(
                                   File.ReadAllText(dlg.FileName)) ?? new TouchpadConfig();
                     if (cfg.Settings == null) cfg.Settings = new TouchpadSettingsCfg();
+                    if (cfg.Hotkeys == null) cfg.Hotkeys = new System.Collections.Generic.List<TouchpadHotkey>();
+                    ResetEntryPanels();
                     _cfg = cfg;
                     _jsonPath = dlg.FileName;
                     ResolveAssetDirsFromJsonPath();
@@ -302,6 +347,14 @@ namespace ESDeckPC
                 MessageBoxIcon.Question);
             if (confirm != DialogResult.Yes) return;
 
+            string sidebarErr = _ucSidebar?.Validate();
+            if (sidebarErr != null)
+            {
+                MessageBox.Show($"Not saved -- fix the sidebar hotkey first:\n{sidebarErr}",
+                                "Touchpad Editor", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
                 ReadUiIntoConfig();
@@ -325,7 +378,19 @@ namespace ESDeckPC
             ReadUiIntoConfig();
 
             Bitmap newBmp;
-            if (_settingsSelected)
+            if (_sidebarSelected)
+            {
+                // The preview box is the 720x480 content area only -- the
+                // sidebar isn't part of it, so there's nothing to show here.
+                newBmp = TouchpadPreviewRenderer.RenderNoPreview();
+
+                string err = _ucSidebar?.Validate();
+                string mode = _cfg.SidebarMode ?? "none";
+                SetStatus(err != null
+                    ? $"Sidebar  |  {mode}  |  {err}"
+                    : $"Sidebar  |  {mode}" + (mode == "hotkeys" ? $"  |  {_cfg.Hotkeys.Count}/{TouchpadConfig.MaxHotkeys} hotkeys" : ""));
+            }
+            else if (_settingsSelected)
             {
                 if (_ucSettingsBg == null) return; // nothing to render yet
                 // Settings overlay rendering is shared firmware code across
@@ -371,6 +436,7 @@ namespace ESDeckPC
         {
             if (_ucTouchpadBg != null) _cfg.BgImage = _ucTouchpadBg.ReadBgImage();
             if (_ucSettingsBg != null) _cfg.Settings.BgImage = _ucSettingsBg.ReadBgImage();
+            if (_ucSidebar != null) _ucSidebar.ReadInto(_cfg);
         }
 
         // ------------------------------------------------------------------
@@ -384,7 +450,7 @@ namespace ESDeckPC
             var lightFg = Color.FromArgb(220, 220, 220);
             var font = new Font("Consolas", 8.5f);
 
-            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs, btnTouchpadPage, btnSettingsPage })
+            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs, btnTouchpadPage, btnSettingsPage, btnSidebarPage })
             {
                 btn.BackColor = darkBg;
                 btn.ForeColor = lightFg;
