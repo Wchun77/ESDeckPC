@@ -10,7 +10,10 @@ namespace ESDeckPC
     ///
     /// Report layout (HidSharp buffer, [0] = report ID 0x00):
     ///   [1] 0xFD  [2] 0x01  [3..4] dx int16 LE  [5..6] dy int16 LE
-    ///   [7] wheel int8 finger pixels (+ = scroll up)  [8] button mask (bit0 = L, bit1 = R)
+    ///   [7] wheel int8 finger pixels (+ = scroll up)  [8] button mask
+    ///   or, horizontal wheel only:
+    ///   [1] 0xFD  [2] 0x02  [3] hwheel int8 finger pixels (+ = scroll right)  [4] button mask
+    /// Button mask: bit0 L, bit1 R, bit3 Back (XBUTTON1), bit4 Forward (XBUTTON2).
     /// Mirrors HID_TP_* in ESDeck's usb_hid.h.
     ///
     /// Process() is called directly on HidReceiver's read thread -- no UI
@@ -26,8 +29,11 @@ namespace ESDeckPC
     {
         public const byte Page = 0xFD;
         private const byte CMD_MOVE = 0x01;
+        private const byte CMD_HWHEEL = 0x02;
         private const byte BTN_LEFT = 0x01;
         private const byte BTN_RIGHT = 0x02;
+        private const byte BTN_BACK = 0x08;
+        private const byte BTN_FORWARD = 0x10;
 
         /// <summary>
         /// Multiplier from touch pixels to mouse mickeys, applied before
@@ -46,6 +52,7 @@ namespace ESDeckPC
         private double _remX;
         private double _remY;
         private double _remWheel;
+        private double _remHWheel;
         private byte _mask;
 
         // ------------------------------------------------------------------
@@ -80,6 +87,11 @@ namespace ESDeckPC
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
         private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
         private const uint MOUSEEVENTF_WHEEL = 0x0800;
+        private const uint MOUSEEVENTF_XDOWN = 0x0080;
+        private const uint MOUSEEVENTF_XUP = 0x0100;
+        private const uint MOUSEEVENTF_HWHEEL = 0x01000;
+        private const int XBUTTON1 = 0x0001;
+        private const int XBUTTON2 = 0x0002;
 
         private static INPUT Mouse(uint flags, int dx = 0, int dy = 0, int data = 0)
         {
@@ -98,7 +110,9 @@ namespace ESDeckPC
         /// <summary>buf/len exactly as returned by HidStream.Read().</summary>
         public void Process(byte[] buf, int len)
         {
-            if (len < 9 || buf[1] != Page || buf[2] != CMD_MOVE) return;
+            if (len < 5 || buf[1] != Page) return;
+            if (buf[2] == CMD_HWHEEL) { ProcessHWheel(buf); return; }
+            if (len < 9 || buf[2] != CMD_MOVE) return;
 
             short dx = (short)(buf[3] | (buf[4] << 8));
             short dy = (short)(buf[5] | (buf[6] << 8));
@@ -155,7 +169,29 @@ namespace ESDeckPC
             {
                 AddButtonDiff(inputs, _mask, 0);
                 _mask = 0;
-                _remX = _remY = _remWheel = 0;
+                _remX = _remY = _remWheel = _remHWheel = 0;
+            }
+            if (inputs.Count > 0)
+                SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
+        }
+
+        private void ProcessHWheel(byte[] buf)
+        {
+            sbyte hwheel = unchecked((sbyte)buf[3]);
+            byte mask = buf[4];
+            var inputs = new List<INPUT>(3);
+            lock (_lock)
+            {
+                if (hwheel != 0)
+                {
+                    double fw = hwheel * WheelPerPixel + _remHWheel;
+                    int iw = (int)Math.Truncate(fw);
+                    _remHWheel = fw - iw;
+                    if (iw != 0)
+                        inputs.Add(Mouse(MOUSEEVENTF_HWHEEL, data: iw));
+                }
+                AddButtonDiff(inputs, _mask, mask);
+                _mask = mask;
             }
             if (inputs.Count > 0)
                 SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
@@ -168,6 +204,11 @@ namespace ESDeckPC
                 inputs.Add(Mouse((newMask & BTN_LEFT) != 0 ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP));
             if ((changed & BTN_RIGHT) != 0)
                 inputs.Add(Mouse((newMask & BTN_RIGHT) != 0 ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP));
+            // Back / Forward = mouse buttons 4 / 5 (two-finger swipe on the ESP)
+            if ((changed & BTN_BACK) != 0)
+                inputs.Add(Mouse((newMask & BTN_BACK) != 0 ? MOUSEEVENTF_XDOWN : MOUSEEVENTF_XUP, data: XBUTTON1));
+            if ((changed & BTN_FORWARD) != 0)
+                inputs.Add(Mouse((newMask & BTN_FORWARD) != 0 ? MOUSEEVENTF_XDOWN : MOUSEEVENTF_XUP, data: XBUTTON2));
         }
     }
 }
