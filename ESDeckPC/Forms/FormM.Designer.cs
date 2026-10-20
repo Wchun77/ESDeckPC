@@ -26,6 +26,8 @@
             this.tsMenuMonitorEdit = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuMeida = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuMediaEdit = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsMenuTouchpad = new System.Windows.Forms.ToolStripDropDownButton();
+            this.tsMenuTouchpadEdit = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuDiscord = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuDiscordReconnect = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuAssets = new System.Windows.Forms.ToolStripDropDownButton();
@@ -77,6 +79,7 @@
             this.tsMenuDeck,
             this.tsMenuMonitor,
             this.tsMenuMeida,
+            this.tsMenuTouchpad,
             this.tsMenuDiscord,
             this.tsMenuAssets,
             this.tsSep1,
@@ -161,6 +164,23 @@
             this.tsMenuMediaEdit.Size = new System.Drawing.Size(96, 22);
             this.tsMenuMediaEdit.Text = "Edit";
             this.tsMenuMediaEdit.Click += new System.EventHandler(this.tsMenuMediaEdit_Click);
+            // 
+            // tsMenuTouchpad
+            // 
+            this.tsMenuTouchpad.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsMenuTouchpadEdit});
+            this.tsMenuTouchpad.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.tsMenuTouchpad.Name = "tsMenuTouchpad";
+            this.tsMenuTouchpad.ShowDropDownArrow = false;
+            this.tsMenuTouchpad.Size = new System.Drawing.Size(66, 22);
+            this.tsMenuTouchpad.Text = "TouchPad";
+            // 
+            // tsMenuTouchpadEdit
+            // 
+            this.tsMenuTouchpadEdit.Name = "tsMenuTouchpadEdit";
+            this.tsMenuTouchpadEdit.Size = new System.Drawing.Size(96, 22);
+            this.tsMenuTouchpadEdit.Text = "Edit";
+            this.tsMenuTouchpadEdit.Click += new System.EventHandler(this.tsMenuTouchpadEdit_Click);
             // 
             // tsMenuDiscord
             // 
@@ -534,6 +554,8 @@
         private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsFont;
         private System.Windows.Forms.ToolStripDropDownButton tsMenuMeida;
         private System.Windows.Forms.ToolStripMenuItem tsMenuMediaEdit;
+        private System.Windows.Forms.ToolStripDropDownButton tsMenuTouchpad;
+        private System.Windows.Forms.ToolStripMenuItem tsMenuTouchpadEdit;
         private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsFontClock;
         private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsFontNotify;
     }

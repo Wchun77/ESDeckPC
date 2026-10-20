@@ -145,6 +145,12 @@
     <Compile Include="Forms\FormMediaEditor.Designer.cs">
       <DependentUpon>FormMediaEditor.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\FormTouchpadEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormTouchpadEditor.Designer.cs">
+      <DependentUpon>FormTouchpadEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\FormPageNamePrompt.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -169,6 +175,8 @@
     <Compile Include="Renderers\MonitorPageRenderer.cs" />
     <Compile Include="Config\MediaConfig.cs" />
     <Compile Include="Renderers\MediaPreviewRenderer.cs" />
+    <Compile Include="Config\TouchpadConfig.cs" />
+    <Compile Include="Renderers\TouchpadPreviewRenderer.cs" />
     <Compile Include="Hid\AudioLevelSender.cs" />
     <Compile Include="Hid\AudioLevelWatcher.cs" />
     <Compile Include="Hid\MonitorSender.cs" />
@@ -232,6 +240,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormMediaEditor.resx">
       <DependentUpon>FormMediaEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FormTouchpadEditor.resx">
+      <DependentUpon>FormTouchpadEditor.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormSideIconImporter.resx">
       <DependentUpon>FormSideIconImporter.cs</DependentUpon>
