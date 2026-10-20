@@ -23,6 +23,7 @@ namespace ESDeckPC
         private AudioLevelSender _audioLevelSender;
         private bool _hidConnected = false;
         private readonly TouchpadInput _touchpad = new TouchpadInput();
+        private readonly KeyboardInput _keyboard = new KeyboardInput();
         private PcConfig _config = null;
         private string _pcJsonPath = null;
         private bool _forceClose = false;
@@ -78,6 +79,8 @@ namespace ESDeckPC
             _receiver.OnModeReport += OnModeReport;
             // Touchpad mode: handled on the HID read thread, no UI hop.
             _receiver.OnTouchpadReport += _touchpad.Process;
+            // Mini keyboard: same, VK-based SendInput so the IME works.
+            _receiver.OnKeyboardReport += _keyboard.Process;
 
             _monitor = new MonitorSender(_receiver);
             _monitor.OnLog += msg => AppendLog(msg, Color.CornflowerBlue);
@@ -182,6 +185,7 @@ namespace ESDeckPC
                 _nowPlayingImageSender.Unsubscribe();
                 _receiver.Stop();
                 _touchpad.ReleaseAll();   // unplugged mid-drag: don't leave a button held
+                _keyboard.ReleaseAll();   // ...or a key / modifier
                 _hidConnected = false;
                 ssLblHid.Text = "HID: Disconnected";
                 ssLblHid.ForeColor = Color.Red;

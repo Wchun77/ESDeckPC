@@ -37,6 +37,10 @@ public class HidReceiver
     // buffer is reused by the next Read(), so handlers must not keep it.
     public event Action<byte[], int> OnTouchpadReport;
 
+    // Fires for mini-keyboard reports (page=0xFC), same contract as
+    // OnTouchpadReport (read thread, buffer reused after return).
+    public event Action<byte[], int> OnKeyboardReport;
+
     public bool Open()
     {
         var list = DeviceList.Local;
@@ -143,6 +147,10 @@ public class HidReceiver
                 else if (page == 0xFD)
                 {
                     OnTouchpadReport?.Invoke(buf, len);
+                }
+                else if (page == 0xFC)
+                {
+                    OnKeyboardReport?.Invoke(buf, len);
                 }
                 else if (page == 0xFE)
                 {
