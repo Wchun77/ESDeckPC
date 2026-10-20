@@ -11,8 +11,6 @@ namespace ESDeckPC
 {
     public partial class FormM : Form
     {
-        private const int VendorId = 0x303A;
-        private const int ProductId = 0x4004;
 
         private HidReceiver _receiver;
         private MonitorSender _monitor;
@@ -145,7 +143,7 @@ namespace ESDeckPC
 
         private void timerHid_Tick(object sender, EventArgs e)
         {
-            var device = DeviceList.Local.GetHidDeviceOrNull(VendorId, ProductId);
+            var device = HidReceiver.FindVendorDevice();
             bool detected = device != null;
 
             if (detected && !_hidConnected)

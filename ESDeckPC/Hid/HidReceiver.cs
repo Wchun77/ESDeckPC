@@ -9,7 +9,37 @@ public class HidReceiver
     public enum EspMode { Deck = 0, Monitor = 1, Media = 2, Touchpad = 3 }
 
     private const int VendorId = 0x303A;
-    private const int ProductId = 0x4004;
+    // 0x4005: composite firmware (vendor HID + USB keyboard/mouse);
+    // 0x4004: older vendor-only firmware. Both accepted.
+    private static readonly int[] ProductIds = { 0x4005, 0x4004 };
+
+    // The vendor interface is the one with the 64-byte feature report
+    // (65 incl. report ID). The keyboard/mouse interface of the composite
+    // firmware has a 1-byte feature report and is owned by Windows anyway.
+    private const int VendorFeatureLen = 65;
+
+    /// <summary>
+    /// Finds the ESDeck vendor HID interface, or null. A composite device
+    /// shows up as several HID devices with the same VID/PID, so picking
+    /// by VID/PID alone could land on the keyboard/mouse one.
+    /// </summary>
+    public static HidDevice FindVendorDevice()
+    {
+        foreach (var d in DeviceList.Local.GetHidDevices(VendorId))
+        {
+            if (Array.IndexOf(ProductIds, d.ProductID) < 0) continue;
+            try
+            {
+                if (d.GetMaxFeatureReportLength() >= VendorFeatureLen)
+                    return d;
+            }
+            catch
+            {
+                // descriptor not readable (interface owned by the OS) -- skip
+            }
+        }
+        return null;
+    }
 
     private HidDevice _device;
     private HidStream _stream;
@@ -43,8 +73,7 @@ public class HidReceiver
 
     public bool Open()
     {
-        var list = DeviceList.Local;
-        _device = list.GetHidDeviceOrNull(VendorId, ProductId);
+        _device = FindVendorDevice();
         if (_device == null) return false;
 
         try
