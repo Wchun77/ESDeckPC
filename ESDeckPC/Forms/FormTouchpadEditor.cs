@@ -385,10 +385,9 @@ namespace ESDeckPC
                 newBmp = TouchpadPreviewRenderer.RenderNoPreview();
 
                 string err = _ucSidebar?.Validate();
-                string mode = _cfg.SidebarMode ?? "none";
                 SetStatus(err != null
-                    ? $"Sidebar  |  {mode}  |  {err}"
-                    : $"Sidebar  |  {mode}" + (mode == "hotkeys" ? $"  |  {_cfg.Hotkeys.Count}/{TouchpadConfig.MaxHotkeys} hotkeys" : ""));
+                    ? $"Sidebar  |  {err}"
+                    : $"Sidebar  |  {_cfg.Hotkeys.Count}/{TouchpadConfig.MaxHotkeys} hotkeys  (shown when the device's Sidebar setting is Hotkeys)");
             }
             else if (_settingsSelected)
             {

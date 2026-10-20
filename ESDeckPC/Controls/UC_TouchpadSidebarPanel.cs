@@ -7,9 +7,11 @@ using System.Windows.Forms;
 namespace ESDeckPC
 {
     /// <summary>
-    /// Touchpad editor's "Sidebar" entry: what goes between the keyboard
-    /// button and the gear on the device sidebar -- nothing, the scroll
-    /// wheel, or up to TouchpadConfig.MaxHotkeys hotkey buttons.
+    /// Touchpad editor's "Sidebar" entry: up to TouchpadConfig.MaxHotkeys
+    /// hotkey buttons for the device sidebar. Whether the sidebar shows them
+    /// (or the scroll wheel, or nothing) is picked on the device itself
+    /// (Settings > Custom > Touchpad > Sidebar), so all slots are always
+    /// shown here; rows left without keys aren't written.
     ///
     /// Hotkeys are stored in the touchpad JSON and executed by the ESP itself
     /// (sent as keyboard reports), not through Deck's page/button actions;
@@ -22,7 +24,6 @@ namespace ESDeckPC
     {
         public event EventHandler PreviewInvalidated;
 
-        private readonly ComboBox _cmbMode;
         private readonly Panel _pnlSlots;
         private readonly SlotRow[] _rows = new SlotRow[TouchpadConfig.MaxHotkeys];
 
@@ -37,9 +38,6 @@ namespace ESDeckPC
         private static readonly Color ColBtn = Color.FromArgb(55, 55, 58);
         private static readonly Color ColBorder = Color.FromArgb(80, 80, 80);
         private static readonly Color ColBad = Color.FromArgb(220, 90, 90);
-
-        private static readonly string[] ModeValues = { "none", "wheel", "hotkeys" };
-        private static readonly string[] ModeNames = { "None (empty)", "Scroll wheel", "Hotkeys" };
 
         private sealed class SlotRow
         {
@@ -56,37 +54,13 @@ namespace ESDeckPC
             BackColor = ColBack;
             ForeColor = ColFore;
             Font = new Font("Consolas", 9F);
-            Size = new Size(265, 520);
+            Size = new Size(265, 460);
 
-            var grpMode = new GroupBox
-            {
-                Text = "Sidebar Middle",
-                ForeColor = ColGroup,
-                Location = new Point(12, 12),
-                Size = new Size(234, 54),
-            };
-            _cmbMode = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = ColField,
-                ForeColor = ColFore,
-                Location = new Point(8, 20),
-                Size = new Size(218, 22),
-            };
-            _cmbMode.Items.AddRange(ModeNames);
-            _cmbMode.SelectedIndex = 0;
-            _cmbMode.SelectedIndexChanged += (s, e) => { UpdateSlotsEnabled(); Raise(); };
-            grpMode.Controls.Add(_cmbMode);
-            Controls.Add(grpMode);
-
-            _pnlSlots = new Panel { Location = new Point(0, 72), Size = new Size(265, 448) };
+            _pnlSlots = new Panel { Location = new Point(0, 12), Size = new Size(265, 448) };
             Controls.Add(_pnlSlots);
 
             for (int i = 0; i < _rows.Length; i++)
                 _rows[i] = BuildRow(i);
-
-            UpdateSlotsEnabled();
 
             // Same as the designer files (7x14 = Consolas 9 at 96 dpi): set last,
             // then ResumeLayout scales everything above to the current DPI.
@@ -165,8 +139,6 @@ namespace ESDeckPC
             try
             {
                 _sideIconsDir = sideIconsDir;
-                int mi = Array.IndexOf(ModeValues, (cfg.SidebarMode ?? "none").ToLowerInvariant());
-                _cmbMode.SelectedIndex = mi < 0 ? 0 : mi;
 
                 for (int i = 0; i < _rows.Length; i++)
                 {
@@ -177,7 +149,6 @@ namespace ESDeckPC
                     UpdateIconName(_rows[i]);
                     ValidateRow(_rows[i]);
                 }
-                UpdateSlotsEnabled();
             }
             finally
             {
@@ -186,13 +157,12 @@ namespace ESDeckPC
         }
 
         /// <summary>
-        /// Writes mode + hotkeys into cfg. Empty rows (no keys) are skipped,
-        /// so filled rows are packed in order -- same as the device lays them
-        /// out top-down.
+        /// Writes the hotkeys into cfg. Rows without keys are skipped, so the
+        /// rest are packed in order -- same as the device lays them out
+        /// top-down. A label is optional (the device then shows the keys).
         /// </summary>
         public void ReadInto(TouchpadConfig cfg)
         {
-            cfg.SidebarMode = ModeValues[Math.Max(0, _cmbMode.SelectedIndex)];
             cfg.Hotkeys = new List<TouchpadHotkey>();
             foreach (var row in _rows)
             {
@@ -208,12 +178,11 @@ namespace ESDeckPC
         }
 
         /// <summary>
-        /// Error text for the first invalid filled row, or null if all good.
-        /// Only checked in Hotkeys mode (rows are ignored otherwise).
+        /// Error text for the first row whose keys don't parse, or null if
+        /// all good. Rows without keys are fine (skipped on save).
         /// </summary>
         public string Validate()
         {
-            if (ModeValues[Math.Max(0, _cmbMode.SelectedIndex)] != "hotkeys") return null;
             for (int i = 0; i < _rows.Length; i++)
             {
                 var keys = TouchpadHotkeyKeys.Split(_rows[i].Keys.Text);
@@ -231,12 +200,6 @@ namespace ESDeckPC
         private void Raise()
         {
             if (!_isApplying) PreviewInvalidated?.Invoke(this, EventArgs.Empty);
-        }
-
-        // Hotkey rows only exist in Hotkeys mode -- hidden otherwise.
-        private void UpdateSlotsEnabled()
-        {
-            _pnlSlots.Visible = ModeValues[Math.Max(0, _cmbMode.SelectedIndex)] == "hotkeys";
         }
 
         private static void UpdateIconName(SlotRow row)

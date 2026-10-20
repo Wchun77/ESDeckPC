@@ -10,7 +10,6 @@ namespace ESDeckPC
     //   {
     //       "bg_image": "desk.jpg",
     //       "keyboard_icon": "kb.png",
-    //       "sidebar_mode": "hotkeys",            // "none" | "wheel" | "hotkeys"
     //       "hotkeys": [
     //           { "label": "Copy", "icon": "copy.png", "keys": ["ctrl", "c"] }
     //       ],
@@ -22,6 +21,11 @@ namespace ESDeckPC
     //
     // Own model rather than reusing MediaConfig, same "each mode owns its own
     // copy" convention as the other configs.
+    //
+    // Whether the sidebar shows these hotkeys, the scroll wheel or nothing is
+    // a device setting (Settings > Custom > Touchpad > Sidebar, NVS), not part
+    // of the config. An old "sidebar_mode" field is ignored on load (Json.NET
+    // skips unknown members) and dropped on the next save.
     public class TouchpadConfig
     {
         /// <summary>Must match TP_HOTKEY_MAX in ui_touchpad_config.h.</summary>
@@ -36,11 +40,8 @@ namespace ESDeckPC
         [JsonProperty("keyboard_icon")]
         public string KeyboardIcon { get; set; } = "";
 
-        // Sidebar middle area: "none" (default, empty) | "wheel" | "hotkeys".
-        [JsonProperty("sidebar_mode")]
-        public string SidebarMode { get; set; } = "none";
-
-        // Only used when SidebarMode == "hotkeys"; at most MaxHotkeys.
+        // Shown when the device's Sidebar setting is Hotkeys; at most
+        // MaxHotkeys, packed (the device lays them out top-down).
         [JsonProperty("hotkeys")]
         public List<TouchpadHotkey> Hotkeys { get; set; } = new List<TouchpadHotkey>();
 
