@@ -1,6 +1,6 @@
 ﻿namespace ESDeckPC
 {
-    partial class FormConfigEditor
+    partial class FormDeckEditor
     {
         private System.ComponentModel.IContainer components = null;
 
@@ -208,7 +208,7 @@
             this.btnSave.Text = "Save";
             this.btnSave.UseVisualStyleBackColor = false;
             // 
-            // FormConfigEditor
+            // FormDeckEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -223,8 +223,8 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.MinimumSize = new System.Drawing.Size(700, 300);
-            this.Name = "FormConfigEditor";
-            this.Text = "Config Editor";
+            this.Name = "FormDeckEditor";
+            this.Text = "Deck Editor";
             this.splitMain.Panel1.ResumeLayout(false);
             this.splitMain.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).EndInit();

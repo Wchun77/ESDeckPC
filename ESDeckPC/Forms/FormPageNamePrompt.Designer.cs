@@ -1,6 +1,6 @@
 ﻿namespace ESDeckPC
 {
-    partial class FormTabNamePrompt
+    partial class FormPageNamePrompt
     {
         private System.ComponentModel.IContainer components = null;
 
@@ -20,19 +20,19 @@
             this.btnOk = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            //
+            // 
             // lblTitle
-            //
+            // 
             this.lblTitle.AutoSize = true;
             this.lblTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
             this.lblTitle.Location = new System.Drawing.Point(12, 14);
             this.lblTitle.Name = "lblTitle";
-            this.lblTitle.Size = new System.Drawing.Size(75, 14);
+            this.lblTitle.Size = new System.Drawing.Size(77, 14);
             this.lblTitle.TabIndex = 0;
             this.lblTitle.Text = "Page name:";
-            //
+            // 
             // txtName
-            //
+            // 
             this.txtName.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
             this.txtName.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtName.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
@@ -40,9 +40,9 @@
             this.txtName.Name = "txtName";
             this.txtName.Size = new System.Drawing.Size(256, 22);
             this.txtName.TabIndex = 1;
-            //
+            // 
             // btnOk
-            //
+            // 
             this.btnOk.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(55)))), ((int)(((byte)(58)))));
             this.btnOk.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.btnOk.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -54,9 +54,9 @@
             this.btnOk.Text = "OK";
             this.btnOk.UseVisualStyleBackColor = false;
             this.btnOk.Click += new System.EventHandler(this.BtnOk_Click);
-            //
+            // 
             // btnCancel
-            //
+            // 
             this.btnCancel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(55)))), ((int)(((byte)(58)))));
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
@@ -67,9 +67,9 @@
             this.btnCancel.TabIndex = 3;
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = false;
-            //
-            // FormTabNamePrompt
-            //
+            // 
+            // FormPageNamePrompt
+            // 
             this.AcceptButton = this.btnOk;
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -85,10 +85,10 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "FormTabNamePrompt";
+            this.Name = "FormPageNamePrompt";
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "FormTabNamePrompt";
+            this.Text = "FormPageNamePrompt";
             this.ResumeLayout(false);
             this.PerformLayout();
 

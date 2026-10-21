@@ -146,11 +146,11 @@ namespace ESDeckPC
 
         /// <summary>
         /// Executes one Deck button action. The button comes from the ESP
-        /// (HidReceiver.OnActionReceived -> JSON -> PcButton): the device
+        /// (HidReceiver.OnActionReceived -> JSON -> DeckButton): the device
         /// carries the deck config and sends the pressed button's action,
         /// so there's no PC-side config lookup any more.
         /// </summary>
-        public static string Run(PcButton button)
+        public static string Run(DeckButton button)
         {
             if (button == null)
                 return "no action";

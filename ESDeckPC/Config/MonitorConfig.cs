@@ -6,8 +6,8 @@ namespace ESDeckPC
     public class MonitorConfig
     {
         // Settings page's own bg_image/side_icon -- same "fixed entry, own
-        // top-level JSON object" convention as Clock, so the PC/ESP config
-        // stays a single 1:1 file (unlike Deck's split pc/esp json pair).
+        // top-level JSON object" convention as Clock (Deck and the other
+        // modes do the same).
         [JsonProperty("settings")]
         public MonitorSettingsCfg Settings { get; set; } = new MonitorSettingsCfg();
 

@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace ESDeckPC
 {
-    public partial class UC_ClockSettings : UserControl
+    public partial class UC_MonitorClockSettings : UserControl
     {
         // ------------------------------------------------------------------
         // State
@@ -34,7 +34,7 @@ namespace ESDeckPC
         // partially-applied (half old / half new) state into the config.
         private bool _isApplying = false;
 
-        public UC_ClockSettings()
+        public UC_MonitorClockSettings()
         {
             InitializeComponent();
             StyleDarkButtons();

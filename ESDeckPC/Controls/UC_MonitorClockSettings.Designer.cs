@@ -1,6 +1,6 @@
 ﻿namespace ESDeckPC
 {
-    partial class UC_ClockSettings
+    partial class UC_MonitorClockSettings
     {
         /// <summary> 
         /// 設計工具所需的變數。
@@ -580,7 +580,7 @@
             this.lblOpaSec.TabIndex = 8;
             this.lblOpaSec.Text = "Sec";
             // 
-            // UC_ClockSettings
+            // UC_MonitorClockSettings
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -591,7 +591,7 @@
             this.Controls.Add(this.grpFonts);
             this.Font = new System.Drawing.Font("Consolas", 9F);
             this.Margin = new System.Windows.Forms.Padding(4);
-            this.Name = "UC_ClockSettings";
+            this.Name = "UC_MonitorClockSettings";
             this.Size = new System.Drawing.Size(265, 742);
             this.grpClockBg.ResumeLayout(false);
             this.grpClockBg.PerformLayout();

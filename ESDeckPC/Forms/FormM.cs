@@ -195,10 +195,10 @@ namespace ESDeckPC
         {
             this.BeginInvoke((Action)(() =>
             {
-                PcButton button;
+                DeckButton button;
                 try
                 {
-                    button = Newtonsoft.Json.JsonConvert.DeserializeObject<PcButton>(json);
+                    button = Newtonsoft.Json.JsonConvert.DeserializeObject<DeckButton>(json);
                 }
                 catch (Exception ex)
                 {
@@ -357,7 +357,7 @@ namespace ESDeckPC
                     "ESDeck PC", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-            var editor = new FormConfigEditor();
+            var editor = new FormDeckEditor();
             editor.FormClosed += (s, args) => _editorOpen = false;
             _editorOpen = true;
             editor.Show();

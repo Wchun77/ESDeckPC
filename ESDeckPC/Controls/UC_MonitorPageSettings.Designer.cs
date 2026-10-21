@@ -1,6 +1,6 @@
 ﻿namespace ESDeckPC
 {
-    partial class UC_PageSettings
+    partial class UC_MonitorPageSettings
     {
         /// <summary> 
         /// 設計工具所需的變數。
@@ -181,7 +181,7 @@
             this.txtPageName.Size = new System.Drawing.Size(234, 22);
             this.txtPageName.TabIndex = 12;
             // 
-            // UC_PageSettings
+            // UC_MonitorPageSettings
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -191,7 +191,7 @@
             this.Controls.Add(this.grpPageBg);
             this.Font = new System.Drawing.Font("Consolas", 9F);
             this.Margin = new System.Windows.Forms.Padding(4);
-            this.Name = "UC_PageSettings";
+            this.Name = "UC_MonitorPageSettings";
             this.Size = new System.Drawing.Size(265, 538);
             this.grpPageBg.ResumeLayout(false);
             this.grpPageBg.PerformLayout();

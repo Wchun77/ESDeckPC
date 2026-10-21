@@ -72,10 +72,9 @@
   -->
   <ItemGroup>
     <Compile Include="ActionExecutor.cs" />
-    <Compile Include="Config\ConfigLoader.cs" />
     <Compile Include="Controls\DarkColorTable.cs" />
     <Compile Include="Controls\DarkToolStripRenderer.cs" />
-    <Compile Include="Config\Deckconfig.cs" />
+    <Compile Include="Config\DeckConfig.cs" />
     <Compile Include="Controls\DeckPreviewPanel.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -97,17 +96,17 @@
     <Compile Include="Forms\FormBootAnimConverter.Designer.cs">
       <DependentUpon>FormBootAnimConverter.cs</DependentUpon>
     </Compile>
-    <Compile Include="Forms\FormButtonEditor.cs">
+    <Compile Include="Forms\FormDeckButtonEditor.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Forms\FormButtonEditor.Designer.cs">
-      <DependentUpon>FormButtonEditor.cs</DependentUpon>
+    <Compile Include="Forms\FormDeckButtonEditor.Designer.cs">
+      <DependentUpon>FormDeckButtonEditor.cs</DependentUpon>
     </Compile>
-    <Compile Include="Forms\FormConfigEditor.cs">
+    <Compile Include="Forms\FormDeckEditor.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Forms\FormConfigEditor.Designer.cs">
-      <DependentUpon>FormConfigEditor.cs</DependentUpon>
+    <Compile Include="Forms\FormDeckEditor.Designer.cs">
+      <DependentUpon>FormDeckEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\FormFontClockBuilder.cs">
       <SubType>Form</SubType>
@@ -191,23 +190,23 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Controls\SidebarButtonPreview.cs" />
-    <Compile Include="Controls\UC_ClockSettings.cs">
+    <Compile Include="Controls\UC_MonitorClockSettings.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Controls\UC_ClockSettings.Designer.cs">
-      <DependentUpon>UC_ClockSettings.cs</DependentUpon>
+    <Compile Include="Controls\UC_MonitorClockSettings.Designer.cs">
+      <DependentUpon>UC_MonitorClockSettings.cs</DependentUpon>
     </Compile>
-    <Compile Include="Controls\UC_PageSettings.cs">
+    <Compile Include="Controls\UC_MonitorPageSettings.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Controls\UC_PageSettings.Designer.cs">
-      <DependentUpon>UC_PageSettings.cs</DependentUpon>
+    <Compile Include="Controls\UC_MonitorPageSettings.Designer.cs">
+      <DependentUpon>UC_MonitorPageSettings.cs</DependentUpon>
     </Compile>
-    <Compile Include="Controls\UC_SettingsPanel.cs">
+    <Compile Include="Controls\UC_MonitorSettingsPanel.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Controls\UC_SettingsPanel.Designer.cs">
-      <DependentUpon>UC_SettingsPanel.cs</DependentUpon>
+    <Compile Include="Controls\UC_MonitorSettingsPanel.Designer.cs">
+      <DependentUpon>UC_MonitorSettingsPanel.cs</DependentUpon>
     </Compile>
     <Compile Include="Controls\UC_MediaBgPanel.cs">
       <SubType>UserControl</SubType>
@@ -221,11 +220,11 @@
     <EmbeddedResource Include="Forms\FormBootAnimConverter.resx">
       <DependentUpon>FormBootAnimConverter.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Forms\FormButtonEditor.resx">
-      <DependentUpon>FormButtonEditor.cs</DependentUpon>
+    <EmbeddedResource Include="Forms\FormDeckButtonEditor.resx">
+      <DependentUpon>FormDeckButtonEditor.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Forms\FormConfigEditor.resx">
-      <DependentUpon>FormConfigEditor.cs</DependentUpon>
+    <EmbeddedResource Include="Forms\FormDeckEditor.resx">
+      <DependentUpon>FormDeckEditor.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormFontClockBuilder.resx">
       <DependentUpon>FormFontClockBuilder.cs</DependentUpon>
@@ -244,6 +243,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormMediaEditor.resx">
       <DependentUpon>FormMediaEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FormPageNamePrompt.resx">
+      <DependentUpon>FormPageNamePrompt.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormTouchpadEditor.resx">
       <DependentUpon>FormTouchpadEditor.cs</DependentUpon>
@@ -264,14 +266,14 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <EmbeddedResource Include="Controls\UC_ClockSettings.resx">
-      <DependentUpon>UC_ClockSettings.cs</DependentUpon>
+    <EmbeddedResource Include="Controls\UC_MonitorClockSettings.resx">
+      <DependentUpon>UC_MonitorClockSettings.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Controls\UC_PageSettings.resx">
-      <DependentUpon>UC_PageSettings.cs</DependentUpon>
+    <EmbeddedResource Include="Controls\UC_MonitorPageSettings.resx">
+      <DependentUpon>UC_MonitorPageSettings.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Controls\UC_SettingsPanel.resx">
-      <DependentUpon>UC_SettingsPanel.cs</DependentUpon>
+    <EmbeddedResource Include="Controls\UC_MonitorSettingsPanel.resx">
+      <DependentUpon>UC_MonitorSettingsPanel.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\UC_MediaBgPanel.resx">
       <DependentUpon>UC_MediaBgPanel.cs</DependentUpon>

@@ -24,9 +24,9 @@ namespace ESDeckPC
         private string _assetsFontsDir = null;
         private string _assetsSideIconsDir = null;
 
-        private UC_ClockSettings _ucClock = null;
-        private UC_PageSettings _ucPage = null;
-        private UC_SettingsPanel _ucSettings = null;
+        private UC_MonitorClockSettings _ucClock = null;
+        private UC_MonitorPageSettings _ucPage = null;
+        private UC_MonitorSettingsPanel _ucSettings = null;
         private Bitmap _previewBmp = null;
 
         // The data page currently selected in flpPages, or null when Clock
@@ -315,7 +315,7 @@ namespace ESDeckPC
                 return;
             }
 
-            string name = FormTabNamePrompt.Show(this, "New page", $"Page {_cfg.Pages.Count + 1}");
+            string name = FormPageNamePrompt.Show(this, "New page", $"Page {_cfg.Pages.Count + 1}");
             if (name == null) return; // cancelled
 
             var page = new MonitorPageCfg { Name = name };
@@ -329,7 +329,7 @@ namespace ESDeckPC
 
         private void EditPageName(Button btn, MonitorPageCfg page)
         {
-            string name = FormTabNamePrompt.Show(this, "Rename page", page.Name);
+            string name = FormPageNamePrompt.Show(this, "Rename page", page.Name);
             if (name == null) return; // cancelled
 
             page.Name = name;
@@ -390,7 +390,7 @@ namespace ESDeckPC
 
             if (_ucClock == null)
             {
-                _ucClock = new UC_ClockSettings { Dock = DockStyle.Top };
+                _ucClock = new UC_MonitorClockSettings { Dock = DockStyle.Top };
                 _ucClock.PreviewInvalidated += (s, e) => RefreshPreview();
             }
 
@@ -413,7 +413,7 @@ namespace ESDeckPC
 
             if (_ucPage == null)
             {
-                _ucPage = new UC_PageSettings { Dock = DockStyle.Top };
+                _ucPage = new UC_MonitorPageSettings { Dock = DockStyle.Top };
                 _ucPage.PreviewInvalidated += (s, e) => RefreshPreview();
             }
 
@@ -445,7 +445,7 @@ namespace ESDeckPC
 
             if (_ucSettings == null)
             {
-                _ucSettings = new UC_SettingsPanel { Dock = DockStyle.Top };
+                _ucSettings = new UC_MonitorSettingsPanel { Dock = DockStyle.Top };
                 _ucSettings.PreviewInvalidated += (s, e) => RefreshPreview();
             }
 

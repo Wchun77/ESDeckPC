@@ -1,6 +1,6 @@
 ﻿namespace ESDeckPC
 {
-    partial class FormButtonEditor
+    partial class FormDeckButtonEditor
     {
         private System.ComponentModel.IContainer components = null;
 
@@ -168,7 +168,7 @@
             this.btnOK.Text = "OK";
             this.btnOK.UseVisualStyleBackColor = false;
             // 
-            // FormButtonEditor
+            // FormDeckButtonEditor
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -189,7 +189,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "FormButtonEditor";
+            this.Name = "FormDeckButtonEditor";
             this.Text = "Edit Button";
             this.pnlBottom.ResumeLayout(false);
             this.ResumeLayout(false);

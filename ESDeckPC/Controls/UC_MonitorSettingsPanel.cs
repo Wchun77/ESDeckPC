@@ -10,10 +10,10 @@ namespace ESDeckPC
     /// Only a background image -- side_icon is set via btnSettingsPage's own
     /// right-click menu, same as Clock's side_icon, since it doesn't need a
     /// staged text field the way bg_image does. Background group is a direct
-    /// copy of UC_PageSettings' grpPageBg (same layout/behavior), just without
+    /// copy of UC_MonitorPageSettings' grpPageBg (same layout/behavior), just without
     /// the page name field or cell combos that don't apply to Settings.
     /// </summary>
-    public partial class UC_SettingsPanel : UserControl
+    public partial class UC_MonitorSettingsPanel : UserControl
     {
         private Bitmap _bgBitmap = null;
         public Bitmap BgBitmap => _bgBitmap;
@@ -24,10 +24,10 @@ namespace ESDeckPC
         /// </summary>
         public event EventHandler PreviewInvalidated;
 
-        // True while ApplyConfig is in progress; see UC_ClockSettings for rationale.
+        // True while ApplyConfig is in progress; see UC_MonitorClockSettings for rationale.
         private bool _isApplying = false;
 
-        public UC_SettingsPanel()
+        public UC_MonitorSettingsPanel()
         {
             InitializeComponent();
             StyleDarkButtons();
@@ -148,7 +148,7 @@ namespace ESDeckPC
         /// <summary>
         /// Releases bitmap resources owned by this control.
         /// Called from the Designer-generated Dispose(bool) override,
-        /// same pattern as UC_PageSettings.DisposeOwnedResources().
+        /// same pattern as UC_MonitorPageSettings.DisposeOwnedResources().
         /// </summary>
         private void DisposeOwnedResources()
         {

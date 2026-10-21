@@ -9,7 +9,7 @@ namespace ESDeckPC
     /// Generic "just a background image" properties panel, shared by both of
     /// Media's fixed entries (Player's top-level bg_image, Settings' own
     /// settings.bg_image) -- same layout/behavior as Monitor's
-    /// UC_SettingsPanel, but takes a plain filename string instead of a typed
+    /// UC_MonitorSettingsPanel, but takes a plain filename string instead of a typed
     /// cfg object, since Media's two bg_image fields don't share one
     /// settings-shaped struct the way Monitor's Clock/Page/Settings all do.
     /// side_icon (Settings entry only) is set via btnSettingsPage's

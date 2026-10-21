@@ -6,9 +6,9 @@ namespace ESDeckPC
     /// <summary>
     /// Small modal dialog used for both "new page" and "rename page".
     /// Returns the entered name via NameValue when DialogResult == OK.
-    /// All controls are defined in FormTabNamePrompt_Designer.cs.
+    /// All controls are defined in FormPageNamePrompt.Designer.cs.
     /// </summary>
-    public partial class FormTabNamePrompt : Form
+    public partial class FormPageNamePrompt : Form
     {
         public string NameValue => txtName.Text.Trim();
 
@@ -24,7 +24,7 @@ namespace ESDeckPC
             DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref v, sizeof(int));
         }
 
-        public FormTabNamePrompt(string title, string initialValue)
+        public FormPageNamePrompt(string title, string initialValue)
         {
             InitializeComponent();
             Text = title;
@@ -48,7 +48,7 @@ namespace ESDeckPC
         /// </summary>
         public static string Show(IWin32Window owner, string title, string initialValue = "")
         {
-            using (var dlg = new FormTabNamePrompt(title, initialValue))
+            using (var dlg = new FormPageNamePrompt(title, initialValue))
             {
                 return dlg.ShowDialog(owner) == DialogResult.OK ? dlg.NameValue : null;
             }

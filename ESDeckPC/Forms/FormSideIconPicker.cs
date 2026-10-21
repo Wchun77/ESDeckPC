@@ -7,7 +7,7 @@ namespace ESDeckPC
 {
     /// <summary>
     /// Shared modal dialog for picking a sidebar page icon (side_icon).
-    /// Used by both the deck editor (FormConfigEditor) and the monitor
+    /// Used by both the deck editor (FormDeckEditor) and the monitor
     /// editor (FormMonitorEditor, for data pages and the Clock page alike)
     /// -- always the same dialog, so the preview and behavior can't drift
     /// between the two. Shows a 1:1 mockup of the real 64x56 firmware

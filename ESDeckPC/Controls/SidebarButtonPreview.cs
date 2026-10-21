@@ -7,8 +7,8 @@ namespace ESDeckPC
     /// Draws a mockup of the ESP32 firmware's deck/monitor sidebar page
     /// button (main/ui/ui_deck.c, main/ui/ui_monitor.c -- 64x56 lv_btn,
     /// bg 0x2a2a2a, radius 8, clip_corner enabled). Shared by every editor
-    /// UI that lets the user pick a side_icon (deck's FormConfigEditor now,
-    /// monitor's UC_PageSettings/UC_ClockSettings later) so the preview
+    /// UI that lets the user pick a side_icon (deck's FormDeckEditor,
+    /// monitor's UC_MonitorPageSettings/UC_MonitorClockSettings) so the preview
     /// always matches what the real firmware button looks like.
     /// </summary>
     public static class SidebarButtonPreview

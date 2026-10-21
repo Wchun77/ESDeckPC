@@ -7,14 +7,15 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using Newtonsoft.Json;
 
 namespace ESDeckPC
 {
-    public partial class FormConfigEditor : Form
+    public partial class FormDeckEditor : Form
     {
         // The one deck config file being edited (config\deck\<name>.json on
         // the SD card) -- display + actions together, see Deckconfig.cs.
-        private PcConfig _pcConfig = new PcConfig();
+        private DeckConfig _deckConfig = new DeckConfig();
         private string _jsonPath = null;
 
         private string _assetsBackgroundsDir = null;
@@ -23,7 +24,7 @@ namespace ESDeckPC
 
         private DeckPreviewPanel _preview;
 
-        // Settings entry (btnSettingsPage) -- not part of _pcConfig.Pages,
+        // Settings entry (btnSettingsPage) -- not part of _deckConfig.Pages,
         // shown/hidden the same way FormMonitorEditor's fixed Clock button
         // works. Tracked separately since lstPages' own SelectedIndex can't
         // represent "Settings selected".
@@ -42,7 +43,7 @@ namespace ESDeckPC
             DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
         }
 
-        public FormConfigEditor()
+        public FormDeckEditor()
         {
             InitializeComponent();
 
@@ -117,7 +118,7 @@ namespace ESDeckPC
         private void LoadPages()
         {
             lstPages.Items.Clear();
-            foreach (var pg in _pcConfig.Pages)
+            foreach (var pg in _deckConfig.Pages)
                 lstPages.Items.Add($"{pg.Name} ({pg.Buttons.Count})");
 
             if (lstPages.Items.Count > 0)
@@ -129,18 +130,18 @@ namespace ESDeckPC
         private void lstPages_SelectedIndexChanged(object sender, EventArgs e)
         {
             int idx = lstPages.SelectedIndex;
-            if (idx < 0 || idx >= _pcConfig.Pages.Count) return;
+            if (idx < 0 || idx >= _deckConfig.Pages.Count) return;
 
             SetSettingsButtonSelected(false);
             _preview.AllowButtons = true;
-            _preview.SetPage(_pcConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
+            _preview.SetPage(_deckConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
         }
 
         // ------------------------------------------------------------------
-        // Settings entry (fixed, not part of _pcConfig.Pages -- same idea as
+        // Settings entry (fixed, not part of _deckConfig.Pages -- same idea as
         // FormMonitorEditor's btnClockPage). Preview is background-only:
         // Settings has no buttons in the schema, so AllowButtons is turned
-        // off and the wrapper PcPage we build here always has an empty
+        // off and the wrapper DeckPage we build here always has an empty
         // Buttons list.
         // ------------------------------------------------------------------
 
@@ -156,11 +157,11 @@ namespace ESDeckPC
             SetSettingsButtonSelected(true);
 
             _preview.AllowButtons = false;
-            var settingsPage = new PcPage
+            var settingsPage = new DeckPage
             {
                 Name = "Settings",
-                BgImage = _pcConfig.Settings.BgImage,
-                Buttons = new List<PcButton>(),
+                BgImage = _deckConfig.Settings.BgImage,
+                Buttons = new List<DeckButton>(),
             };
             _preview.SetPage(settingsPage, _assetsBackgroundsDir, _assetsIconsDir);
         }
@@ -178,9 +179,9 @@ namespace ESDeckPC
             var itemBg = new ToolStripMenuItem("Set Background") { ForeColor = Color.FromArgb(220, 220, 220) };
             itemBg.Click += (s, ev) =>
             {
-                string name = PromptBackground(_pcConfig.Settings.BgImage ?? "");
+                string name = PromptBackground(_deckConfig.Settings.BgImage ?? "");
                 if (name == null) return;
-                _pcConfig.Settings.BgImage = name;
+                _deckConfig.Settings.BgImage = name;
                 if (_settingsSelected)
                     ShowSettingsPreview();
             };
@@ -190,9 +191,9 @@ namespace ESDeckPC
             itemSideIcon.Click += (s, ev) =>
             {
                 string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
-                    _pcConfig.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
+                    _deckConfig.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
                 if (name == null) return;
-                _pcConfig.Settings.SideIcon = name;
+                _deckConfig.Settings.SideIcon = name;
                 // No _preview refresh -- same as page side_icon, DeckPreviewPanel
                 // shows the grid/background, not the sidebar switcher.
             };
@@ -208,21 +209,21 @@ namespace ESDeckPC
         private void Preview_EditButtonRequested(object sender, int btnIdx)
         {
             int pageIdx = lstPages.SelectedIndex;
-            if (pageIdx < 0 || pageIdx >= _pcConfig.Pages.Count) return;
-            OpenButtonEditor(_pcConfig.Pages[pageIdx], btnIdx);
+            if (pageIdx < 0 || pageIdx >= _deckConfig.Pages.Count) return;
+            OpenButtonEditor(_deckConfig.Pages[pageIdx], btnIdx);
         }
 
         private void Preview_AddButtonRequested(object sender, EventArgs e)
         {
             int pageIdx = lstPages.SelectedIndex;
-            if (pageIdx < 0 || pageIdx >= _pcConfig.Pages.Count) return;
+            if (pageIdx < 0 || pageIdx >= _deckConfig.Pages.Count) return;
 
-            var page = _pcConfig.Pages[pageIdx];
-            var newBtn = new PcButton { Label = "", Action = "launch" };
+            var page = _deckConfig.Pages[pageIdx];
+            var newBtn = new DeckButton { Label = "", Action = "launch" };
             page.Buttons.Add(newBtn);
 
             int newIdx = page.Buttons.Count - 1;
-            using (var dlg = new FormButtonEditor(newBtn, true, _assetsIconsDir))
+            using (var dlg = new FormDeckButtonEditor(newBtn, true, _assetsIconsDir))
             {
                 if (dlg.ShowDialog() == DialogResult.OK)
                 {
@@ -240,8 +241,8 @@ namespace ESDeckPC
         private void Preview_ClearButtonRequested(object sender, int btnIdx)
         {
             int pageIdx = lstPages.SelectedIndex;
-            if (pageIdx < 0 || pageIdx >= _pcConfig.Pages.Count) return;
-            var page = _pcConfig.Pages[pageIdx];
+            if (pageIdx < 0 || pageIdx >= _deckConfig.Pages.Count) return;
+            var page = _deckConfig.Pages[pageIdx];
             if (btnIdx < 0 || btnIdx >= page.Buttons.Count) return;
 
             var result = MessageBox.Show(
@@ -257,8 +258,8 @@ namespace ESDeckPC
         private void Preview_ButtonClicked(object sender, int btnIdx)
         {
             int pageIdx = lstPages.SelectedIndex;
-            if (pageIdx < 0 || pageIdx >= _pcConfig.Pages.Count) return;
-            var page = _pcConfig.Pages[pageIdx];
+            if (pageIdx < 0 || pageIdx >= _deckConfig.Pages.Count) return;
+            var page = _deckConfig.Pages[pageIdx];
             if (btnIdx < 0 || btnIdx >= page.Buttons.Count) return;
 
             var button = page.Buttons[btnIdx];
@@ -303,10 +304,10 @@ namespace ESDeckPC
             }
         }
 
-        private void OpenButtonEditor(PcPage page, int btnIdx)
+        private void OpenButtonEditor(DeckPage page, int btnIdx)
         {
             var button = page.Buttons[btnIdx];
-            using (var dlg = new FormButtonEditor(button, false, _assetsIconsDir))
+            using (var dlg = new FormDeckButtonEditor(button, false, _assetsIconsDir))
             {
                 if (dlg.ShowDialog() == DialogResult.OK)
                     _preview.SetPage(page, _assetsBackgroundsDir, _assetsIconsDir);
@@ -334,7 +335,7 @@ namespace ESDeckPC
                     dlg.InitialDirectory = Path.GetDirectoryName(_jsonPath);
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
-                _pcConfig = new PcConfig();
+                _deckConfig = new DeckConfig();
                 _jsonPath = dlg.FileName;
                 ResolveAssetDirs();
                 LoadPages();
@@ -354,7 +355,11 @@ namespace ESDeckPC
 
                 try
                 {
-                    _pcConfig = ConfigLoader.Load(dlg.FileName);
+                    var cfg = JsonConvert.DeserializeObject<DeckConfig>(
+                                  File.ReadAllText(dlg.FileName, Encoding.UTF8)) ?? new DeckConfig();
+                    if (cfg.Pages == null) cfg.Pages = new List<DeckPage>();
+                    if (cfg.Settings == null) cfg.Settings = new DeckSettingsCfg();
+                    _deckConfig = cfg;
                     _jsonPath = dlg.FileName;
                     ResolveAssetDirs();
                     LoadPages();
@@ -362,7 +367,7 @@ namespace ESDeckPC
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Failed to open JSON:\n{ex.Message}", "Config Editor",
+                    MessageBox.Show($"Failed to open JSON:\n{ex.Message}", "Deck Editor",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -404,19 +409,23 @@ namespace ESDeckPC
         {
             var confirm = MessageBox.Show(
                 $"Save changes to {Path.GetFileName(_jsonPath)}?",
-                "Config Editor",
+                "Deck Editor",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
             if (confirm != DialogResult.Yes) return;
 
             try
             {
-                ConfigLoader.Save(_pcConfig, _jsonPath);
+                // File.WriteAllText's default is UTF-8 without BOM, same as
+                // the other editors; Json.NET leaves Chinese text unescaped,
+                // and the ESP reads the bytes as is.
+                File.WriteAllText(_jsonPath,
+                    JsonConvert.SerializeObject(_deckConfig, Formatting.Indented));
                 lblJsonPath.Text = $"Saved: {Path.GetFileName(_jsonPath)}";
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Save failed: {ex.Message}", "Config Editor",
+                MessageBox.Show($"Save failed: {ex.Message}", "Deck Editor",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -425,8 +434,8 @@ namespace ESDeckPC
         {
             lblJsonPath.Text = _jsonPath != null ? Path.GetFileName(_jsonPath) : "(no file)";
             this.Text = _jsonPath != null
-                ? $"Config Editor - {Path.GetFileName(_jsonPath)}"
-                : "Config Editor";
+                ? $"Deck Editor - {Path.GetFileName(_jsonPath)}"
+                : "Deck Editor";
         }
 
         // ------------------------------------------------------------------
@@ -437,7 +446,7 @@ namespace ESDeckPC
         {
             int sel = lstPages.SelectedIndex;
             lstPages.Items.Clear();
-            foreach (var pg in _pcConfig.Pages)
+            foreach (var pg in _deckConfig.Pages)
                 lstPages.Items.Add($"{pg.Name} ({pg.Buttons.Count})");
             if (sel >= 0 && sel < lstPages.Items.Count)
                 lstPages.SelectedIndex = sel;
@@ -467,12 +476,12 @@ namespace ESDeckPC
                 var itemBg = new ToolStripMenuItem("Set Background") { ForeColor = Color.FromArgb(220, 220, 220) };
                 itemBg.Click += (s, ev) =>
                 {
-                    string name = PromptBackground(_pcConfig.Pages[idx].BgImage ?? "");
+                    string name = PromptBackground(_deckConfig.Pages[idx].BgImage ?? "");
                     if (name == null) return;
-                    _pcConfig.Pages[idx].BgImage = name;
+                    _deckConfig.Pages[idx].BgImage = name;
                     int sel = lstPages.SelectedIndex;
                     if (sel == idx)
-                        _preview.SetPage(_pcConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
+                        _preview.SetPage(_deckConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
                 };
                 menu.Items.Add(itemBg);
 
@@ -480,9 +489,9 @@ namespace ESDeckPC
                 itemSideIcon.Click += (s, ev) =>
                 {
                     string name = FormSideIconPicker.Show(this, "Set Side Icon",
-                        _pcConfig.Pages[idx].SideIcon ?? "", _pcConfig.Pages[idx].Name, _assetsSideIconsDir);
+                        _deckConfig.Pages[idx].SideIcon ?? "", _deckConfig.Pages[idx].Name, _assetsSideIconsDir);
                     if (name == null) return;
-                    _pcConfig.Pages[idx].SideIcon = name;
+                    _deckConfig.Pages[idx].SideIcon = name;
                     // No _preview refresh here -- DeckPreviewPanel shows the
                     // grid page (buttons/background), not the sidebar page
                     // switcher, so side_icon has nothing to redraw there.
@@ -502,7 +511,7 @@ namespace ESDeckPC
                     menu.Items.Add(itemUp);
                 }
 
-                if (idx < _pcConfig.Pages.Count - 1)
+                if (idx < _deckConfig.Pages.Count - 1)
                 {
                     var itemDown = new ToolStripMenuItem("Move Down") { ForeColor = Color.FromArgb(220, 220, 220) };
                     itemDown.Click += (s, ev) => MovePage(idx, idx + 1);
@@ -520,23 +529,23 @@ namespace ESDeckPC
         {
             string name = PromptInput("Add Page", "Page name:");
             if (string.IsNullOrWhiteSpace(name)) return;
-            _pcConfig.Pages.Add(new PcPage { Name = name });
+            _deckConfig.Pages.Add(new DeckPage { Name = name });
             UpdatePageList();
             lstPages.SelectedIndex = lstPages.Items.Count - 1;
         }
 
         private void RenamePage(int idx)
         {
-            string name = PromptInput("Rename Page", "New name:", _pcConfig.Pages[idx].Name);
+            string name = PromptInput("Rename Page", "New name:", _deckConfig.Pages[idx].Name);
             if (string.IsNullOrWhiteSpace(name)) return;
-            _pcConfig.Pages[idx].Name = name;
+            _deckConfig.Pages[idx].Name = name;
             UpdatePageList();
             lstPages.SelectedIndex = idx;
         }
 
         private void DeletePage(int idx)
         {
-            if (_pcConfig.Pages.Count <= 1)
+            if (_deckConfig.Pages.Count <= 1)
             {
                 MessageBox.Show("At least one page is required.", "ESDeck PC",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -544,11 +553,11 @@ namespace ESDeckPC
             }
 
             var result = MessageBox.Show(
-                $"Delete page \"{_pcConfig.Pages[idx].Name}\"?", "ESDeck PC",
+                $"Delete page \"{_deckConfig.Pages[idx].Name}\"?", "ESDeck PC",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (result != DialogResult.Yes) return;
 
-            _pcConfig.Pages.RemoveAt(idx);
+            _deckConfig.Pages.RemoveAt(idx);
             UpdatePageList();
             lstPages.SelectedIndex = Math.Min(idx, lstPages.Items.Count - 1);
         }
@@ -573,9 +582,9 @@ namespace ESDeckPC
 
         private void MovePage(int oldIdx, int newIdx)
         {
-            var page = _pcConfig.Pages[oldIdx];
-            _pcConfig.Pages.RemoveAt(oldIdx);
-            _pcConfig.Pages.Insert(newIdx, page);
+            var page = _deckConfig.Pages[oldIdx];
+            _deckConfig.Pages.RemoveAt(oldIdx);
+            _deckConfig.Pages.Insert(newIdx, page);
             UpdatePageList();
             lstPages.SelectedIndex = newIdx;
         }

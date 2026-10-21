@@ -8,24 +8,23 @@ namespace ESDeckPC
     // what the ESP shows (name, bg_image, side_icon, label, icon) and what
     // a button does (action, target, keys, amount, channel_id). The ESP
     // loads it, and on a press sends that button (minus icon) to ESDeckPC
-    // as JSON, which deserializes it into a PcButton and runs it.
+    // as JSON, which deserializes it into a DeckButton and runs it.
     //
-    // (Class names kept from the old pc_XXXX.json / esp_XXXX.json pair --
-    // an old pc_ file is already this format, only without the display
-    // fields.)
+    // (Replaces the old pc_XXXX.json / esp_XXXX.json pair -- an old pc_
+    // file already loads as this format, just without the display fields.)
     // ------------------------------------------------------------------
 
-    public class PcConfig
+    public class DeckConfig
     {
         [JsonProperty("pages")]
-        public List<PcPage> Pages { get; set; } = new List<PcPage>();
+        public List<DeckPage> Pages { get; set; } = new List<DeckPage>();
 
         // Settings page's own bg_image/side_icon
         [JsonProperty("settings")]
-        public PcSettings Settings { get; set; } = new PcSettings();
+        public DeckSettingsCfg Settings { get; set; } = new DeckSettingsCfg();
     }
 
-    public class PcSettings
+    public class DeckSettingsCfg
     {
         [JsonProperty("bg_image")]
         public string BgImage { get; set; } = "";
@@ -35,13 +34,13 @@ namespace ESDeckPC
         public string SideIcon { get; set; } = "";
     }
 
-    public class PcPage
+    public class DeckPage
     {
         [JsonProperty("name")]
         public string Name { get; set; }
 
         [JsonProperty("buttons")]
-        public List<PcButton> Buttons { get; set; } = new List<PcButton>();
+        public List<DeckButton> Buttons { get; set; } = new List<DeckButton>();
 
         // filename only, under assets/backgrounds; empty = flat color
         [JsonProperty("bg_image")]
@@ -52,7 +51,7 @@ namespace ESDeckPC
         public string SideIcon { get; set; } = "";
     }
 
-    public class PcButton
+    public class DeckButton
     {
         [JsonProperty("label")]
         public string Label { get; set; }

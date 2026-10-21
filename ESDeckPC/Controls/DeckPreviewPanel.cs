@@ -37,7 +37,7 @@ namespace ESDeckPC
         // State
         // ------------------------------------------------------------------
 
-        private PcPage _page = null;
+        private DeckPage _page = null;
         private Bitmap _bgBitmap = null;
         private string _assetsIconsDir = null;
 
@@ -99,7 +99,7 @@ namespace ESDeckPC
         /// Binds a page and redraws. backgroundsDir and iconsDir may be null
         /// (filenames still shown as placeholder if bitmaps cannot be resolved).
         /// </summary>
-        public void SetPage(PcPage page, string backgroundsDir, string iconsDir)
+        public void SetPage(DeckPage page, string backgroundsDir, string iconsDir)
         {
             _page = page;
             _assetsIconsDir = iconsDir;
@@ -180,7 +180,7 @@ namespace ESDeckPC
             }
         }
 
-        private void DrawButton(Graphics g, Rectangle rect, PcButton btn,
+        private void DrawButton(Graphics g, Rectangle rect, DeckButton btn,
                                  bool isDragging, bool isInsertLeft, bool isInsertRight)
         {
             // Button background: #2d2d2d @ 50% (LV_OPA_50), dimmer when dragging

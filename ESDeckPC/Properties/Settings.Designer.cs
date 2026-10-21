@@ -22,17 +22,5 @@ namespace ESDeckPC.Properties {
                 return defaultInstance;
             }
         }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string LastPcJson {
-            get {
-                return ((string)(this["LastPcJson"]));
-            }
-            set {
-                this["LastPcJson"] = value;
-            }
-        }
     }
 }

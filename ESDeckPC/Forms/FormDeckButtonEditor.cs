@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace ESDeckPC
 {
-    public partial class FormButtonEditor : Form
+    public partial class FormDeckButtonEditor : Form
     {
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
@@ -19,7 +19,7 @@ namespace ESDeckPC
             DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
         }
 
-        private PcButton _button;
+        private DeckButton _button;
         private readonly string _iconsDir;
 
         // Dynamic controls
@@ -45,7 +45,7 @@ namespace ESDeckPC
         // power
         private ComboBox _dynCmbPowerTarget;
 
-        public FormButtonEditor(PcButton button, bool isNew = false, string iconsDir = null)
+        public FormDeckButtonEditor(DeckButton button, bool isNew = false, string iconsDir = null)
         {
             InitializeComponent();
 

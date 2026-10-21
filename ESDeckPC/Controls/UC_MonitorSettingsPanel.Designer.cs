@@ -1,6 +1,6 @@
 namespace ESDeckPC
 {
-    partial class UC_SettingsPanel
+    partial class UC_MonitorSettingsPanel
     {
         private System.ComponentModel.IContainer components = null;
 
@@ -63,7 +63,7 @@ namespace ESDeckPC
             this.btnSettingsBgClear.TabIndex = 2;
             this.btnSettingsBgClear.Text = "Clear";
             //
-            // UC_SettingsPanel
+            // UC_MonitorSettingsPanel
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -71,7 +71,7 @@ namespace ESDeckPC
             this.Controls.Add(this.grpSettingsBg);
             this.Font = new System.Drawing.Font("Consolas", 9F);
             this.Margin = new System.Windows.Forms.Padding(4);
-            this.Name = "UC_SettingsPanel";
+            this.Name = "UC_MonitorSettingsPanel";
             this.Size = new System.Drawing.Size(265, 110);
             this.grpSettingsBg.ResumeLayout(false);
             this.grpSettingsBg.PerformLayout();

@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace ESDeckPC
 {
-    public partial class UC_PageSettings : UserControl
+    public partial class UC_MonitorPageSettings : UserControl
     {
         // ------------------------------------------------------------------
         // Cell value choices (must match firmware-side mon_cell_id_t names)
@@ -43,10 +43,10 @@ namespace ESDeckPC
         /// </summary>
         public event EventHandler PreviewInvalidated;
 
-        // True while ApplyConfig is in progress; see UC_ClockSettings for rationale.
+        // True while ApplyConfig is in progress; see UC_MonitorClockSettings for rationale.
         private bool _isApplying = false;
 
-        public UC_PageSettings()
+        public UC_MonitorPageSettings()
         {
             InitializeComponent();
             StyleDarkButtons();
@@ -217,7 +217,7 @@ namespace ESDeckPC
         /// <summary>
         /// Releases bitmap resources owned by this control.
         /// Call from the Designer-generated Dispose(bool) override,
-        /// same pattern as UC_ClockSettings.DisposeOwnedResources().
+        /// same pattern as UC_MonitorClockSettings.DisposeOwnedResources().
         /// </summary>
         private void DisposeOwnedResources()
         {
