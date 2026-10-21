@@ -182,6 +182,18 @@ namespace ESDeckPC
             RefreshPreview();
         }
 
+        // Drop both entry panels before switching to another config: a panel
+        // that's still alive keeps the previous file's text, and
+        // ReadUiIntoConfig() (first thing RefreshPreview() does) would copy
+        // it into the new _cfg -- e.g. file A's Settings bg ending up in B.
+        // Same as FormTouchpadEditor.ResetEntryPanels().
+        private void ResetEntryPanels()
+        {
+            pnlSettingsHost.Controls.Clear();
+            _ucPlayerBg?.Dispose();   _ucPlayerBg = null;
+            _ucSettingsBg?.Dispose(); _ucSettingsBg = null;
+        }
+
         private void SetSelectedButton(Button selected)
         {
             btnPlayerPage.BackColor = (selected == btnPlayerPage) ? ColSelected : ColNormal;
@@ -201,6 +213,7 @@ namespace ESDeckPC
                 dlg.Filter = "JSON files (*.json)|*.json";
                 dlg.FileName = "media.json";
                 if (dlg.ShowDialog() != DialogResult.OK) return;
+                ResetEntryPanels();
                 _cfg = new MediaConfig();
                 _jsonPath = dlg.FileName;
                 _assetsBackgroundsDir = null;
@@ -223,6 +236,8 @@ namespace ESDeckPC
                 {
                     var cfg = JsonConvert.DeserializeObject<MediaConfig>(
                                   File.ReadAllText(dlg.FileName)) ?? new MediaConfig();
+                    if (cfg.Settings == null) cfg.Settings = new MediaSettingsCfg();
+                    ResetEntryPanels();
                     _cfg = cfg;
                     _jsonPath = dlg.FileName;
                     ResolveAssetDirsFromJsonPath();
