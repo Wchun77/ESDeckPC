@@ -22,8 +22,11 @@
             this.grpPreview = new System.Windows.Forms.GroupBox();
             this.picDeckPreview = new System.Windows.Forms.PictureBox();
             this.pnlBottom = new System.Windows.Forms.Panel();
-            this.btnDiscard = new System.Windows.Forms.Button();
+            this.btnSaveAs = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
+            this.btnJsonNew = new System.Windows.Forms.Button();
+            this.btnJsonOpen = new System.Windows.Forms.Button();
+            this.lblJsonPath = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
             this.splitMain.Panel1.SuspendLayout();
             this.splitMain.Panel2.SuspendLayout();
@@ -123,8 +126,11 @@
             // pnlBottom
             // 
             this.pnlBottom.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.pnlBottom.Controls.Add(this.btnDiscard);
+            this.pnlBottom.Controls.Add(this.btnSaveAs);
             this.pnlBottom.Controls.Add(this.btnSave);
+            this.pnlBottom.Controls.Add(this.lblJsonPath);
+            this.pnlBottom.Controls.Add(this.btnJsonOpen);
+            this.pnlBottom.Controls.Add(this.btnJsonNew);
             this.pnlBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.pnlBottom.Location = new System.Drawing.Point(0, 512);
             this.pnlBottom.Name = "pnlBottom";
@@ -132,20 +138,60 @@
             this.pnlBottom.Size = new System.Drawing.Size(871, 40);
             this.pnlBottom.TabIndex = 1;
             // 
-            // btnDiscard
+            // btnSaveAs
             // 
-            this.btnDiscard.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnDiscard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(62)))), ((int)(((byte)(66)))));
-            this.btnDiscard.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
-            this.btnDiscard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnDiscard.Font = new System.Drawing.Font("Consolas", 9F);
-            this.btnDiscard.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.btnDiscard.Location = new System.Drawing.Point(779, 6);
-            this.btnDiscard.Name = "btnDiscard";
-            this.btnDiscard.Size = new System.Drawing.Size(80, 26);
-            this.btnDiscard.TabIndex = 1;
-            this.btnDiscard.Text = "Discard";
-            this.btnDiscard.UseVisualStyleBackColor = false;
+            this.btnSaveAs.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnSaveAs.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(62)))), ((int)(((byte)(66)))));
+            this.btnSaveAs.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
+            this.btnSaveAs.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSaveAs.Font = new System.Drawing.Font("Consolas", 9F);
+            this.btnSaveAs.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.btnSaveAs.Location = new System.Drawing.Point(779, 6);
+            this.btnSaveAs.Name = "btnSaveAs";
+            this.btnSaveAs.Size = new System.Drawing.Size(80, 26);
+            this.btnSaveAs.TabIndex = 4;
+            this.btnSaveAs.Text = "Save As";
+            this.btnSaveAs.UseVisualStyleBackColor = false;
+            // 
+            // btnJsonNew
+            // 
+            this.btnJsonNew.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(62)))), ((int)(((byte)(66)))));
+            this.btnJsonNew.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
+            this.btnJsonNew.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnJsonNew.Font = new System.Drawing.Font("Consolas", 9F);
+            this.btnJsonNew.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.btnJsonNew.Location = new System.Drawing.Point(8, 6);
+            this.btnJsonNew.Name = "btnJsonNew";
+            this.btnJsonNew.Size = new System.Drawing.Size(60, 26);
+            this.btnJsonNew.TabIndex = 0;
+            this.btnJsonNew.Text = "New";
+            this.btnJsonNew.UseVisualStyleBackColor = false;
+            // 
+            // btnJsonOpen
+            // 
+            this.btnJsonOpen.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(62)))), ((int)(((byte)(62)))), ((int)(((byte)(66)))));
+            this.btnJsonOpen.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
+            this.btnJsonOpen.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnJsonOpen.Font = new System.Drawing.Font("Consolas", 9F);
+            this.btnJsonOpen.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.btnJsonOpen.Location = new System.Drawing.Point(74, 6);
+            this.btnJsonOpen.Name = "btnJsonOpen";
+            this.btnJsonOpen.Size = new System.Drawing.Size(60, 26);
+            this.btnJsonOpen.TabIndex = 1;
+            this.btnJsonOpen.Text = "Open";
+            this.btnJsonOpen.UseVisualStyleBackColor = false;
+            // 
+            // lblJsonPath
+            // 
+            this.lblJsonPath.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblJsonPath.AutoEllipsis = true;
+            this.lblJsonPath.Font = new System.Drawing.Font("Consolas", 9F);
+            this.lblJsonPath.ForeColor = System.Drawing.Color.Gray;
+            this.lblJsonPath.Location = new System.Drawing.Point(144, 12);
+            this.lblJsonPath.Name = "lblJsonPath";
+            this.lblJsonPath.Size = new System.Drawing.Size(540, 16);
+            this.lblJsonPath.TabIndex = 2;
+            this.lblJsonPath.Text = "(no file)";
             // 
             // btnSave
             // 
@@ -158,7 +204,7 @@
             this.btnSave.Location = new System.Drawing.Point(693, 6);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(80, 26);
-            this.btnSave.TabIndex = 0;
+            this.btnSave.TabIndex = 3;
             this.btnSave.Text = "Save";
             this.btnSave.UseVisualStyleBackColor = false;
             // 
@@ -200,7 +246,10 @@
         private System.Windows.Forms.GroupBox grpPreview;
         private System.Windows.Forms.Panel pnlBottom;
         private System.Windows.Forms.Button btnSave;
-        private System.Windows.Forms.Button btnDiscard;
+        private System.Windows.Forms.Button btnSaveAs;
+        private System.Windows.Forms.Button btnJsonNew;
+        private System.Windows.Forms.Button btnJsonOpen;
+        private System.Windows.Forms.Label lblJsonPath;
         private System.Windows.Forms.PictureBox picDeckPreview;
     }
 }

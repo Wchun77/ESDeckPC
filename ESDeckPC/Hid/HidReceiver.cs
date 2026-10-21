@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using HidSharp;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,8 +46,10 @@ public class HidReceiver
     private HidStream _stream;
     private CancellationTokenSource _cts;
 
-    // Fires for normal button presses (page != 0xFF)
-    public event Action<byte, byte> OnButtonPressed;
+    // Fires when a whole Deck action has arrived (page=0xFB, chunked):
+    // the pressed button as UTF-8 JSON text (label + action fields), see
+    // HID_ACTION_* in ESDeck's usb_hid.h. Invoked on the read thread.
+    public event Action<string> OnActionReceived;
 
     // Fires when ESP sends monitor control: subscribe (0x01) or unsubscribe (0x02)
     public event Action<byte> OnMonitorControl;
@@ -136,6 +139,69 @@ public class HidReceiver
     }
 
     // ------------------------------------------------------------------
+    // Deck action reassembly (page 0xFB). Chunk layout after HidSharp's
+    // report-ID byte [0]:
+    //   [1] 0xFB  [2] msg_id  [3] seq  [4] flags (1=first, 2=last)
+    //   [5..6] total length (uint16 LE)  [7..] data
+    // The bytes are only decoded once the whole message is in: a UTF-8
+    // character (e.g. a Chinese path) can be split across two chunks.
+    // Read thread only, no locking needed.
+    // ------------------------------------------------------------------
+
+    private const byte ActionPage = 0xFB;
+    private const byte ActionFlagFirst = 0x01;
+    private const byte ActionFlagLast = 0x02;
+    private const int ActionHeaderLen = 7;      // incl. report ID byte
+    private const int ActionMaxLen = 4096;      // HID_ACTION_MAX_LEN
+
+    private byte[] _actBuf;
+    private int _actLen;
+    private int _actGot;
+    private byte _actId;
+    private byte _actNextSeq;
+    private bool _actActive;
+
+    private void HandleActionChunk(byte[] buf, int len)
+    {
+        if (len <= ActionHeaderLen) return;
+
+        byte id = buf[2];
+        byte seq = buf[3];
+        byte flags = buf[4];
+        int total = buf[5] | (buf[6] << 8);
+
+        if ((flags & ActionFlagFirst) != 0)
+        {
+            // A new message always restarts -- an unfinished older one is dropped.
+            _actActive = false;
+            if (total <= 0 || total > ActionMaxLen || seq != 0) return;
+            _actBuf = new byte[total];
+            _actLen = total;
+            _actGot = 0;
+            _actId = id;
+            _actNextSeq = 0;
+            _actActive = true;
+        }
+
+        if (!_actActive || id != _actId || seq != _actNextSeq || total != _actLen)
+        {
+            _actActive = false;   // lost / out-of-order chunk: give up on this message
+            return;
+        }
+
+        int n = Math.Min(len - ActionHeaderLen, _actLen - _actGot);
+        Buffer.BlockCopy(buf, ActionHeaderLen, _actBuf, _actGot, n);
+        _actGot += n;
+        _actNextSeq++;
+
+        if (_actGot < _actLen && (flags & ActionFlagLast) == 0) return;
+
+        _actActive = false;
+        if (_actGot == _actLen && (flags & ActionFlagLast) != 0)
+            OnActionReceived?.Invoke(Encoding.UTF8.GetString(_actBuf, 0, _actLen));
+    }
+
+    // ------------------------------------------------------------------
     // Read loop
     // ------------------------------------------------------------------
 
@@ -195,9 +261,9 @@ public class HidReceiver
                         OnMediaControl?.Invoke(btn);
                     }
                 }
-                else
+                else if (page == ActionPage)
                 {
-                    OnButtonPressed?.Invoke(page, btn);
+                    HandleActionChunk(buf, len);
                 }
             }
             catch (TimeoutException)

@@ -4,7 +4,15 @@ using Newtonsoft.Json;
 namespace ESDeckPC
 {
     // ------------------------------------------------------------------
-    // PC JSON model
+    // Deck config model -- one file (config/deck/<name>.json) holds both
+    // what the ESP shows (name, bg_image, side_icon, label, icon) and what
+    // a button does (action, target, keys, amount, channel_id). The ESP
+    // loads it, and on a press sends that button (minus icon) to ESDeckPC
+    // as JSON, which deserializes it into a PcButton and runs it.
+    //
+    // (Class names kept from the old pc_XXXX.json / esp_XXXX.json pair --
+    // an old pc_ file is already this format, only without the display
+    // fields.)
     // ------------------------------------------------------------------
 
     public class PcConfig
@@ -12,19 +20,18 @@ namespace ESDeckPC
         [JsonProperty("pages")]
         public List<PcPage> Pages { get; set; } = new List<PcPage>();
 
-        // Settings page's own bg_image/side_icon -- same "loaded from esp
-        // json on open, written back into esp json on save, never stored in
-        // pc json" convention as PcPage.BgImage/SideIcon below.
-        [JsonIgnore]
+        // Settings page's own bg_image/side_icon
+        [JsonProperty("settings")]
         public PcSettings Settings { get; set; } = new PcSettings();
     }
 
     public class PcSettings
     {
-        [JsonIgnore]
+        [JsonProperty("bg_image")]
         public string BgImage { get; set; } = "";
 
-        [JsonIgnore]
+        // filename only, under assets/side_icons; empty = gear glyph
+        [JsonProperty("side_icon")]
         public string SideIcon { get; set; } = "";
     }
 
@@ -36,13 +43,13 @@ namespace ESDeckPC
         [JsonProperty("buttons")]
         public List<PcButton> Buttons { get; set; } = new List<PcButton>();
 
-        // from esp JSON, not written to pc JSON
-        [JsonIgnore]
-        public string BgImage { get; set; }
+        // filename only, under assets/backgrounds; empty = flat color
+        [JsonProperty("bg_image")]
+        public string BgImage { get; set; } = "";
 
-        // from esp JSON, not written to pc JSON -- filename only, under assets/side_icons
-        [JsonIgnore]
-        public string SideIcon { get; set; }
+        // filename only, under assets/side_icons; empty = page name on the sidebar
+        [JsonProperty("side_icon")]
+        public string SideIcon { get; set; } = "";
     }
 
     public class PcButton
@@ -69,54 +76,9 @@ namespace ESDeckPC
         [JsonProperty("channel_id")]
         public string ChannelId { get; set; }
 
-        // from esp JSON, not written to pc JSON
-        [JsonIgnore]
-        public string Icon { get; set; }
-    }
-
-    // ------------------------------------------------------------------
-    // ESP JSON model
-    // ------------------------------------------------------------------
-
-    public class EspConfig
-    {
-        [JsonProperty("settings")]
-        public EspSettings Settings { get; set; } = new EspSettings();
-
-        [JsonProperty("pages")]
-        public List<EspPage> Pages { get; set; } = new List<EspPage>();
-    }
-
-    public class EspSettings
-    {
-        [JsonProperty("bg_image")]
-        public string BgImage { get; set; } = "";
-
-        [JsonProperty("side_icon")]
-        public string SideIcon { get; set; } = "";
-    }
-
-    public class EspPage
-    {
-        [JsonProperty("name")]
-        public string Name { get; set; }
-
-        [JsonProperty("bg_image")]
-        public string BgImage { get; set; }
-
-        [JsonProperty("side_icon")]
-        public string SideIcon { get; set; }
-
-        [JsonProperty("buttons")]
-        public List<EspButton> Buttons { get; set; } = new List<EspButton>();
-    }
-
-    public class EspButton
-    {
-        [JsonProperty("label")]
-        public string Label { get; set; }
-
+        // filename only, under assets/icons; empty = label text.
+        // Display only -- the ESP strips it before sending the button.
         [JsonProperty("icon")]
-        public string Icon { get; set; }
+        public string Icon { get; set; } = "";
     }
 }

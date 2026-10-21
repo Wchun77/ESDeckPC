@@ -12,18 +12,14 @@ namespace ESDeckPC
 {
     public partial class FormConfigEditor : Form
     {
-        private PcConfig _pcConfig;
-        private string _pcPath;
-        private string _espPath;
+        // The one deck config file being edited (config\deck\<name>.json on
+        // the SD card) -- display + actions together, see Deckconfig.cs.
+        private PcConfig _pcConfig = new PcConfig();
+        private string _jsonPath = null;
 
         private string _assetsBackgroundsDir = null;
         private string _assetsIconsDir = null;
         private string _assetsSideIconsDir = null;
-
-        /// <summary>
-        /// Fired after a successful save. Argument is the new PC JSON path.
-        /// </summary>
-        public event EventHandler<string> ConfigSaved;
 
         private DeckPreviewPanel _preview;
 
@@ -46,39 +42,9 @@ namespace ESDeckPC
             DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
         }
 
-        public FormConfigEditor(PcConfig pcConfig, string pcPath, string espPath)
+        public FormConfigEditor()
         {
             InitializeComponent();
-
-            _pcConfig = pcConfig;
-            _pcPath = pcPath;
-            _espPath = espPath;
-
-            this.Text = $"Config Editor - {Path.GetFileName(pcPath)}";
-
-            ResolveAssetDirs();
-
-            if (!string.IsNullOrEmpty(_espPath) && File.Exists(_espPath))
-            {
-                try
-                {
-                    var espConfig = ConfigLoader.LoadEsp(_espPath);
-                    _pcConfig.Settings.BgImage = espConfig.Settings?.BgImage ?? "";
-                    _pcConfig.Settings.SideIcon = espConfig.Settings?.SideIcon ?? "";
-                    for (int pi = 0; pi < _pcConfig.Pages.Count; pi++)
-                    {
-                        if (pi >= espConfig.Pages.Count) break;
-                        _pcConfig.Pages[pi].BgImage = espConfig.Pages[pi].BgImage ?? "";
-                        _pcConfig.Pages[pi].SideIcon = espConfig.Pages[pi].SideIcon ?? "";
-                        for (int bi = 0; bi < _pcConfig.Pages[pi].Buttons.Count; bi++)
-                        {
-                            if (bi >= espConfig.Pages[pi].Buttons.Count) break;
-                            _pcConfig.Pages[pi].Buttons[bi].Icon = espConfig.Pages[pi].Buttons[bi].Icon ?? "";
-                        }
-                    }
-                }
-                catch { }
-            }
 
             // Create DeckPreviewPanel and attach to picDeckPreview's location/size
             _preview = new DeckPreviewPanel
@@ -99,14 +65,17 @@ namespace ESDeckPC
             lstPages.SelectedIndexChanged += lstPages_SelectedIndexChanged;
             lstPages.MouseUp += lstPages_MouseUp;
             lstPages.KeyDown += lstPages_KeyDown;
-            btnSave.Click += btnSave_Click;
-            btnDiscard.Click += btnDiscard_Click;
+            btnJsonNew.Click += BtnJsonNew_Click;
+            btnJsonOpen.Click += BtnJsonOpen_Click;
+            btnSave.Click += BtnSave_Click;
+            btnSaveAs.Click += BtnSaveAs_Click;
 
             btnSettingsPage.BackColor = ColSettingsNormal;
             btnSettingsPage.Click += (s, e) => ShowSettingsPreview();
             btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
 
             LoadPages();
+            UpdateJsonPathLabel();
         }
 
         // ------------------------------------------------------------------
@@ -120,10 +89,10 @@ namespace ESDeckPC
             _assetsIconsDir = null;
             _assetsSideIconsDir = null;
 
-            if (string.IsNullOrEmpty(_espPath)) return;
+            if (string.IsNullOrEmpty(_jsonPath)) return;
 
-            // ESP JSON lives at {root}\config\deck\esp_xxx.json
-            var deckDir = Path.GetDirectoryName(_espPath);
+            // Deck JSON lives at {root}\config\deck\xxx.json
+            var deckDir = Path.GetDirectoryName(_jsonPath);
             if (string.IsNullOrEmpty(deckDir)) return;
             if (!string.Equals(Path.GetFileName(deckDir), "deck",
                 StringComparison.OrdinalIgnoreCase)) return;
@@ -153,6 +122,8 @@ namespace ESDeckPC
 
             if (lstPages.Items.Count > 0)
                 lstPages.SelectedIndex = 0;
+            else
+                ShowSettingsPreview();   // nothing else to show; also clears a stale page
         }
 
         private void lstPages_SelectedIndexChanged(object sender, EventArgs e)
@@ -299,8 +270,7 @@ namespace ESDeckPC
                 case "media":
                 case "discord":
                 case "mouse_click":
-                    // Execute via ActionExecutor using 1-based page/btn index
-                    string result = ActionExecutor.Run(_pcConfig, (byte)(pageIdx + 1), (byte)(btnIdx + 1));
+                    string result = ActionExecutor.Run(button);
                     if (result != null && result.Contains("failed"))
                     {
                         MessageBox.Show(result, "Action failed",
@@ -344,185 +314,105 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // Save / Discard
+        // JSON: New / Open / Save / Save As -- same shape as the Media /
+        // Touchpad editors. One file per config; the name is free (the ESP
+        // lists every *.json in config\deck). Save the file over the same
+        // name and the device picks it up on its next boot (leaving Storage
+        // Mode restarts it); a new name needs Select Config on the device.
         // ------------------------------------------------------------------
 
-        // ESP backup copies live in {pc folder}\esp_bak\ next to pc_XXXX.json.
-        private const string EspBakDirName = "esp_bak";
+        private const string DefaultFileName = "deck.json";
 
-        // Exact names produced by Crc16().ToString("X4"). Case-sensitive on
-        // purpose: anything renamed by hand (test.json, pc_1a2b.json,
-        // pc_1A2B(1).json ...) never matches, so it is never offered for delete.
-        private static readonly Regex RxPcName  = new Regex(@"^pc_([0-9A-F]{4})\.json$");
-
-        // Firmware always reads /sdcard/config/deck/ (incl. startup.txt), so
-        // the selected ESP JSON must sit in a {root}\config\deck\ folder.
-        // Same structure check as ResolveAssetDirs().
-        private static bool IsEspDeckDir(string espPath)
+        private void BtnJsonNew_Click(object sender, EventArgs e)
         {
-            var deckDir = Path.GetDirectoryName(espPath);
-            if (string.IsNullOrEmpty(deckDir)) return false;
-            if (!string.Equals(Path.GetFileName(deckDir), "deck",
-                StringComparison.OrdinalIgnoreCase)) return false;
-
-            var configDir = Path.GetDirectoryName(deckDir);
-            if (string.IsNullOrEmpty(configDir)) return false;
-            if (!string.Equals(Path.GetFileName(configDir), "config",
-                StringComparison.OrdinalIgnoreCase)) return false;
-
-            return !string.IsNullOrEmpty(Path.GetDirectoryName(configDir));
-        }
-
-        private static void AddUnique(List<string> list, string path)
-        {
-            foreach (var p in list)
-                if (string.Equals(Path.GetFullPath(p), Path.GetFullPath(path),
-                    StringComparison.OrdinalIgnoreCase)) return;
-            list.Add(path);
-        }
-
-        // Old-version files that may be deleted after a successful save.
-        // Only the exact paths opened in this editor (plus the matching
-        // esp_bak copy) are ever returned -- the folders are never scanned,
-        // so unrelated files in the same folder can't be touched.
-        // Returns an empty list unless:
-        //   - PC file is named pc_XXXX.json
-        //   - the selected ESP file (if any) is named esp_XXXX.json, same XXXX
-        //   - XXXX differs from the new CRC (same CRC = the save just
-        //     overwrote these very files, deleting them would lose the save)
-        private List<string> CollectOldFiles(string newCrc, string bakFolder, bool espValid)
-        {
-            var list = new List<string>();
-
-            var m = RxPcName.Match(Path.GetFileName(_pcPath) ?? "");
-            if (!m.Success) return list;
-
-            string oldCrc = m.Groups[1].Value;
-            if (oldCrc == newCrc) return list;
-
-            string oldEspName = $"esp_{oldCrc}.json";
-
-            if (!string.IsNullOrEmpty(_espPath))
+            using (var dlg = new SaveFileDialog())
             {
-                if (!string.Equals(Path.GetFileName(_espPath), oldEspName,
-                    StringComparison.Ordinal)) return list;
+                dlg.Title = "New deck JSON";
+                dlg.Filter = "JSON files (*.json)|*.json";
+                dlg.FileName = DefaultFileName;
+                if (!string.IsNullOrEmpty(_jsonPath))
+                    dlg.InitialDirectory = Path.GetDirectoryName(_jsonPath);
+                if (dlg.ShowDialog() != DialogResult.OK) return;
 
-                // Only delete the device-side file when it is in the real
-                // config\deck folder; an ESP file picked from anywhere else
-                // is left alone.
-                if (espValid && File.Exists(_espPath)) AddUnique(list, _espPath);
+                _pcConfig = new PcConfig();
+                _jsonPath = dlg.FileName;
+                ResolveAssetDirs();
+                LoadPages();
+                UpdateJsonPathLabel();
             }
-
-            if (File.Exists(_pcPath)) AddUnique(list, _pcPath);
-
-            string oldBak = Path.Combine(bakFolder, oldEspName);
-            if (File.Exists(oldBak)) AddUnique(list, oldBak);
-
-            return list;
         }
 
-        private void btnSave_Click(object sender, EventArgs e)
+        private void BtnJsonOpen_Click(object sender, EventArgs e)
         {
+            using (var dlg = new OpenFileDialog())
+            {
+                dlg.Title = "Open deck JSON";
+                dlg.Filter = "JSON files (*.json)|*.json";
+                if (!string.IsNullOrEmpty(_jsonPath))
+                    dlg.InitialDirectory = Path.GetDirectoryName(_jsonPath);
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+
+                try
+                {
+                    _pcConfig = ConfigLoader.Load(dlg.FileName);
+                    _jsonPath = dlg.FileName;
+                    ResolveAssetDirs();
+                    LoadPages();
+                    UpdateJsonPathLabel();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to open JSON:\n{ex.Message}", "Config Editor",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void BtnSave_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(_jsonPath) && !PromptForSavePath()) return;
+            SaveToCurrentPath();
+        }
+
+        private void BtnSaveAs_Click(object sender, EventArgs e)
+        {
+            if (!PromptForSavePath()) return;   // always asks, regardless of _jsonPath
+            SaveToCurrentPath();
+        }
+
+        private bool PromptForSavePath()
+        {
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Title = "Save deck JSON";
+                dlg.Filter = "JSON files (*.json)|*.json";
+                dlg.FileName = !string.IsNullOrEmpty(_jsonPath)
+                    ? Path.GetFileName(_jsonPath)
+                    : DefaultFileName;
+                if (!string.IsNullOrEmpty(_jsonPath))
+                    dlg.InitialDirectory = Path.GetDirectoryName(_jsonPath);
+                if (dlg.ShowDialog() != DialogResult.OK) return false;
+
+                _jsonPath = dlg.FileName;
+                ResolveAssetDirs();
+                UpdateJsonPathLabel();
+                return true;
+            }
+        }
+
+        private void SaveToCurrentPath()
+        {
+            var confirm = MessageBox.Show(
+                $"Save changes to {Path.GetFileName(_jsonPath)}?",
+                "Config Editor",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (confirm != DialogResult.Yes) return;
+
             try
             {
-                string pcFolder  = Path.GetDirectoryName(_pcPath);
-                string bakFolder = Path.Combine(pcFolder, EspBakDirName);
-
-                bool espSelected = !string.IsNullOrEmpty(_espPath);
-                bool espValid    = espSelected && IsEspDeckDir(_espPath);
-                string espFolder = espValid ? Path.GetDirectoryName(_espPath) : null;
-
-                if (espSelected && !espValid)
-                {
-                    var r = MessageBox.Show(
-                        "The selected ESP JSON is not inside a ...\\config\\deck\\ folder:\n" +
-                        _espPath + "\n\n" +
-                        "The ESP file will only be saved to " + EspBakDirName + "\\ " +
-                        "(no device copy, no startup.txt).\n\nContinue?",
-                        "Config Editor",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Warning);
-                    if (r != DialogResult.Yes) return;
-                }
-
-                // Same serialization as ConfigLoader.SavePair so the CRC /
-                // file names stay identical to before.
-                EspConfig espConfig = ConfigLoader.BuildEspFromPc(_pcConfig);
-                string pcJson  = Newtonsoft.Json.JsonConvert.SerializeObject(_pcConfig, Newtonsoft.Json.Formatting.Indented);
-                string espJson = Newtonsoft.Json.JsonConvert.SerializeObject(espConfig, Newtonsoft.Json.Formatting.Indented);
-                string crc     = ConfigLoader.Crc16(pcJson).ToString("X4");
-
-                string pcName  = $"pc_{crc}.json";
-                string espName = $"esp_{crc}.json";
-
-                string newPcPath  = Path.Combine(pcFolder, pcName);
-                string newBakPath = Path.Combine(bakFolder, espName);
-                string newEspPath = espValid ? Path.Combine(espFolder, espName) : null;
-
-                var existing = new List<string>();
-                if (File.Exists(newPcPath))  existing.Add(newPcPath);
-                if (File.Exists(newBakPath)) existing.Add(newBakPath);
-                if (newEspPath != null && File.Exists(newEspPath)) existing.Add(newEspPath);
-
-                if (existing.Count > 0)
-                {
-                    var confirm = MessageBox.Show(
-                        "Already exist:\n" + string.Join("\n", existing) + "\n\nOverwrite?",
-                        "Config Editor",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Warning);
-                    if (confirm != DialogResult.Yes) return;
-                }
-
-                // Write order: PC -> backup -> device JSON -> startup.txt.
-                // Any exception stops here before anything is deleted.
-                Directory.CreateDirectory(bakFolder);
-                File.WriteAllText(newPcPath, pcJson);
-                File.WriteAllText(newBakPath, espJson);
-
-                var saved = new List<string> { newPcPath, newBakPath };
-                if (newEspPath != null)
-                {
-                    string startupTxt = Path.Combine(espFolder, "startup.txt");
-                    File.WriteAllText(newEspPath, espJson);
-                    File.WriteAllText(startupTxt, espName, Encoding.ASCII);
-                    saved.Add(newEspPath);
-                    saved.Add(startupTxt);
-                }
-
-                string savedMsg = "Saved:\n" + string.Join("\n", saved);
-
-                var oldFiles = CollectOldFiles(crc, bakFolder, espValid);
-                if (oldFiles.Count == 0)
-                {
-                    MessageBox.Show(savedMsg, "Config Editor",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    var del = MessageBox.Show(
-                        savedMsg + "\n\nDelete the old version?\n" + string.Join("\n", oldFiles),
-                        "Config Editor",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Question);
-
-                    if (del == DialogResult.Yes)
-                    {
-                        var failed = new List<string>();
-                        foreach (var f in oldFiles)
-                        {
-                            try { File.Delete(f); }
-                            catch (Exception dex) { failed.Add($"{f}  ({dex.Message})"); }
-                        }
-
-                        if (failed.Count > 0)
-                            MessageBox.Show("Could not delete:\n" + string.Join("\n", failed),
-                                "Config Editor", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    }
-                }
-
-                ConfigSaved?.Invoke(this, newPcPath);
-                this.Close();
+                ConfigLoader.Save(_pcConfig, _jsonPath);
+                lblJsonPath.Text = $"Saved: {Path.GetFileName(_jsonPath)}";
             }
             catch (Exception ex)
             {
@@ -531,13 +421,14 @@ namespace ESDeckPC
             }
         }
 
-        private void btnDiscard_Click(object sender, EventArgs e)
+        private void UpdateJsonPathLabel()
         {
-            var result = MessageBox.Show("Discard all changes?", "Config Editor",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (result == DialogResult.Yes)
-                this.Close();
+            lblJsonPath.Text = _jsonPath != null ? Path.GetFileName(_jsonPath) : "(no file)";
+            this.Text = _jsonPath != null
+                ? $"Config Editor - {Path.GetFileName(_jsonPath)}"
+                : "Config Editor";
         }
+
         // ------------------------------------------------------------------
         // Page list management (preserved from original)
         // ------------------------------------------------------------------

@@ -22,8 +22,6 @@ namespace ESDeckPC
         private bool _hidConnected = false;
         private readonly TouchpadInput _touchpad = new TouchpadInput();
         private readonly KeyboardInput _keyboard = new KeyboardInput();
-        private PcConfig _config = null;
-        private string _pcJsonPath = null;
         private bool _forceClose = false;
         private bool _editorOpen = false;
 
@@ -70,7 +68,7 @@ namespace ESDeckPC
             Icon = Resources.playstation;
 
             _receiver = new HidReceiver();
-            _receiver.OnButtonPressed += OnButtonPressed;
+            _receiver.OnActionReceived += OnActionReceived;
             _receiver.OnMonitorControl += OnMonitorControl;
             _receiver.OnMediaControl += OnMediaControl;
             _receiver.OnMediaSeek += OnMediaSeek;
@@ -125,10 +123,6 @@ namespace ESDeckPC
             tsBtnClearLog.Click += tsBtnClearLog_Click;
 
             notifyIcon.Icon = this.Icon ?? SystemIcons.Application;
-
-            string lastPath = Properties.Settings.Default.LastPcJson;
-            if (!string.IsNullOrEmpty(lastPath) && File.Exists(lastPath))
-                LoadConfig(lastPath);
 
             DiscordRpcClient.Instance.ConnectionChanged +=
                 connected => SetDiscordStatus(connected);
@@ -192,16 +186,29 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // HID button event (fired from background thread)
+        // Deck action (fired from the HID read thread). The ESP carries the
+        // deck config and sends the pressed button as JSON -- label +
+        // action fields -- so nothing is looked up on the PC side.
         // ------------------------------------------------------------------
 
-        private void OnButtonPressed(byte page, byte btn)
+        private void OnActionReceived(string json)
         {
-            if (btn == 0x00) return;
             this.BeginInvoke((Action)(() =>
             {
-                string result = ActionExecutor.Run(_config, page, btn);
-                string label = GetButtonLabel(page, btn);
+                PcButton button;
+                try
+                {
+                    button = Newtonsoft.Json.JsonConvert.DeserializeObject<PcButton>(json);
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"Deck action: bad JSON ({ex.Message})", Color.OrangeRed);
+                    return;
+                }
+                if (button == null) return;
+
+                string result = ActionExecutor.Run(button);
+                string label = string.IsNullOrEmpty(button.Label) ? "?" : button.Label;
                 AppendLog($"[{label}] {result}",
                           result.Contains("failed") ? Color.OrangeRed : Color.LimeGreen);
             }));
@@ -333,36 +340,9 @@ namespace ESDeckPC
             }));
         }
 
-        private string GetButtonLabel(byte page, byte btn)
-        {
-            if (_config == null) return $"p{page}b{btn}";
-            int pi = page - 1, bi = btn - 1;
-            if (pi < 0 || pi >= _config.Pages.Count) return $"p{page}b{btn}";
-            var pg = _config.Pages[pi];
-            if (bi < 0 || bi >= pg.Buttons.Count) return $"p{page}b{btn}";
-            return pg.Buttons[bi].Label ?? $"p{page}b{btn}";
-        }
-
         // ------------------------------------------------------------------
         // Toolbar handlers
         // ------------------------------------------------------------------
-
-        private void tsMenuDeckLoad_Click(object sender, EventArgs e)
-        {
-            using (var dlg = new OpenFileDialog())
-            {
-                dlg.Title = "Open PC JSON";
-                dlg.Filter = "JSON files (*.json)|*.json";
-
-                string cfgDir = Path.Combine(
-                    Path.GetDirectoryName(Application.ExecutablePath), "cfg");
-                if (Directory.Exists(cfgDir))
-                    dlg.InitialDirectory = cfgDir;
-
-                if (dlg.ShowDialog() != DialogResult.OK) return;
-                LoadConfig(dlg.FileName);
-            }
-        }
 
         private void tsBtnClearLog_Click(object sender, EventArgs e)
         {
@@ -377,101 +357,10 @@ namespace ESDeckPC
                     "ESDeck PC", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-            string pcPath = null;
-            string espPath = null;
-
-            using (var dlg = new OpenFileDialog())
-            {
-                dlg.Title = "Open PC JSON";
-                dlg.Filter = "JSON files (*.json)|*.json";
-
-                string cfgDir = Path.Combine(
-                    Path.GetDirectoryName(Application.ExecutablePath), "cfg");
-                if (Directory.Exists(cfgDir))
-                    dlg.InitialDirectory = cfgDir;
-
-                if (dlg.ShowDialog() != DialogResult.OK) return;
-                pcPath = dlg.FileName;
-            }
-
-            using (var dlg = new OpenFileDialog())
-            {
-                dlg.Title = "Open ESP JSON (optional, cancel to skip)";
-                dlg.Filter = "JSON files (*.json)|*.json";
-                dlg.InitialDirectory = Path.GetDirectoryName(pcPath);
-
-                if (dlg.ShowDialog() == DialogResult.OK)
-                    espPath = dlg.FileName;
-            }
-
-            if (espPath == null)
-            {
-                var result = MessageBox.Show(
-                    "No ESP JSON selected.\n\nSaving without an ESP JSON will overwrite " +
-                    "the PC file only — the ESP file on the device will not be updated.\n\n" +
-                    "Continue anyway?",
-                    "ESP JSON not selected",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning);
-
-                if (result == DialogResult.No) return;
-            }
-
-            if (espPath != null &&
-                string.Equals(Path.GetFullPath(pcPath), Path.GetFullPath(espPath),
-                              StringComparison.OrdinalIgnoreCase))
-            {
-                MessageBox.Show(
-                    "PC JSON and ESP JSON cannot be the same file.\n\n" +
-                    "Saving would overwrite the ESP file with PC data.",
-                    "Same file selected",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-                return;
-            }
-
-            try
-            {
-                var pcConfig = ConfigLoader.LoadPc(pcPath);
-                var editor = new FormConfigEditor(pcConfig, pcPath, espPath);
-                editor.ConfigSaved += (s, newPath) =>
-                {
-                    if (!string.IsNullOrEmpty(newPath))
-                        LoadConfig(newPath);
-                };
-                editor.FormClosed += (s, args) => _editorOpen = false;
-                _editorOpen = true;
-                editor.Show();
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"Load failed: {ex.Message}", Color.OrangeRed);
-            }
-        }
-
-        // ------------------------------------------------------------------
-        // Settings menu handlers
-        // ------------------------------------------------------------------
-
-        private void tsMenuDeckReload_Click(object sender, EventArgs e)
-        {
-            if (_pcJsonPath == null) return;
-            LoadConfig(_pcJsonPath);
-        }
-
-        private void tsMenuDeckOpenFolder_Click(object sender, EventArgs e)
-        {
-            string exeDir = AppDomain.CurrentDomain.BaseDirectory;
-            string cfgFolder = Path.Combine(exeDir, "cfg");
-
-            if (!Directory.Exists(cfgFolder))
-            {
-                MessageBox.Show("Folder 'cfg' not found.", "ESDeck PC",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            Process.Start("explorer.exe", cfgFolder);
+            var editor = new FormConfigEditor();
+            editor.FormClosed += (s, args) => _editorOpen = false;
+            _editorOpen = true;
+            editor.Show();
         }
 
         // ------------------------------------------------------------------
@@ -602,33 +491,6 @@ namespace ESDeckPC
             this.Show();
             this.WindowState = FormWindowState.Normal;
             this.Activate();
-        }
-
-        // ------------------------------------------------------------------
-        // Config load
-        // ------------------------------------------------------------------
-
-        private void LoadConfig(string path)
-        {
-            try
-            {
-                _config = ConfigLoader.LoadPc(path);
-                _pcJsonPath = path;
-                Properties.Settings.Default.LastPcJson = path;
-                Properties.Settings.Default.Save();
-                lblPcName.Text = Path.GetFileName(path);
-                tsMenuDeckReload.Enabled = true;
-                lstPages.Items.Clear();
-                foreach (var pg in _config.Pages)
-                    lstPages.Items.Add($"{pg.Name} ({pg.Buttons.Count})");
-                ssLblJson.Text = "JSON: Loaded";
-                ssLblPages.Text = $"{_config.Pages.Count} pages";
-                AppendLog($"Loaded {Path.GetFileName(path)}", Color.LimeGreen);
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"Load failed: {ex.Message}", Color.OrangeRed);
-            }
         }
 
         // ------------------------------------------------------------------

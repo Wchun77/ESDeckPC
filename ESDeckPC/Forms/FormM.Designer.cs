@@ -18,10 +18,7 @@
             this.components = new System.ComponentModel.Container();
             this.toolStrip = new System.Windows.Forms.ToolStrip();
             this.tsMenuDeck = new System.Windows.Forms.ToolStripDropDownButton();
-            this.tsMenuDeckLoad = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuDeckEdit = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsMenuDeckReload = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsMenuDeckOpenFolder = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuMonitor = new System.Windows.Forms.ToolStripDropDownButton();
             this.tsMenuMonitorEdit = new System.Windows.Forms.ToolStripMenuItem();
             this.tsMenuMeida = new System.Windows.Forms.ToolStripDropDownButton();
@@ -42,15 +39,7 @@
             this.tsBtnClearLog = new System.Windows.Forms.ToolStripButton();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.ssLblHid = new System.Windows.Forms.ToolStripStatusLabel();
-            this.ssLblJson = new System.Windows.Forms.ToolStripStatusLabel();
             this.ssLblDiscord = new System.Windows.Forms.ToolStripStatusLabel();
-            this.ssLblPages = new System.Windows.Forms.ToolStripStatusLabel();
-            this.splitMain = new System.Windows.Forms.SplitContainer();
-            this.grpPages = new System.Windows.Forms.GroupBox();
-            this.lstPages = new System.Windows.Forms.ListBox();
-            this.grpFiles = new System.Windows.Forms.GroupBox();
-            this.lblPcTag = new System.Windows.Forms.Label();
-            this.lblPcName = new System.Windows.Forms.Label();
             this.grpLog = new System.Windows.Forms.GroupBox();
             this.txtLog = new System.Windows.Forms.RichTextBox();
             this.timerHid = new System.Windows.Forms.Timer(this.components);
@@ -61,12 +50,6 @@
             this.trayMenuExit = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitMain)).BeginInit();
-            this.splitMain.Panel1.SuspendLayout();
-            this.splitMain.Panel2.SuspendLayout();
-            this.splitMain.SuspendLayout();
-            this.grpPages.SuspendLayout();
-            this.grpFiles.SuspendLayout();
             this.grpLog.SuspendLayout();
             this.trayMenu.SuspendLayout();
             this.SuspendLayout();
@@ -92,22 +75,12 @@
             // tsMenuDeck
             // 
             this.tsMenuDeck.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsMenuDeckLoad,
-            this.tsMenuDeckEdit,
-            this.tsMenuDeckReload,
-            this.tsMenuDeckOpenFolder});
+            this.tsMenuDeckEdit});
             this.tsMenuDeck.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.tsMenuDeck.Name = "tsMenuDeck";
             this.tsMenuDeck.ShowDropDownArrow = false;
             this.tsMenuDeck.Size = new System.Drawing.Size(39, 22);
             this.tsMenuDeck.Text = "Deck";
-            // 
-            // tsMenuDeckLoad
-            // 
-            this.tsMenuDeckLoad.Name = "tsMenuDeckLoad";
-            this.tsMenuDeckLoad.Size = new System.Drawing.Size(145, 22);
-            this.tsMenuDeckLoad.Text = "Load";
-            this.tsMenuDeckLoad.Click += new System.EventHandler(this.tsMenuDeckLoad_Click);
             // 
             // tsMenuDeckEdit
             // 
@@ -115,21 +88,6 @@
             this.tsMenuDeckEdit.Size = new System.Drawing.Size(145, 22);
             this.tsMenuDeckEdit.Text = "Edit";
             this.tsMenuDeckEdit.Click += new System.EventHandler(this.tsMenuDeckEdit_Click);
-            // 
-            // tsMenuDeckReload
-            // 
-            this.tsMenuDeckReload.Enabled = false;
-            this.tsMenuDeckReload.Name = "tsMenuDeckReload";
-            this.tsMenuDeckReload.Size = new System.Drawing.Size(145, 22);
-            this.tsMenuDeckReload.Text = "Reload";
-            this.tsMenuDeckReload.Click += new System.EventHandler(this.tsMenuDeckReload_Click);
-            // 
-            // tsMenuDeckOpenFolder
-            // 
-            this.tsMenuDeckOpenFolder.Name = "tsMenuDeckOpenFolder";
-            this.tsMenuDeckOpenFolder.Size = new System.Drawing.Size(145, 22);
-            this.tsMenuDeckOpenFolder.Text = "Open Folder";
-            this.tsMenuDeckOpenFolder.Click += new System.EventHandler(this.tsMenuDeckOpenFolder_Click);
             // 
             // tsMenuMonitor
             // 
@@ -285,9 +243,7 @@
             this.statusStrip.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.ssLblHid,
-            this.ssLblJson,
-            this.ssLblDiscord,
-            this.ssLblPages});
+            this.ssLblDiscord});
             this.statusStrip.Location = new System.Drawing.Point(0, 428);
             this.statusStrip.Name = "statusStrip";
             this.statusStrip.Size = new System.Drawing.Size(860, 24);
@@ -302,14 +258,6 @@
             this.ssLblHid.Size = new System.Drawing.Size(115, 19);
             this.ssLblHid.Text = "HID: Disconnected";
             // 
-            // ssLblJson
-            // 
-            this.ssLblJson.BorderSides = System.Windows.Forms.ToolStripStatusLabelBorderSides.Right;
-            this.ssLblJson.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.ssLblJson.Name = "ssLblJson";
-            this.ssLblJson.Size = new System.Drawing.Size(115, 19);
-            this.ssLblJson.Text = "JSON: Not loaded";
-            // 
             // ssLblDiscord
             // 
             this.ssLblDiscord.BorderSides = System.Windows.Forms.ToolStripStatusLabelBorderSides.Right;
@@ -318,106 +266,15 @@
             this.ssLblDiscord.Size = new System.Drawing.Size(137, 19);
             this.ssLblDiscord.Text = "Discord: Disconnected";
             // 
-            // ssLblPages
-            // 
-            this.ssLblPages.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.ssLblPages.Name = "ssLblPages";
-            this.ssLblPages.Size = new System.Drawing.Size(478, 19);
-            this.ssLblPages.Spring = true;
-            this.ssLblPages.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            // 
-            // splitMain
-            // 
-            this.splitMain.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
-            this.splitMain.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitMain.FixedPanel = System.Windows.Forms.FixedPanel.Panel1;
-            this.splitMain.Location = new System.Drawing.Point(0, 25);
-            this.splitMain.Name = "splitMain";
-            // 
-            // splitMain.Panel1
-            // 
-            this.splitMain.Panel1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
-            this.splitMain.Panel1.Controls.Add(this.grpPages);
-            this.splitMain.Panel1.Controls.Add(this.grpFiles);
-            // 
-            // splitMain.Panel2
-            // 
-            this.splitMain.Panel2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
-            this.splitMain.Panel2.Controls.Add(this.grpLog);
-            this.splitMain.Size = new System.Drawing.Size(860, 403);
-            this.splitMain.SplitterDistance = 121;
-            this.splitMain.TabIndex = 2;
-            // 
-            // grpPages
-            // 
-            this.grpPages.Controls.Add(this.lstPages);
-            this.grpPages.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.grpPages.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.grpPages.Location = new System.Drawing.Point(0, 61);
-            this.grpPages.Name = "grpPages";
-            this.grpPages.Padding = new System.Windows.Forms.Padding(8, 4, 8, 8);
-            this.grpPages.Size = new System.Drawing.Size(121, 342);
-            this.grpPages.TabIndex = 1;
-            this.grpPages.TabStop = false;
-            this.grpPages.Text = "Pages";
-            // 
-            // lstPages
-            // 
-            this.lstPages.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.lstPages.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.lstPages.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lstPages.Font = new System.Drawing.Font("Consolas", 9F);
-            this.lstPages.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.lstPages.ItemHeight = 14;
-            this.lstPages.Location = new System.Drawing.Point(8, 19);
-            this.lstPages.Name = "lstPages";
-            this.lstPages.SelectionMode = System.Windows.Forms.SelectionMode.None;
-            this.lstPages.Size = new System.Drawing.Size(105, 315);
-            this.lstPages.TabIndex = 0;
-            // 
-            // grpFiles
-            // 
-            this.grpFiles.Controls.Add(this.lblPcTag);
-            this.grpFiles.Controls.Add(this.lblPcName);
-            this.grpFiles.Dock = System.Windows.Forms.DockStyle.Top;
-            this.grpFiles.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.grpFiles.Location = new System.Drawing.Point(0, 0);
-            this.grpFiles.Name = "grpFiles";
-            this.grpFiles.Padding = new System.Windows.Forms.Padding(8, 4, 8, 8);
-            this.grpFiles.Size = new System.Drawing.Size(121, 61);
-            this.grpFiles.TabIndex = 0;
-            this.grpFiles.TabStop = false;
-            this.grpFiles.Text = "JSON";
-            // 
-            // lblPcTag
-            // 
-            this.lblPcTag.AutoSize = true;
-            this.lblPcTag.ForeColor = System.Drawing.Color.Gray;
-            this.lblPcTag.Location = new System.Drawing.Point(10, 20);
-            this.lblPcTag.Name = "lblPcTag";
-            this.lblPcTag.Size = new System.Drawing.Size(21, 14);
-            this.lblPcTag.TabIndex = 3;
-            this.lblPcTag.Text = "PC";
-            // 
-            // lblPcName
-            // 
-            this.lblPcName.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Bold);
-            this.lblPcName.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.lblPcName.Location = new System.Drawing.Point(10, 36);
-            this.lblPcName.Name = "lblPcName";
-            this.lblPcName.Size = new System.Drawing.Size(103, 16);
-            this.lblPcName.TabIndex = 4;
-            this.lblPcName.Text = "—";
-            // 
             // grpLog
             // 
             this.grpLog.Controls.Add(this.txtLog);
             this.grpLog.Dock = System.Windows.Forms.DockStyle.Fill;
             this.grpLog.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.grpLog.Location = new System.Drawing.Point(0, 0);
+            this.grpLog.Location = new System.Drawing.Point(0, 25);
             this.grpLog.Name = "grpLog";
             this.grpLog.Padding = new System.Windows.Forms.Padding(8, 4, 8, 8);
-            this.grpLog.Size = new System.Drawing.Size(735, 403);
+            this.grpLog.Size = new System.Drawing.Size(860, 403);
             this.grpLog.TabIndex = 0;
             this.grpLog.TabStop = false;
             this.grpLog.Text = "Log";
@@ -433,7 +290,7 @@
             this.txtLog.Name = "txtLog";
             this.txtLog.ReadOnly = true;
             this.txtLog.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.txtLog.Size = new System.Drawing.Size(719, 376);
+            this.txtLog.Size = new System.Drawing.Size(844, 376);
             this.txtLog.TabIndex = 0;
             this.txtLog.Text = "";
             this.txtLog.WordWrap = false;
@@ -486,7 +343,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.ClientSize = new System.Drawing.Size(860, 452);
-            this.Controls.Add(this.splitMain);
+            this.Controls.Add(this.grpLog);
             this.Controls.Add(this.toolStrip);
             this.Controls.Add(this.statusStrip);
             this.Font = new System.Drawing.Font("Consolas", 9F);
@@ -499,13 +356,6 @@
             this.toolStrip.PerformLayout();
             this.statusStrip.ResumeLayout(false);
             this.statusStrip.PerformLayout();
-            this.splitMain.Panel1.ResumeLayout(false);
-            this.splitMain.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitMain)).EndInit();
-            this.splitMain.ResumeLayout(false);
-            this.grpPages.ResumeLayout(false);
-            this.grpFiles.ResumeLayout(false);
-            this.grpFiles.PerformLayout();
             this.grpLog.ResumeLayout(false);
             this.trayMenu.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -522,15 +372,7 @@
         private System.Windows.Forms.ToolStripButton tsBtnClearLog;
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel ssLblHid;
-        private System.Windows.Forms.ToolStripStatusLabel ssLblJson;
         private System.Windows.Forms.ToolStripStatusLabel ssLblDiscord;
-        private System.Windows.Forms.ToolStripStatusLabel ssLblPages;
-        private System.Windows.Forms.SplitContainer splitMain;
-        private System.Windows.Forms.GroupBox grpFiles;
-        private System.Windows.Forms.Label lblPcTag;
-        private System.Windows.Forms.Label lblPcName;
-        private System.Windows.Forms.GroupBox grpPages;
-        private System.Windows.Forms.ListBox lstPages;
         private System.Windows.Forms.GroupBox grpLog;
         private System.Windows.Forms.RichTextBox txtLog;
         private System.Windows.Forms.Timer timerHid;
@@ -542,10 +384,7 @@
         private System.Windows.Forms.ToolStripDropDownButton tsMenuMonitor;
         private System.Windows.Forms.ToolStripMenuItem tsMenuMonitorEdit;
         private System.Windows.Forms.ToolStripDropDownButton tsMenuDeck;
-        private System.Windows.Forms.ToolStripMenuItem tsMenuDeckLoad;
         private System.Windows.Forms.ToolStripMenuItem tsMenuDeckEdit;
-        private System.Windows.Forms.ToolStripMenuItem tsMenuDeckReload;
-        private System.Windows.Forms.ToolStripMenuItem tsMenuDeckOpenFolder;
         private System.Windows.Forms.ToolStripDropDownButton tsMenuAssets;
         private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsBg;
         private System.Windows.Forms.ToolStripMenuItem tsMenuAssetsIco;
