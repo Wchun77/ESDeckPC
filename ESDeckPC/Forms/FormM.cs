@@ -26,6 +26,9 @@ namespace ESDeckPC
         private bool _editorOpen = false;
         private OtaUploader _ota;
         private ToolStripMenuItem _tsMenuFirmware;
+        private ToolStripMenuItem _trayMenuFirmware;
+        private Icon _trayIconOn;    // normal app icon
+        private Icon _trayIconOff;   // grayed copy, shown while ESDeck isn't connected
         private bool _otaRunning = false;
 
         [DllImport("dwmapi.dll")]
@@ -160,7 +163,17 @@ namespace ESDeckPC
 
             tsBtnClearLog.Click += tsBtnClearLog_Click;
 
-            notifyIcon.Icon = this.Icon ?? SystemIcons.Application;
+            // Tray: icon shows the connection (gray = not connected), and
+            // Firmware Update... is reachable without opening the window.
+            _trayIconOn  = this.Icon ?? SystemIcons.Application;
+            _trayIconOff = MakeGrayIcon(_trayIconOn);
+            _trayMenuFirmware = new ToolStripMenuItem("Firmware Update...")
+            {
+                ForeColor = Color.FromArgb(220, 220, 220),   // added after the dark-theme loop above
+            };
+            _trayMenuFirmware.Click += tsMenuFirmware_Click;
+            trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuFirmware);
+            SetTrayConnected(false);
 
             DiscordRpcClient.Instance.ConnectionChanged +=
                 connected => SetDiscordStatus(connected);
@@ -186,6 +199,7 @@ namespace ESDeckPC
                     _hidConnected = true;
                     ssLblHid.Text = "HID: Connected";
                     ssLblHid.ForeColor = Color.Green;
+                    SetTrayConnected(true);
                     AppendLog("HID connected", Color.LimeGreen);
 
                     /* Send current time immediately on connect so the ESP
@@ -219,6 +233,7 @@ namespace ESDeckPC
                 _hidConnected = false;
                 ssLblHid.Text = "HID: Disconnected";
                 ssLblHid.ForeColor = Color.Red;
+                SetTrayConnected(false);
                 AppendLog("HID disconnected", Color.OrangeRed);
             }
         }
@@ -449,6 +464,7 @@ namespace ESDeckPC
 
             _otaRunning = true;
             _tsMenuFirmware.Enabled = false;
+            _trayMenuFirmware.Enabled = false;
 
             // Keep the HID channel for the update: stop streaming Monitor /
             // Media data (the device ignores it during the update anyway).
@@ -465,6 +481,7 @@ namespace ESDeckPC
                 {
                     _otaRunning = false;
                     _tsMenuFirmware.Enabled = true;
+                    _trayMenuFirmware.Enabled = true;
                     if (!ok)
                     {
                         // Device stays on the old firmware in whatever mode it
@@ -600,6 +617,33 @@ namespace ESDeckPC
             DiscordRpcClient.Instance.Dispose();
             notifyIcon.Visible = false;
             Application.Exit();
+        }
+
+        private void SetTrayConnected(bool connected)
+        {
+            notifyIcon.Icon = connected ? _trayIconOn : _trayIconOff;
+            notifyIcon.Text = connected ? "ESDeck PC - Connected" : "ESDeck PC - Disconnected";
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool DestroyIcon(IntPtr hIcon);
+
+        // Grayed copy of the app icon (same look as a disabled toolbar image).
+        // Made once at startup; the GDI handle is copied into a managed Icon
+        // and freed right away.
+        private static Icon MakeGrayIcon(Icon src)
+        {
+            using (var bmp = src.ToBitmap())
+            using (var gray = (Bitmap)ToolStripRenderer.CreateDisabledImage(bmp))
+            {
+                IntPtr h = gray.GetHicon();
+                try
+                {
+                    using (var tmp = Icon.FromHandle(h))
+                        return (Icon)tmp.Clone();
+                }
+                finally { DestroyIcon(h); }
+            }
         }
 
         private void ShowMainWindow()
