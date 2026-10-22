@@ -31,7 +31,9 @@ public class HidReceiver
             if (Array.IndexOf(ProductIds, d.ProductID) < 0) continue;
             try
             {
-                if (d.GetMaxFeatureReportLength() >= VendorFeatureLen)
+                // Exactly the vendor feature report: the Precision Touchpad
+                // interface (fw 0x0102+) has a bigger one (256-byte blob).
+                if (d.GetMaxFeatureReportLength() == VendorFeatureLen)
                     return d;
             }
             catch
