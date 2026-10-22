@@ -170,6 +170,7 @@ namespace ESDeckPC
                 dlg.Title = "Save icon PNG";
                 dlg.Filter = "PNG image (*.png)|*.png";
                 dlg.FileName = _sourceFileName + ".png";
+                dlg.InitialDirectory = EsDeckDrive.Dir("assets", "icons") ?? "";   // SD card in Storage Mode
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 

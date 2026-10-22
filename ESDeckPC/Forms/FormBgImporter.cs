@@ -112,6 +112,7 @@ namespace ESDeckPC
                 dlg.Title = "Save background JPG";
                 dlg.Filter = "JPEG image (*.jpg)|*.jpg";
                 dlg.FileName = _sourceFileName + ".jpg";
+                dlg.InitialDirectory = EsDeckDrive.Dir("assets", "backgrounds") ?? "";   // SD card in Storage Mode
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 

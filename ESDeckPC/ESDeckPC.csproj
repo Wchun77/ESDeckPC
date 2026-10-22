@@ -84,6 +84,7 @@
     </Compile>
     <Compile Include="Tools\FfmpegRunner.cs" />
     <Compile Include="Tools\FontBinLoader.cs" />
+    <Compile Include="Tools\EsDeckDrive.cs" />
     <Compile Include="Forms\FormBgImporter.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -1050,6 +1050,8 @@ namespace ESDeckPC
                 dlg.Description = "Select or create the animation folder (normally under assets\\boot\\<name> on the SD card)";
                 if (!string.IsNullOrEmpty(_txtOutputDir.Text) && Directory.Exists(_txtOutputDir.Text))
                     dlg.SelectedPath = _txtOutputDir.Text;
+                else
+                    dlg.SelectedPath = EsDeckDrive.Dir("assets", "boot") ?? "";   // SD card in Storage Mode
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 

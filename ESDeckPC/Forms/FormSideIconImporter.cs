@@ -170,6 +170,7 @@ namespace ESDeckPC
                 dlg.Title = "Save sidebar icon PNG";
                 dlg.Filter = "PNG image (*.png)|*.png";
                 dlg.FileName = _sourceFileName + ".png";
+                dlg.InitialDirectory = EsDeckDrive.Dir("assets", "side_icons") ?? "";   // SD card in Storage Mode
 
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 

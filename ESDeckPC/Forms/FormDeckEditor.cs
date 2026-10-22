@@ -324,6 +324,12 @@ namespace ESDeckPC
 
         private const string DefaultFileName = "deck.json";
 
+        // File dialogs start in the current file's folder, else in the
+        // ESDeck SD card's config\deck (Storage Mode), else Windows' default.
+        private string DialogDir() =>
+            !string.IsNullOrEmpty(_jsonPath) ? Path.GetDirectoryName(_jsonPath)
+                                              : EsDeckDrive.Dir("config", "deck");
+
         private void BtnJsonNew_Click(object sender, EventArgs e)
         {
             using (var dlg = new SaveFileDialog())
@@ -331,8 +337,7 @@ namespace ESDeckPC
                 dlg.Title = "New deck JSON";
                 dlg.Filter = "JSON files (*.json)|*.json";
                 dlg.FileName = DefaultFileName;
-                if (!string.IsNullOrEmpty(_jsonPath))
-                    dlg.InitialDirectory = Path.GetDirectoryName(_jsonPath);
+                dlg.InitialDirectory = DialogDir() ?? "";
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
                 _deckConfig = new DeckConfig();
@@ -349,8 +354,7 @@ namespace ESDeckPC
             {
                 dlg.Title = "Open deck JSON";
                 dlg.Filter = "JSON files (*.json)|*.json";
-                if (!string.IsNullOrEmpty(_jsonPath))
-                    dlg.InitialDirectory = Path.GetDirectoryName(_jsonPath);
+                dlg.InitialDirectory = DialogDir() ?? "";
                 if (dlg.ShowDialog() != DialogResult.OK) return;
 
                 try
@@ -394,8 +398,7 @@ namespace ESDeckPC
                 dlg.FileName = !string.IsNullOrEmpty(_jsonPath)
                     ? Path.GetFileName(_jsonPath)
                     : DefaultFileName;
-                if (!string.IsNullOrEmpty(_jsonPath))
-                    dlg.InitialDirectory = Path.GetDirectoryName(_jsonPath);
+                dlg.InitialDirectory = DialogDir() ?? "";
                 if (dlg.ShowDialog() != DialogResult.OK) return false;
 
                 _jsonPath = dlg.FileName;
