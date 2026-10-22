@@ -19,6 +19,12 @@ namespace ESDeckPC
     /// keyboard. Modifiers are pressed before the key down and released
     /// after the key up. Auto-repeat arrives as repeated DOWN reports.
     ///
+    /// Every key that is down is remembered (several can be: e.g. the
+    /// touchpad's top buttons hold Ctrl/Shift as plain keys while a key is
+    /// typed), so ReleaseAll() lets go of all of them. A modifier that is
+    /// held as a key of its own is neither re-pressed nor released by
+    /// another key's mods byte.
+    ///
     /// Process() runs on HidReceiver's read thread; the lock only guards
     /// the held-key state against ReleaseAll() from the UI thread.
     /// Same UIPI note as TouchpadInput: no input into elevated windows.
@@ -43,8 +49,8 @@ namespace ESDeckPC
         };
 
         private readonly object _lock = new object();
-        private byte _heldMods;
-        private ushort _downVk;   // 0 = none
+        private byte _heldMods;                                     // mods pressed for the current key(s)
+        private readonly List<ushort> _downVks = new List<ushort>(); // keys down, in press order
 
         // ------------------------------------------------------------------
         // Win32
@@ -150,17 +156,17 @@ namespace ESDeckPC
                     // Press modifiers this key needs that aren't held yet
                     // (repeats arrive with the same mods -> nothing extra).
                     foreach (var m in ModKeys)
-                        if ((mods & m.bit) != 0 && (_heldMods & m.bit) == 0)
+                        if ((mods & m.bit) != 0 && (_heldMods & m.bit) == 0 && !_downVks.Contains(m.vk))
                             inputs.Add(Key(m.vk, up: false));
                     _heldMods |= mods;
 
                     inputs.Add(Key(vk, up: false));
-                    _downVk = vk;
+                    if (!_downVks.Contains(vk)) _downVks.Add(vk);
                 }
                 else if (cmd == CMD_UP)
                 {
                     inputs.Add(Key(vk, up: true));
-                    if (_downVk == vk) _downVk = 0;
+                    _downVks.Remove(vk);
                     AddModReleases(inputs);
                 }
             }
@@ -172,24 +178,23 @@ namespace ESDeckPC
         /// </summary>
         public void ReleaseAll()
         {
-            var inputs = new List<INPUT>(5);
+            var inputs = new List<INPUT>(8);
             lock (_lock)
             {
-                if (_downVk != 0)
-                {
-                    inputs.Add(Key(_downVk, up: true));
-                    _downVk = 0;
-                }
+                for (int i = _downVks.Count - 1; i >= 0; i--)   // reverse order of press
+                    inputs.Add(Key(_downVks[i], up: true));
+                _downVks.Clear();
                 AddModReleases(inputs);
             }
             Send(inputs);
         }
 
-        // Caller holds _lock. Reverse order of press.
+        // Caller holds _lock. Reverse order of press. A modifier still held
+        // as a key of its own stays down.
         private void AddModReleases(List<INPUT> inputs)
         {
             for (int i = ModKeys.Length - 1; i >= 0; i--)
-                if ((_heldMods & ModKeys[i].bit) != 0)
+                if ((_heldMods & ModKeys[i].bit) != 0 && !_downVks.Contains(ModKeys[i].vk))
                     inputs.Add(Key(ModKeys[i].vk, up: true));
             _heldMods = 0;
         }
