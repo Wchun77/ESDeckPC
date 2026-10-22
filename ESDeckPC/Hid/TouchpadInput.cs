@@ -32,6 +32,7 @@ namespace ESDeckPC
         private const byte CMD_HWHEEL = 0x02;
         private const byte BTN_LEFT = 0x01;
         private const byte BTN_RIGHT = 0x02;
+        private const byte BTN_MIDDLE = 0x04;
         private const byte BTN_BACK = 0x08;
         private const byte BTN_FORWARD = 0x10;
 
@@ -86,6 +87,8 @@ namespace ESDeckPC
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
         private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
+        private const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
+        private const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
         private const uint MOUSEEVENTF_WHEEL = 0x0800;
         private const uint MOUSEEVENTF_XDOWN = 0x0080;
         private const uint MOUSEEVENTF_XUP = 0x0100;
@@ -204,6 +207,8 @@ namespace ESDeckPC
                 inputs.Add(Mouse((newMask & BTN_LEFT) != 0 ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP));
             if ((changed & BTN_RIGHT) != 0)
                 inputs.Add(Mouse((newMask & BTN_RIGHT) != 0 ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP));
+            if ((changed & BTN_MIDDLE) != 0)
+                inputs.Add(Mouse((newMask & BTN_MIDDLE) != 0 ? MOUSEEVENTF_MIDDLEDOWN : MOUSEEVENTF_MIDDLEUP));
             // Back / Forward = mouse buttons 4 / 5 (two-finger swipe on the ESP)
             if ((changed & BTN_BACK) != 0)
                 inputs.Add(Mouse((newMask & BTN_BACK) != 0 ? MOUSEEVENTF_XDOWN : MOUSEEVENTF_XUP, data: XBUTTON1));
