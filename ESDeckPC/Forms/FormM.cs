@@ -33,6 +33,17 @@ namespace ESDeckPC
                                                         ref int attrValue, int attrSize);
         private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hwnd, string pszSubAppName, string pszSubIdList);
+
+        // Log box scrollbar: dark instead of the default white one (same
+        // trick as FormMediaEditor's settings panel). Windows 10 1809+.
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            SetWindowTheme(txtLog.Handle, "DarkMode_Explorer", null);
+        }
+
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
