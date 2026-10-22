@@ -170,6 +170,7 @@
       <DependentUpon>FormSideIconPicker.cs</DependentUpon>
     </Compile>
     <Compile Include="Hid\HidReceiver.cs" />
+    <Compile Include="Hid\OtaUploader.cs" />
     <Compile Include="Renderers\MonitorClockRenderer.cs" />
     <Compile Include="Config\MonitorConfig.cs" />
     <Compile Include="Renderers\MonitorPageRenderer.cs" />

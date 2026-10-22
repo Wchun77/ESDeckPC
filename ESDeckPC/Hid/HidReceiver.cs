@@ -51,6 +51,10 @@ public class HidReceiver
     // HID_ACTION_* in ESDeck's usb_hid.h. Invoked on the read thread.
     public event Action<string> OnActionReceived;
 
+    // Fires for firmware-update status reports (page=0xFA): status byte +
+    // uint32 value, see OtaUploader. Invoked on the read thread.
+    public event Action<byte, uint> OnOtaStatus;
+
     // Fires when ESP sends monitor control: subscribe (0x01) or unsubscribe (0x02)
     public event Action<byte> OnMonitorControl;
 
@@ -264,6 +268,11 @@ public class HidReceiver
                 else if (page == ActionPage)
                 {
                     HandleActionChunk(buf, len);
+                }
+                else if (page == 0xFA && len >= 7)
+                {
+                    uint value = (uint)(buf[3] | (buf[4] << 8) | (buf[5] << 16) | (buf[6] << 24));
+                    OnOtaStatus?.Invoke(btn, value);
                 }
             }
             catch (TimeoutException)

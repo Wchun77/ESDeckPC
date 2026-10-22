@@ -24,6 +24,9 @@ namespace ESDeckPC
         private readonly KeyboardInput _keyboard = new KeyboardInput();
         private bool _forceClose = false;
         private bool _editorOpen = false;
+        private OtaUploader _ota;
+        private ToolStripMenuItem _tsMenuFirmware;
+        private bool _otaRunning = false;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
@@ -41,6 +44,17 @@ namespace ESDeckPC
         public FormM()
         {
             InitializeComponent();
+
+            // Device > Firmware Update... (built here, not in the designer)
+            var tsMenuDevice = new ToolStripDropDownButton("Device")
+            {
+                ShowDropDownArrow = false,
+                ForeColor = Color.FromArgb(220, 220, 220),
+            };
+            _tsMenuFirmware = new ToolStripMenuItem("Firmware Update...");
+            _tsMenuFirmware.Click += tsMenuFirmware_Click;
+            tsMenuDevice.DropDownItems.Add(_tsMenuFirmware);
+            toolStrip.Items.Insert(toolStrip.Items.IndexOf(tsSep1), tsMenuDevice);
 
             var darkRenderer = new DarkToolStripRenderer(new DarkColorTable());
             ToolStripManager.Renderer = darkRenderer;
@@ -69,6 +83,19 @@ namespace ESDeckPC
 
             _receiver = new HidReceiver();
             _receiver.OnActionReceived += OnActionReceived;
+            _ota = new OtaUploader(_receiver);
+            _ota.OnLog += msg => AppendLog(msg, Color.Gold);
+            int lastLoggedPct = -10;
+            _ota.OnProgress += pct =>
+            {
+                if (pct >= lastLoggedPct + 10 || pct == 100)
+                {
+                    lastLoggedPct = pct - pct % 10;
+                    AppendLog($"OTA: {pct}%", Color.Gold);
+                }
+                if (pct == 0) lastLoggedPct = 0;
+            };
+            _receiver.OnOtaStatus += _ota.HandleStatus;
             _receiver.OnMonitorControl += OnMonitorControl;
             _receiver.OnMediaControl += OnMediaControl;
             _receiver.OnMediaSeek += OnMediaSeek;
@@ -361,6 +388,68 @@ namespace ESDeckPC
             editor.FormClosed += (s, args) => _editorOpen = false;
             _editorOpen = true;
             editor.Show();
+        }
+
+        // ------------------------------------------------------------------
+        // Device menu -- firmware update over HID (no Storage Mode / SD card)
+        // ------------------------------------------------------------------
+
+        private void tsMenuFirmware_Click(object sender, EventArgs e)
+        {
+            if (_otaRunning) return;
+            if (!_hidConnected)
+            {
+                MessageBox.Show("ESDeck is not connected.", "Firmware Update",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string path;
+            using (var dlg = new OpenFileDialog())
+            {
+                dlg.Title = "Select ESDeck firmware (.bin)";
+                dlg.Filter = "Firmware image (*.bin)|*.bin";
+                if (dlg.ShowDialog() != DialogResult.OK) return;
+                path = dlg.FileName;
+            }
+
+            byte[] image;
+            try { image = File.ReadAllBytes(path); }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Cannot read file:\n{ex.Message}", "Firmware Update",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string err = OtaUploader.Validate(image, out string project, out string version);
+            if (err != null)
+            {
+                MessageBox.Show(err, "Firmware Update", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Update ESDeck firmware?\n\n{Path.GetFileName(path)}\n" +
+                $"Project: {project}\nVersion: {version}\nSize: {image.Length / 1024} KB\n\n" +
+                "Don't unplug the device until it reboots.",
+                "Firmware Update", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (confirm != DialogResult.Yes) return;
+
+            _otaRunning = true;
+            _tsMenuFirmware.Enabled = false;
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                bool ok = _ota.Run(image);
+                BeginInvoke((Action)(() =>
+                {
+                    _otaRunning = false;
+                    _tsMenuFirmware.Enabled = true;
+                    if (!ok)
+                        MessageBox.Show("Firmware update failed -- see the log. The device keeps its current firmware.",
+                            "Firmware Update", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }));
+            });
         }
 
         // ------------------------------------------------------------------
