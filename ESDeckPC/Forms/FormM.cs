@@ -449,6 +449,15 @@ namespace ESDeckPC
 
             _otaRunning = true;
             _tsMenuFirmware.Enabled = false;
+
+            // Keep the HID channel for the update: stop streaming Monitor /
+            // Media data (the device ignores it during the update anyway).
+            // Time sync and mode query keep running.
+            _monitor.Unsubscribe();
+            _nowPlayingSender.Unsubscribe();
+            _audioLevelSender.Unsubscribe();
+            _nowPlayingImageSender.Unsubscribe();
+
             System.Threading.Tasks.Task.Run(() =>
             {
                 bool ok = _ota.Run(image);
@@ -457,8 +466,15 @@ namespace ESDeckPC
                     _otaRunning = false;
                     _tsMenuFirmware.Enabled = true;
                     if (!ok)
+                    {
+                        // Device stays on the old firmware in whatever mode it
+                        // was in -- ask for it, OnModeReport re-subscribes.
+                        _monitor.SendQuery();
                         MessageBox.Show("Firmware update failed -- see the log. The device keeps its current firmware.",
                             "Firmware Update", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    // On success the device reboots; the reconnect path
+                    // (timerHid_Tick) queries the mode as usual.
                 }));
             });
         }
