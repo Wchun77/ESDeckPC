@@ -316,6 +316,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <None Include="CanvasFiles\**\*.*" />
+    <None Include="Docs\**\*.*" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="AxWMPLib">
@@ -380,5 +381,13 @@
       <Output TaskParameter="ExitCode" PropertyName="CanvasCopyExit" />
     </Exec>
     <Error Condition="$(CanvasCopyExit) &gt;= 8" Text="Copying CanvasFiles to $(TargetDir)Canvas failed (robocopy exit $(CanvasCopyExit))" />
+  </Target>
+  <!-- Docs\ -> <exe folder>\doc\ after every build (Canvas page guide etc.).
+       Docs are only edited in the project, so always overwrite (no /XO). -->
+  <Target Name="CopyDocs" AfterTargets="Build">
+    <Exec Command="robocopy &quot;$(ProjectDir)Docs&quot; &quot;$(TargetDir)doc&quot; /E /NFL /NDL /NJH /NJS /NP" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="DocsCopyExit" />
+    </Exec>
+    <Error Condition="$(DocsCopyExit) &gt;= 8" Text="Copying Docs to $(TargetDir)doc failed (robocopy exit $(DocsCopyExit))" />
   </Target>
 </Project>
