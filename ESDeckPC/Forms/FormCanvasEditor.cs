@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
@@ -28,6 +29,22 @@ namespace ESDeckPC
         private readonly ListBox _lstPages = new ListBox { IntegralHeight = false };
         private readonly TextBox _txtName = new TextBox();
         private readonly TextBox _txtIcon = new TextBox();
+        private readonly PictureBox _picIcon = new PictureBox
+        {
+            Size = new Size(64, 64), SizeMode = PictureBoxSizeMode.Normal,
+            BackColor = Color.FromArgb(0x2a, 0x2a, 0x2a), Margin = new Padding(6, 0, 0, 0),
+        };
+
+        // Grey hint text in an empty TextBox (.NET Framework has no PlaceholderText).
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, string lParam);
+        private const int EM_SETCUEBANNER = 0x1501;
+
+        private static void SetHint(TextBox box, string hint)
+        {
+            if (box.IsHandleCreated)
+                SendMessage(box.Handle, EM_SETCUEBANNER, (IntPtr)1, hint ?? "");   // 1 = keep showing while focused
+        }
         private readonly TextBox _txtSetBg = new TextBox { Width = 210 };
         private readonly TextBox _txtSetIcon = new TextBox { Width = 170 };
         private readonly Label _lblStatus = new Label { AutoSize = true, ForeColor = Color.Gray };
@@ -131,10 +148,11 @@ namespace ESDeckPC
             _lstPages.Dock = DockStyle.Fill;
             _lstPages.SelectedIndexChanged += (s, e) => { if (!_loading) ShowDetails(); };
 
-            var details = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 70, ColumnCount = 3, RowCount = 2, Padding = new Padding(0, 6, 0, 0) };
+            var details = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 76, ColumnCount = 4, RowCount = 2, Padding = new Padding(0, 6, 0, 0) };
             details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 44));
             details.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
+            details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 72));
             _txtName.Dock = DockStyle.Fill;
             _txtIcon.Dock = DockStyle.Fill;
             _txtName.TextChanged += (s, e) => EditDetails();
@@ -147,6 +165,8 @@ namespace ESDeckPC
             details.Controls.Add(new Label { Text = "Icon", AutoSize = true, Margin = new Padding(0, 6, 0, 0) }, 0, 1);
             details.Controls.Add(_txtIcon, 1, 1);
             details.Controls.Add(MakeButton("Browse...", (s, e) => BrowseIcon(), 76), 2, 1);
+            details.Controls.Add(_picIcon, 3, 0);
+            details.SetRowSpan(_picIcon, 2);   // preview = exactly what the ESP sidebar gets
 
             right.Controls.Add(_lstPages);
             right.Controls.Add(details);
@@ -272,6 +292,12 @@ namespace ESDeckPC
             return true;
         }
 
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            UpdateIconPreview();   // the hint needs the TextBox handle, which exists only now
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             if (!ConfirmDiscard()) e.Cancel = true;
@@ -367,6 +393,25 @@ namespace ESDeckPC
             RefreshPages(j);
         }
 
+        /// <summary>Sidebar button preview (same renderer as what's sent to
+        /// the ESP) and the hint telling what an empty Icon field means.</summary>
+        private void UpdateIconPreview()
+        {
+            int i = _lstPages.SelectedIndex;
+            var old = _picIcon.Image;
+            _picIcon.Image = null;
+            old?.Dispose();
+            if (i < 0 || i >= _cfg.Pages.Count) { SetHint(_txtIcon, ""); return; }
+
+            var p = _cfg.Pages[i];
+            string def = Path.Combine(CanvasPaths.Resolve(p.Dir) ?? "", "icon.png");
+            SetHint(_txtIcon, File.Exists(def)
+                ? $"預設：{p.Dir.TrimEnd('/')}/icon.png"
+                : "預設：顯示名稱文字");
+            try { _picIcon.Image = CanvasEncoder.RenderIcon(p.IconPath, p.Name); }
+            catch { /* unreadable image: no preview */ }
+        }
+
         private void ShowDetails()
         {
             int i = _lstPages.SelectedIndex;
@@ -375,6 +420,7 @@ namespace ESDeckPC
             _txtName.Text = i >= 0 ? _cfg.Pages[i].Name : "";
             _txtIcon.Text = i >= 0 ? _cfg.Pages[i].Icon : "";
             _loading = false;
+            UpdateIconPreview();
         }
 
         private void EditDetails()
@@ -384,6 +430,7 @@ namespace ESDeckPC
             _cfg.Pages[i].Name = _txtName.Text.Trim();
             _cfg.Pages[i].Icon = _txtIcon.Text.Trim();
             _dirty = true;
+            UpdateIconPreview();
         }
 
         private void UpdateListText()
