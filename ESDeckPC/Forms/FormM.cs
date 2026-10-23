@@ -71,20 +71,33 @@ namespace ESDeckPC
             tsMenuDevice.DropDownItems.Add(_tsMenuFirmware);
             toolStrip.Items.Insert(toolStrip.Items.IndexOf(tsSep1), tsMenuDevice);
 
-            // Canvas > Edit Pages / Open Folder / DevTools (built here too)
-            var tsMenuCanvas = new ToolStripDropDownButton("Canvas")
+            // Modes: every mode's editor in one menu (the designer's
+            // Deck / Monitor / Media / TouchPad buttons are folded in here),
+            // plus Canvas, which is set up entirely on the PC.
+            var tsMenuModes = new ToolStripDropDownButton("Modes")
             {
                 ShowDropDownArrow = false,
                 ForeColor = Color.FromArgb(220, 220, 220),
             };
-            tsMenuCanvas.DropDownItems.Add("Edit Pages...", null, (s, e) => new FormCanvasEditor().Show());
-            tsMenuCanvas.DropDownItems.Add("Open Canvas Folder", null, (s, e) =>
+            void foldIn(ToolStripDropDownButton oldBtn, ToolStripMenuItem edit, string text)
+            {
+                edit.Text = text;
+                tsMenuModes.DropDownItems.Add(edit);   // moves it out of the old button
+                toolStrip.Items.Remove(oldBtn);
+            }
+            foldIn(tsMenuDeck, tsMenuDeckEdit, "Deck Editor...");
+            foldIn(tsMenuMonitor, tsMenuMonitorEdit, "Monitor Editor...");
+            foldIn(tsMenuMeida, tsMenuMediaEdit, "Media Editor...");
+            foldIn(tsMenuTouchpad, tsMenuTouchpadEdit, "Touchpad Editor...");
+            tsMenuModes.DropDownItems.Add(new ToolStripSeparator());
+            tsMenuModes.DropDownItems.Add("Canvas Pages...", null, (s, e) => new FormCanvasEditor().Show());
+            tsMenuModes.DropDownItems.Add("Open Canvas Folder", null, (s, e) =>
             {
                 CanvasPaths.Ensure();
                 Process.Start("explorer.exe", $"\"{CanvasPaths.Root}\"");
             });
-            tsMenuCanvas.DropDownItems.Add("Open DevTools", null, (s, e) => _canvas.OpenDevTools());
-            toolStrip.Items.Insert(toolStrip.Items.IndexOf(tsMenuDevice), tsMenuCanvas);
+            tsMenuModes.DropDownItems.Add("Canvas DevTools", null, (s, e) => _canvas.OpenDevTools());
+            toolStrip.Items.Insert(0, tsMenuModes);
 
             var darkRenderer = new DarkToolStripRenderer(new DarkColorTable());
             ToolStripManager.Renderer = darkRenderer;

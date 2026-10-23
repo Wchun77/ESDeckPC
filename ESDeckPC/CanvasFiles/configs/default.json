@@ -4,5 +4,9 @@
     { "dir": "pages/calendar",  "name": "月曆", "icon": "" },
     { "dir": "pages/launcher",  "name": "捷徑", "icon": "" },
     { "dir": "pages/progress",  "name": "進度", "icon": "" }
-  ]
+  ],
+  "settings": {
+    "bg_image": "",
+    "side_icon": "shared/gear.png"
+  }
 }

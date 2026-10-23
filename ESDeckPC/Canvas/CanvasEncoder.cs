@@ -245,6 +245,38 @@ namespace ESDeckPC
             return bmp;
         }
 
+        /// <summary>64 x 64 icon from an image file, or null if there's no
+        /// such file (no text fallback -- for the Settings gear).</summary>
+        public static Bitmap RenderIconFile(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return null;
+            try { return RenderIcon(path, ""); }
+            catch { return null; }
+        }
+
+        /// <summary>Image file scaled to cover w x h (centered, cropped),
+        /// 32bpp, or null if it can't be read.</summary>
+        public static Bitmap LoadCover(string path, int w, int h)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return null;
+            try
+            {
+                using (var img = LoadUnlocked(path))
+                {
+                    var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+                    using (var g = Graphics.FromImage(bmp))
+                    {
+                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        float k = Math.Max((float)w / img.Width, (float)h / img.Height);
+                        int sw = (int)Math.Ceiling(img.Width * k), sh = (int)Math.Ceiling(img.Height * k);
+                        g.DrawImage(img, (w - sw) / 2, (h - sh) / 2, sw, sh);
+                    }
+                    return bmp;
+                }
+            }
+            catch { return null; }
+        }
+
         // Image.FromFile keeps the file locked; copy it out of a stream instead.
         private static Image LoadUnlocked(string path)
         {

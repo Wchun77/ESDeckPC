@@ -12,6 +12,10 @@
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <!-- Always run MSBuild, so CopyCanvasFiles (bottom) also picks up page
+         edits when no code changed. The compiler itself still skips when
+         nothing changed. -->
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>
@@ -311,12 +315,7 @@
     <Content Include="Tools\common_hanzi.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <!-- Canvas mode starter files -> <exe folder>\Canvas\ (only copied when
-         newer, so pages edited next to the exe aren't overwritten) -->
-    <Content Include="CanvasFiles\**\*.*">
-      <Link>Canvas\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <None Include="CanvasFiles\**\*.*" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="AxWMPLib">
@@ -371,4 +370,15 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- Canvas mode files: CanvasFiles\ -> <exe folder>\Canvas\ after every
+       build. robocopy instead of Content items: VS only lists wildcard
+       items when the project loads, so files added later were missed.
+       /XO = only copy files that are newer than the output copy, so pages
+       edited next to the exe aren't overwritten. Exit codes 0-7 = OK. -->
+  <Target Name="CopyCanvasFiles" AfterTargets="Build">
+    <Exec Command="robocopy &quot;$(ProjectDir)CanvasFiles&quot; &quot;$(TargetDir)Canvas&quot; /E /XO /NFL /NDL /NJH /NJS /NP" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="CanvasCopyExit" />
+    </Exec>
+    <Error Condition="$(CanvasCopyExit) &gt;= 8" Text="Copying CanvasFiles to $(TargetDir)Canvas failed (robocopy exit $(CanvasCopyExit))" />
+  </Target>
 </Project>

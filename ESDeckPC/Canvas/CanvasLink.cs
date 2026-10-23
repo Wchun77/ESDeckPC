@@ -28,7 +28,7 @@ namespace ESDeckPC
         // PC -> ESP (Feature report: [0] report ID, [1] cmd, [2] gen, [3..] payload)
         private const byte CMD_BEGIN = 0x20, CMD_REC = 0x21, CMD_DATA = 0x22, CMD_END = 0x23;
         private const byte F_FULL = 0x01, F_EMPTY = 0x02, F_ICONS = 0x04;
-        private const byte REC_RECT = 1, REC_ICON = 2;
+        private const byte REC_RECT = 1, REC_ICON = 2, REC_GEAR = 3, REC_SETTINGS_BG = 4;
         // ESP -> PC (IN report: [0] report ID, [1] page 0xF9, [2] event, ...)
         public const byte Page = 0xF9;
         private const byte EV_REQUEST = 0x01, EV_TOUCH = 0x02, EV_LEAVE = 0x03;
@@ -223,6 +223,7 @@ namespace ESDeckPC
 
             Bitmap bmp = await _renderer.CaptureAsync();
             var pages = _cfg.Pages.ToList();
+            var look = _cfg.Settings ?? new CanvasSettingsLook();
             int[] px = null;
             var recs = await Task.Run(() =>
             {
@@ -243,6 +244,34 @@ namespace ESDeckPC
                                 X = i, Y = 0, W = ib.Width, H = ib.Height,
                                 Data = CanvasEncoder.Rle(ipx, ib.Width, area),
                             });
+                        }
+                    }
+
+                    // Settings look (gear icon, page background) -- left out = defaults
+                    using (var gear = CanvasEncoder.RenderIconFile(CanvasPaths.Resolve(look.SideIcon)))
+                    {
+                        if (gear != null)
+                        {
+                            var gpx = CanvasEncoder.ToPixels(gear);
+                            list.Add(new Rec
+                            {
+                                Type = REC_GEAR, Enc = CanvasEncoder.EncRle,
+                                W = gear.Width, H = gear.Height,
+                                Data = CanvasEncoder.Rle(gpx, gear.Width, new Rectangle(0, 0, gear.Width, gear.Height)),
+                            });
+                        }
+                    }
+                    using (var sbg = CanvasEncoder.LoadCover(CanvasPaths.Resolve(look.BgImage), CanvasRenderer.W, CanvasRenderer.H))
+                    {
+                        if (sbg != null)
+                        {
+                            var spx = CanvasEncoder.ToPixels(sbg);
+                            foreach (var r in CanvasEncoder.Strips(sbg.Width, sbg.Height))
+                            {
+                                var rec = ToRec(CanvasEncoder.Encode(sbg, spx, r, true));
+                                rec.Type = REC_SETTINGS_BG;
+                                list.Add(rec);
+                            }
                         }
                     }
                 }

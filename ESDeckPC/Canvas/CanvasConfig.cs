@@ -123,6 +123,18 @@ namespace ESDeckPC
         public string Url => CanvasRenderer.HostUrl + Dir.Trim('/').Replace('\\', '/') + "/index.html";
     }
 
+    /// <summary>The ESP's Settings page look while in Canvas mode. Both
+    /// paths relative to the Canvas folder; empty = gear glyph / plain bg.
+    /// Sent to the ESP as images -- nothing for Canvas lives on the SD card.</summary>
+    public class CanvasSettingsLook
+    {
+        [JsonProperty("bg_image")]
+        public string BgImage { get; set; } = "";
+
+        [JsonProperty("side_icon")]
+        public string SideIcon { get; set; } = "";
+    }
+
     public class CanvasConfig
     {
         public const int MaxPages = 4;   // = CANVAS_MAX_PAGES on the ESP
@@ -130,10 +142,14 @@ namespace ESDeckPC
         [JsonProperty("pages")]
         public List<CanvasPageEntry> Pages { get; set; } = new List<CanvasPageEntry>();
 
+        [JsonProperty("settings")]
+        public CanvasSettingsLook Settings { get; set; } = new CanvasSettingsLook();
+
         public static CanvasConfig Load(string path)
         {
             var cfg = JsonConvert.DeserializeObject<CanvasConfig>(File.ReadAllText(path)) ?? new CanvasConfig();
             if (cfg.Pages == null) cfg.Pages = new List<CanvasPageEntry>();
+            if (cfg.Settings == null) cfg.Settings = new CanvasSettingsLook();
             if (cfg.Pages.Count > MaxPages) cfg.Pages = cfg.Pages.Take(MaxPages).ToList();
             return cfg;
         }

@@ -28,6 +28,8 @@ namespace ESDeckPC
         private readonly ListBox _lstPages = new ListBox { IntegralHeight = false };
         private readonly TextBox _txtName = new TextBox();
         private readonly TextBox _txtIcon = new TextBox();
+        private readonly TextBox _txtSetBg = new TextBox { Width = 210 };
+        private readonly TextBox _txtSetIcon = new TextBox { Width = 170 };
         private readonly Label _lblStatus = new Label { AutoSize = true, ForeColor = Color.Gray };
 
         private CanvasConfig _cfg = new CanvasConfig();
@@ -38,8 +40,8 @@ namespace ESDeckPC
         public FormCanvasEditor()
         {
             Text = "Canvas Pages";
-            ClientSize = new Size(760, 470);
-            MinimumSize = new Size(700, 440);
+            ClientSize = new Size(780, 510);
+            MinimumSize = new Size(760, 480);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Bg;
             ForeColor = Fg;
@@ -79,7 +81,7 @@ namespace ESDeckPC
 
         private void BuildLayout()
         {
-            foreach (Control c in new Control[] { _cboConfig, _lstLibrary, _lstPages, _txtName, _txtIcon }) Style(c);
+            foreach (Control c in new Control[] { _cboConfig, _lstLibrary, _lstPages, _txtName, _txtIcon, _txtSetBg, _txtSetIcon }) Style(c);
             _cboConfig.FlatStyle = FlatStyle.Flat;
 
             // --- top: config file ---
@@ -151,7 +153,19 @@ namespace ESDeckPC
             grid.Controls.Add(mid, 1, 0);
             grid.Controls.Add(right, 2, 0);
 
+            // --- Settings page look on the ESP (sent as images, not on the SD card) ---
+            var look = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 40, Padding = new Padding(10, 6, 10, 0), WrapContents = false };
+            _txtSetBg.TextChanged += (s, e) => EditLook();
+            _txtSetIcon.TextChanged += (s, e) => EditLook();
+            look.Controls.Add(new Label { Text = "Settings  背景", AutoSize = true, Margin = new Padding(0, 7, 4, 0) });
+            look.Controls.Add(_txtSetBg);
+            look.Controls.Add(MakeButton("...", (s, e) => BrowseInto(_txtSetBg, "Settings background (scaled to 720 x 480)"), 30));
+            look.Controls.Add(new Label { Text = "齒輪圖示", AutoSize = true, Margin = new Padding(14, 7, 4, 0) });
+            look.Controls.Add(_txtSetIcon);
+            look.Controls.Add(MakeButton("...", (s, e) => BrowseInto(_txtSetIcon, "Gear icon (shown at 64 x 64)"), 30));
+
             Controls.Add(grid);
+            Controls.Add(look);
             Controls.Add(bottom);
             Controls.Add(top);
         }
@@ -270,6 +284,40 @@ namespace ESDeckPC
             foreach (var d in CanvasPaths.ListPageDirs()) _lstLibrary.Items.Add(d);
         }
 
+        private void ShowLook()
+        {
+            _loading = true;
+            _txtSetBg.Text = _cfg.Settings?.BgImage ?? "";
+            _txtSetIcon.Text = _cfg.Settings?.SideIcon ?? "";
+            _loading = false;
+        }
+
+        private void EditLook()
+        {
+            if (_loading) return;
+            if (_cfg.Settings == null) _cfg.Settings = new CanvasSettingsLook();
+            _cfg.Settings.BgImage = _txtSetBg.Text.Trim();
+            _cfg.Settings.SideIcon = _txtSetIcon.Text.Trim();
+            _dirty = true;
+        }
+
+        private void BrowseInto(TextBox box, string title)
+        {
+            using (var dlg = new OpenFileDialog
+            {
+                Title = title,
+                Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files|*.*",
+                InitialDirectory = CanvasPaths.Root,
+            })
+            {
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+                string rel = CanvasPaths.MakeRelative(dlg.FileName);
+                if (Path.IsPathRooted(rel))
+                    SetStatus("Tip: keep images inside the Canvas folder so it can be copied to another PC");
+                box.Text = rel;
+            }
+        }
+
         private void RefreshPages(int select = -1)
         {
             _lstPages.Items.Clear();
@@ -277,6 +325,7 @@ namespace ESDeckPC
                 _lstPages.Items.Add(string.IsNullOrWhiteSpace(p.Name) ? p.Dir : $"{p.Name}   ({p.Dir})");
             if (select >= 0 && select < _lstPages.Items.Count) _lstPages.SelectedIndex = select;
             ShowDetails();
+            ShowLook();
         }
 
         private void AddSelected()
