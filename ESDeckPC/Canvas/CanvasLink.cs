@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -27,11 +28,15 @@ namespace ESDeckPC
     {
         // PC -> ESP (Feature report: [0] report ID, [1] cmd, [2] gen, [3..] payload)
         private const byte CMD_BEGIN = 0x20, CMD_REC = 0x21, CMD_DATA = 0x22, CMD_END = 0x23;
+        private const byte CMD_CFG = 0x24;                  // one config list entry, [2] = EV_LIST seq
+        private const byte CFG_F_ACTIVE = 0x01;
+        private const int CfgNameMax = 58;                  // UTF-8 bytes (+ NUL = HID_CANVAS_CFG_NAME_MAX)
+        private const int CfgListMax = 32;                  // CANVAS_CFG_LIST_MAX on the ESP
         private const byte F_FULL = 0x01, F_EMPTY = 0x02, F_ICONS = 0x04;
         private const byte REC_RECT = 1, REC_ICON = 2, REC_GEAR = 3, REC_SETTINGS_BG = 4;
         // ESP -> PC (IN report: [0] report ID, [1] page 0xF9, [2] event, ...)
         public const byte Page = 0xF9;
-        private const byte EV_REQUEST = 0x01, EV_TOUCH = 0x02, EV_LEAVE = 0x03;
+        private const byte EV_REQUEST = 0x01, EV_TOUCH = 0x02, EV_LEAVE = 0x03, EV_LIST = 0x04, EV_SELECT = 0x05;
         private const byte REQ_ENTER = 0, REQ_PAGE = 1, REQ_SYNC = 2;
         private const byte TOUCH_DOWN = 0, TOUCH_MOVE = 1, TOUCH_UP = 2;
 
@@ -59,6 +64,7 @@ namespace ESDeckPC
         private bool _active;            // ESP is in Canvas mode
         private int _page;
         private CanvasConfig _cfg;
+        private string _cfgName;         // file name _cfg was loaded from
         private int[] _lastPx;           // last frame the ESP has
         private bool _busy;              // a capture / batch is in progress
         private byte _gen;
@@ -123,7 +129,88 @@ namespace ESDeckPC
                 case EV_LEAVE:
                     Deactivate("ESP left Canvas mode");
                     break;
+
+                case EV_LIST:
+                    SendConfigList(b[3]);
+                    break;
+
+                case EV_SELECT:
+                    SelectFromEsp(ReadName(b, 3));
+                    break;
             }
+        }
+
+        private static string ReadName(byte[] b, int off)
+        {
+            int end = off;
+            while (end < b.Length && b[end] != 0) end++;
+            return Encoding.UTF8.GetString(b, off, end - off).Trim();
+        }
+
+        // ------------------------------------------------------------------
+        // Select Config on the ESP
+        // ------------------------------------------------------------------
+
+        /// <summary>The ESP's Select Config dialog wants the list: one CMD_CFG
+        /// per config, tagged with the request's seq.</summary>
+        private void SendConfigList(byte seq)
+        {
+            List<string> names;
+            try { names = CanvasPaths.ListConfigs(); }
+            catch (Exception ex) { Log("cannot list configs: " + ex.Message); names = new List<string>(); }
+
+            var tooLong = names.Where(n => Encoding.UTF8.GetByteCount(n) > CfgNameMax).ToList();
+            foreach (var n in tooLong) Log($"config name too long for the ESP, not listed: {n}");
+            names = names.Except(tooLong).ToList();
+            if (names.Count > CfgListMax)
+            {
+                Log($"{names.Count} configs, the ESP lists the first {CfgListMax}");
+                names = names.Take(CfgListMax).ToList();
+            }
+            string active = CanvasPaths.ActiveConfigName;
+
+            Task.Run(() =>
+            {
+                lock (_sendLock)
+                {
+                    if (names.Count == 0)
+                    {
+                        Write(CMD_CFG, seq, new byte[] { 0, 0, 0, 0 });
+                        return;
+                    }
+                    for (int i = 0; i < names.Count; i++)
+                    {
+                        byte[] name = Encoding.UTF8.GetBytes(names[i]);
+                        var payload = new byte[3 + name.Length + 1];
+                        payload[0] = (byte)i;
+                        payload[1] = (byte)names.Count;
+                        payload[2] = string.Equals(names[i], active, StringComparison.OrdinalIgnoreCase) ? CFG_F_ACTIVE : (byte)0;
+                        Buffer.BlockCopy(name, 0, payload, 3, name.Length);
+                        if (!Write(CMD_CFG, seq, payload)) return;
+                    }
+                }
+            });
+        }
+
+        /// <summary>A config picked on the ESP: make it the active one (the
+        /// editor follows through CanvasPaths.ActiveChanged) and send its
+        /// first page with the sidebar icons.</summary>
+        private void SelectFromEsp(string name)
+        {
+            if (!_active || string.IsNullOrEmpty(name)) return;
+            string match;
+            try { match = CanvasPaths.ListConfigs().FirstOrDefault(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)); }
+            catch { match = null; }
+            if (match == null)
+            {
+                Log($"ESP picked {name}, but it's not in configs/ anymore");
+                return;
+            }
+            Log($"ESP switched to config {match}");
+            _cfgName = match;                       // so the watcher doesn't reload a second time
+            try { CanvasPaths.ActiveConfigName = match; }
+            catch (Exception ex) { Log("cannot write active.txt: " + ex.Message); }
+            RequestFull(0, true, true);
         }
 
         public void OnModeReport(HidReceiver.EspMode mode)
@@ -192,6 +279,7 @@ namespace ESDeckPC
             if (icons || _cfg == null)
             {
                 _cfg = CanvasConfig.LoadActive(out string name, out string error);
+                _cfgName = name;
                 if (_cfg != null) Log($"config: {name} ({_cfg.Pages.Count} pages)");
                 else Log(error);
             }
@@ -419,6 +507,11 @@ namespace ESDeckPC
         {
             if (!_active) return;
             string rel = CanvasPaths.MakeRelative(fullPath).ToLowerInvariant();
+            // active.txt naming the config already shown (written by SelectFromEsp,
+            // or Use This Config on the same one): nothing to reload
+            if (rel == "active.txt" &&
+                string.Equals(CanvasPaths.ActiveConfigName, _cfgName, StringComparison.OrdinalIgnoreCase))
+                return;
             if (rel.StartsWith("configs/") || rel == "active.txt")
                 _changedConfig = true;
             else if (rel.StartsWith("shared/") || IsCurrentPage(rel))

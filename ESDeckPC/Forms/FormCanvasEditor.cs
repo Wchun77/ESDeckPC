@@ -68,6 +68,21 @@ namespace ESDeckPC
             CanvasPaths.Ensure();
             RefreshLibrary();
             RefreshConfigs(CanvasPaths.ActiveConfigName);
+            CanvasPaths.ActiveChanged += OnActiveChanged;
+        }
+
+        // The config in use was changed elsewhere (e.g. Select Config on the ESP).
+        private void OnActiveChanged()
+        {
+            if (IsDisposed) return;
+            if (InvokeRequired) BeginInvoke((Action)UpdateActiveLabel);
+            else UpdateActiveLabel();
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            CanvasPaths.ActiveChanged -= OnActiveChanged;
+            base.OnFormClosed(e);
         }
 
         // ------------------------------------------------------------------

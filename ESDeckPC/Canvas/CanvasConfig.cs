@@ -47,8 +47,13 @@ namespace ESDeckPC
             {
                 Ensure();
                 File.WriteAllText(ActiveFile, value ?? "");
+                ActiveChanged?.Invoke();
             }
         }
+
+        /// <summary>ActiveConfigName was set (from the editor, or from the ESP
+        /// through CanvasLink). Raised on the thread that set it.</summary>
+        public static event Action ActiveChanged;
 
         /// <summary>Absolute path for a path relative to the Canvas folder.</summary>
         public static string Resolve(string relative)

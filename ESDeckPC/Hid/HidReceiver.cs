@@ -80,7 +80,8 @@ public class HidReceiver
     // OnTouchpadReport (read thread, buffer reused after return).
     public event Action<byte[], int> OnKeyboardReport;
 
-    // Fires for Canvas mode events (page=0xF9: page request, touch, leave),
+    // Fires for Canvas mode events (page=0xF9: page request, touch, leave,
+    // config list / select),
     // same contract as OnTouchpadReport. See CanvasLink.
     public event Action<byte[], int> OnCanvasReport;
 
