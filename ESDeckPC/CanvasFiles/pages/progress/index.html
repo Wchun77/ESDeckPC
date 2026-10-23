@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../shared/base.css">
+<style>
+  .list { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .item { flex: 1; display: flex; align-items: center; gap: 16px; }
+  .item .name { width: 64px; font-size: 22px; font-weight: 700; }
+  .item .mid  { flex: 1; }
+  .item .bar  { height: 14px; border-radius: 7px; margin-top: 0; }
+  .item .bar > div { border-radius: 7px; }
+  .item .sub  { font-size: 13px; color: var(--dim); margin-top: 6px; }
+  .item .pct  { width: 110px; text-align: right; font-size: 30px; font-weight: 800; }
+  .c1 .bar > div { background: linear-gradient(90deg, #3d8bff, #2fd5ff); }
+  .c2 .bar > div { background: linear-gradient(90deg, #a86bff, #ff5a8a); }
+  .c3 .bar > div { background: linear-gradient(90deg, #ff8a4c, #ffd54f); }
+  .c4 .bar > div { background: linear-gradient(90deg, #2ed58f, #2fd5ff); }
+  .foot .card { flex: 1; text-align: center; padding: 10px; }
+  .foot .value { font-size: 24px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title"><h1>時間進度</h1><span class="clock" id="clock"></span></div>
+  <div class="list">
+    <div class="card item c1"><div class="name">今天</div><div class="mid"><div class="bar"><div id="b0"></div></div><div class="sub" id="s0"></div></div><div class="pct" id="p0"></div></div>
+    <div class="card item c2"><div class="name">本週</div><div class="mid"><div class="bar"><div id="b1"></div></div><div class="sub" id="s1"></div></div><div class="pct" id="p1"></div></div>
+    <div class="card item c3"><div class="name">本月</div><div class="mid"><div class="bar"><div id="b2"></div></div><div class="sub" id="s2"></div></div><div class="pct" id="p2"></div></div>
+    <div class="card item c4"><div class="name">今年</div><div class="mid"><div class="bar"><div id="b3"></div></div><div class="sub" id="s3"></div></div><div class="pct" id="p3"></div></div>
+  </div>
+  <div class="row foot">
+    <div class="card"><div class="label">距離週末</div><div class="value" id="f0"></div></div>
+    <div class="card"><div class="label">距離月底</div><div class="value" id="f1"></div></div>
+    <div class="card"><div class="label">距離新年</div><div class="value" id="f2"></div></div>
+  </div>
+</div>
+<script>
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, '0');
+  const HOUR = 3600000, DAY = 86400000;
+
+  function span(ms) {
+    if (ms <= 0) return '到了！';
+    const d = Math.floor(ms / DAY), h = Math.floor(ms / HOUR) % 24, m = Math.floor(ms / 60000) % 60;
+    return d > 0 ? `${d} 天 ${h} 小時` : `${h} 小時 ${m} 分`;
+  }
+
+  function show(i, start, end, now, sub) {
+    const f = Math.min(1, Math.max(0, (now - start) / (end - start)));
+    $('p' + i).textContent = `${(f * 100).toFixed(1)}%`;
+    $('b' + i).style.width = `${f * 100}%`;
+    $('s' + i).textContent = sub;
+  }
+
+  function tick() {
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+    $('clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    const d0 = new Date(y, m, d), d1 = new Date(y, m, d + 1);
+    const wd = (now.getDay() + 6) % 7;                        // 0 = Monday
+    const w0 = new Date(y, m, d - wd), w1 = new Date(y, m, d - wd + 7);
+    const m0 = new Date(y, m, 1), m1 = new Date(y, m + 1, 1);
+    const y0 = new Date(y, 0, 1), y1 = new Date(y + 1, 0, 1);
+
+    show(0, d0, d1, now, `剩 ${span(d1 - now)}`);
+    show(1, w0, w1, now, `週${'一二三四五六日'[wd]}，剩 ${span(w1 - now)}`);
+    show(2, m0, m1, now, `${m + 1} 月第 ${d} 天，共 ${Math.round((m1 - m0) / DAY)} 天`);
+    show(3, y0, y1, now, `第 ${Math.floor((now - y0) / DAY) + 1} 天，共 ${Math.round((y1 - y0) / DAY)} 天`);
+
+    const sat = new Date(y, m, d + (5 - wd)); sat.setHours(0, 0, 0, 0);
+    $('f0').textContent = wd >= 5 ? '週末中' : span(sat - now);
+    $('f1').textContent = span(m1 - now);
+    $('f2').textContent = `${Math.ceil((y1 - now) / DAY)} 天`;
+  }
+  tick();
+  setInterval(tick, 10000);
+</script>
+</body>
+</html>

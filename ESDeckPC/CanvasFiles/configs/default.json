@@ -1,7 +1,8 @@
 {
   "pages": [
     { "dir": "pages/dashboard", "name": "時鐘", "icon": "" },
-    { "dir": "pages/launcher",  "name": "啟動器", "icon": "" },
-    { "dir": "pages/demo",      "name": "示範", "icon": "" }
+    { "dir": "pages/calendar",  "name": "月曆", "icon": "" },
+    { "dir": "pages/launcher",  "name": "捷徑", "icon": "" },
+    { "dir": "pages/progress",  "name": "進度", "icon": "" }
   ]
 }

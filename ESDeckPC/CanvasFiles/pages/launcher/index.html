@@ -4,48 +4,60 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="../../shared/base.css">
 <style>
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 24px; height: 420px; }
-  .tile {
-    background: #1e1e1e; border: 1px solid #333; border-radius: 14px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-    font-size: 22px;
-  }
-  .tile .ico { font-size: 44px; }
-  .tile.hit  { background: #0055cc; border-color: #0055cc; }
-  .status { height: 36px; text-align: center; color: #888; font-size: 16px; }
+  .grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 14px; }
+  .tile { border-radius: 20px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; }
+  .tile .ico  { font-size: 46px; line-height: 1; }
+  .tile .name { font-size: 22px; font-weight: 700; }
+  .tile .desc { font-size: 13px; opacity: .8; margin-top: 2px; }
+  .status { height: 22px; font-size: 14px; color: var(--dim); text-align: center; }
 </style>
 </head>
 <body>
-<div class="grid" id="grid"></div>
-<div class="status" id="status">點一下執行 -- 動作跟 Deck 按鈕的格式一樣</div>
+<div class="page">
+  <div class="title"><h1>捷徑</h1><span class="clock" id="clock"></span></div>
+  <div class="grid" id="grid"></div>
+  <div class="status" id="status">點一下就執行</div>
+</div>
 <script>
-  // Same fields as a Deck button: launch / hotkey / media / text / power ...
-  const tiles = [
-    { ico: '📝', label: '記事本',     act: { action: 'launch', target: 'notepad.exe' } },
-    { ico: '🧮', label: '小算盤',     act: { action: 'launch', target: 'calc.exe' } },
-    { ico: '📁', label: '檔案總管',   act: { action: 'launch', target: 'explorer.exe' } },
-    { ico: '📊', label: '工作管理員', act: { action: 'hotkey', keys: ['ctrl', 'shift', 'esc'] } },
-    { ico: '✂️', label: '截圖',       act: { action: 'hotkey', keys: ['win', 'shift', 's'] } },
-    { ico: '⏯️', label: '播放/暫停',  act: { action: 'media',  target: 'play_pause' } },
+  // ---- your shortcuts: same fields as a Deck button ----
+  //   launch : { action: 'launch', target: 'C:\\path\\app.exe' or a folder / URL }
+  //   hotkey : { action: 'hotkey', keys: ['ctrl', 'shift', 'esc'] }
+  //   media  : { action: 'media',  target: 'play_pause' | 'next' | 'prev' | 'vol_up' | 'vol_down' | 'mute' }
+  //   text   : { action: 'text',   target: '要輸入的文字' }
+  const TILES = [
+    { ico: '📝', name: '記事本',     desc: 'notepad',       bg: ['#3d8bff', '#1a4fc4'], act: { action: 'launch', target: 'notepad.exe' } },
+    { ico: '🧮', name: '小算盤',     desc: 'calculator',    bg: ['#2ed58f', '#169c63'], act: { action: 'launch', target: 'calc.exe' } },
+    { ico: '📁', name: '檔案總管',   desc: 'explorer',      bg: ['#ffb84c', '#e07b1a'], act: { action: 'launch', target: 'explorer.exe' } },
+    { ico: '📊', name: '工作管理員', desc: 'Ctrl+Shift+Esc', bg: ['#a86bff', '#6a3bd6'], act: { action: 'hotkey', keys: ['ctrl', 'shift', 'esc'] } },
+    { ico: '✂️', name: '截圖',       desc: 'Win+Shift+S',   bg: ['#ff5a8a', '#c4295b'], act: { action: 'hotkey', keys: ['win', 'shift', 's'] } },
+    { ico: '⏯️', name: '播放 / 暫停', desc: 'media',        bg: ['#2fd5ff', '#1784b8'], act: { action: 'media',  target: 'play_pause' } },
   ];
+  // -------------------------------------------------------
 
-  const grid = document.getElementById('grid');
-  const status = document.getElementById('status');
-  for (const t of tiles) {
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, '0');
+
+  // No pressed / highlight effect on purpose: the tap runs the action and
+  // only the small status line changes.
+  for (const t of TILES) {
     const el = document.createElement('div');
     el.className = 'tile';
-    el.innerHTML = `<div class="ico">${t.ico}</div><div>${t.label}</div>`;
+    el.style.background = `linear-gradient(150deg, ${t.bg[0]}, ${t.bg[1]})`;
+    el.innerHTML = `<div class="ico">${t.ico}</div><div><div class="name">${t.name}</div><div class="desc">${t.desc}</div></div>`;
     el.addEventListener('click', async () => {
-      el.classList.add('hit');
-      setTimeout(() => el.classList.remove('hit'), 250);
       try {
-        status.textContent = await esdeck.action({ label: t.label, ...t.act });
+        const r = await esdeck.action({ label: t.name, ...t.act });
+        $('status').textContent = `${t.name}：${r}`;
       } catch (e) {
-        status.textContent = '失敗: ' + e;
+        $('status').textContent = `${t.name} 失敗：${e}`;
       }
     });
-    grid.appendChild(el);
+    $('grid').appendChild(el);
   }
+
+  const tick = () => { const n = new Date(); $('clock').textContent = `${pad(n.getHours())}:${pad(n.getMinutes())}`; };
+  tick();
+  setInterval(tick, 10000);
 </script>
 </body>
 </html>

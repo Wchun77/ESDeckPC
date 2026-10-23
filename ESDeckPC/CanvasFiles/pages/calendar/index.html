@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../shared/base.css">
+<style>
+  .main  { flex: 1; display: flex; gap: 14px; min-height: 0; }
+  .side  { width: 200px; display: flex; flex-direction: column; gap: 12px; }
+  .big   { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+           background: linear-gradient(160deg, #ff8a4c, #e0453a); border: none; }
+  .big .m   { font-size: 20px; font-weight: 600; opacity: .9; }
+  .big .d   { font-size: 96px; font-weight: 800; line-height: 1; }
+  .big .w   { font-size: 20px; font-weight: 600; opacity: .9; }
+  .grid  { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: 24px repeat(6, minmax(0, 1fr)); gap: 4px; }
+  .head  { font-size: 14px; color: var(--dim); text-align: center; align-self: center; }
+  .cell  { display: flex; flex-direction: column; align-items: center; justify-content: center;
+           border-radius: 12px; font-size: 20px; font-weight: 600; }
+  .cell .tag { font-size: 10px; font-weight: 400; color: var(--orange); margin-top: 1px; white-space: nowrap; overflow: hidden; max-width: 100%; }
+  .cell.other { color: #4a5068; }
+  .cell.sun, .head.sun { color: var(--red); }
+  .cell.sat, .head.sat { color: #6fa8ff; }
+  .cell.today { background: linear-gradient(160deg, #ff8a4c, #e0453a); color: #fff; }
+  .cell.today .tag { color: #fff; }
+  .cal   { flex: 1; display: flex; flex-direction: column; }
+  .next .value { font-size: 22px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title"><h1 id="month"></h1><span class="clock" id="clock"></span></div>
+  <div class="main">
+    <div class="side">
+      <div class="card big">
+        <div class="m" id="tm"></div>
+        <div class="d" id="td"></div>
+        <div class="w" id="tw"></div>
+      </div>
+      <div class="card next">
+        <div class="label">下一個節日</div>
+        <div class="value" id="nextName">--</div>
+        <div class="small" id="nextDays"></div>
+      </div>
+    </div>
+    <div class="card cal"><div class="grid" id="grid"></div></div>
+  </div>
+</div>
+<script>
+  // ---- fixed-date days to mark (month-day: name) -- edit freely ----
+  // Lunar-calendar holidays (春節, 端午, 中秋...) move every year, add
+  // them here with the year if you want them: '2026-02-17': '春節'
+  const MARKS = {
+    '01-01': '元旦',
+    '02-28': '和平紀念日',
+    '04-04': '兒童節',
+    '05-01': '勞動節',
+    '09-28': '教師節',
+    '10-10': '國慶日',
+    '10-25': '光復節',
+    '12-25': '行憲紀念日',
+  };
+  // -------------------------------------------------------------------
+
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, '0');
+  const DAYS = ['日', '一', '二', '三', '四', '五', '六'];
+  const key = d => `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const mark = d => MARKS[`${d.getFullYear()}-${key(d)}`] || MARKS[key(d)];
+
+  function render(now) {
+    const y = now.getFullYear(), m = now.getMonth();
+    $('month').textContent = `${y} 年 ${m + 1} 月`;
+    $('tm').textContent = `${m + 1} 月`;
+    $('td').textContent = now.getDate();
+    $('tw').textContent = `星期${DAYS[now.getDay()]}`;
+
+    const grid = $('grid');
+    grid.innerHTML = '';
+    DAYS.forEach((d, i) => {
+      const h = document.createElement('div');
+      h.className = 'head' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
+      h.textContent = d;
+      grid.appendChild(h);
+    });
+    const first = new Date(y, m, 1);
+    const start = new Date(y, m, 1 - first.getDay());
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      const c = document.createElement('div');
+      c.className = 'cell'
+        + (d.getMonth() !== m ? ' other' : '')
+        + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '')
+        + (d.toDateString() === now.toDateString() ? ' today' : '');
+      c.innerHTML = `<div>${d.getDate()}</div>` + (mark(d) && d.getMonth() === m ? `<div class="tag">${mark(d)}</div>` : '');
+      grid.appendChild(c);
+    }
+
+    // next marked day (today counts)
+    for (let i = 0; i < 400; i++) {
+      const d = new Date(y, m, now.getDate() + i);
+      if (mark(d)) {
+        $('nextName').textContent = mark(d);
+        $('nextDays').textContent = i === 0 ? '就是今天！' : `${d.getMonth() + 1}/${d.getDate()}　還有 ${i} 天`;
+        break;
+      }
+    }
+  }
+
+  let shownDay = '';
+  function tick() {
+    const now = new Date();
+    $('clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    if (now.toDateString() !== shownDay) { shownDay = now.toDateString(); render(now); }
+  }
+  tick();
+  setInterval(tick, 10000);
+</script>
+</body>
+</html>
