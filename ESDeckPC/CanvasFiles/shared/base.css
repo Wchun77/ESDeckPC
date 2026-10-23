@@ -1,0 +1,36 @@
+/* Shared look for Canvas pages. Every page is exactly 720 x 480 px. */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  width: 720px;
+  height: 480px;
+  overflow: hidden;
+  background: #111;
+  color: #eee;
+  font-family: "Microsoft JhengHei UI", "Microsoft JhengHei", "Segoe UI", sans-serif;
+}
+.center {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.dim { color: #888; }
+.card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 16px;
+}
+.btn {
+  background: #2a2a2a;
+  color: #eee;
+  border: 1px solid #444;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font: inherit;
+  font-size: 20px;
+}
+.btn:active, .btn.hit { background: #0055cc; border-color: #0055cc; }

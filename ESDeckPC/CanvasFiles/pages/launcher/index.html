@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../shared/base.css">
+<style>
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 24px; height: 420px; }
+  .tile {
+    background: #1e1e1e; border: 1px solid #333; border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    font-size: 22px;
+  }
+  .tile .ico { font-size: 44px; }
+  .tile.hit  { background: #0055cc; border-color: #0055cc; }
+  .status { height: 36px; text-align: center; color: #888; font-size: 16px; }
+</style>
+</head>
+<body>
+<div class="grid" id="grid"></div>
+<div class="status" id="status">點一下執行 -- 動作跟 Deck 按鈕的格式一樣</div>
+<script>
+  // Same fields as a Deck button: launch / hotkey / media / text / power ...
+  const tiles = [
+    { ico: '📝', label: '記事本',     act: { action: 'launch', target: 'notepad.exe' } },
+    { ico: '🧮', label: '小算盤',     act: { action: 'launch', target: 'calc.exe' } },
+    { ico: '📁', label: '檔案總管',   act: { action: 'launch', target: 'explorer.exe' } },
+    { ico: '📊', label: '工作管理員', act: { action: 'hotkey', keys: ['ctrl', 'shift', 'esc'] } },
+    { ico: '✂️', label: '截圖',       act: { action: 'hotkey', keys: ['win', 'shift', 's'] } },
+    { ico: '⏯️', label: '播放/暫停',  act: { action: 'media',  target: 'play_pause' } },
+  ];
+
+  const grid = document.getElementById('grid');
+  const status = document.getElementById('status');
+  for (const t of tiles) {
+    const el = document.createElement('div');
+    el.className = 'tile';
+    el.innerHTML = `<div class="ico">${t.ico}</div><div>${t.label}</div>`;
+    el.addEventListener('click', async () => {
+      el.classList.add('hit');
+      setTimeout(() => el.classList.remove('hit'), 250);
+      try {
+        status.textContent = await esdeck.action({ label: t.label, ...t.act });
+      } catch (e) {
+        status.textContent = '失敗: ' + e;
+      }
+    });
+    grid.appendChild(el);
+  }
+</script>
+</body>
+</html>

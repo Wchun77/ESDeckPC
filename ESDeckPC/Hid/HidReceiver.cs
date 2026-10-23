@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 public class HidReceiver
 {
-    // Mirrors ui_mode_t in ESDeck's ui_settings.h (0=deck, 1=monitor, 2=media, 3=touchpad)
-    public enum EspMode { Deck = 0, Monitor = 1, Media = 2, Touchpad = 3 }
+    // Mirrors ui_mode_t in ESDeck's ui_settings.h (0=deck, 1=monitor, 2=media, 3=touchpad, 4=canvas)
+    public enum EspMode { Deck = 0, Monitor = 1, Media = 2, Touchpad = 3, Canvas = 4 }
 
     private const int VendorId = 0x303A;
     // 0x4005: composite firmware (vendor HID + USB keyboard/mouse);
@@ -79,6 +79,10 @@ public class HidReceiver
     // Fires for mini-keyboard reports (page=0xFC), same contract as
     // OnTouchpadReport (read thread, buffer reused after return).
     public event Action<byte[], int> OnKeyboardReport;
+
+    // Fires for Canvas mode events (page=0xF9: page request, touch, leave),
+    // same contract as OnTouchpadReport. See CanvasLink.
+    public event Action<byte[], int> OnCanvasReport;
 
     public bool Open()
     {
@@ -232,13 +236,15 @@ public class HidReceiver
                     const byte BTN_MODE_MONITOR = 0x04;
                     const byte BTN_MODE_MEDIA = 0x05;
                     const byte BTN_MODE_TOUCHPAD = 0x06;
+                    const byte BTN_MODE_CANVAS = 0x07;
 
                     if (btn == BTN_MODE_DECK || btn == BTN_MODE_MONITOR || btn == BTN_MODE_MEDIA ||
-                        btn == BTN_MODE_TOUCHPAD)
+                        btn == BTN_MODE_TOUCHPAD || btn == BTN_MODE_CANVAS)
                     {
                         EspMode mode = btn == BTN_MODE_MONITOR  ? EspMode.Monitor
                                      : btn == BTN_MODE_MEDIA    ? EspMode.Media
                                      : btn == BTN_MODE_TOUCHPAD ? EspMode.Touchpad
+                                     : btn == BTN_MODE_CANVAS   ? EspMode.Canvas
                                      : EspMode.Deck;
                         OnModeReport?.Invoke(mode);
                     }
@@ -252,6 +258,10 @@ public class HidReceiver
                 else if (page == 0xFC)
                 {
                     OnKeyboardReport?.Invoke(buf, len);
+                }
+                else if (page == 0xF9)
+                {
+                    OnCanvasReport?.Invoke(buf, len);
                 }
                 else if (page == 0xFE)
                 {

@@ -30,6 +30,7 @@ namespace ESDeckPC
         private Icon _trayIconOn;    // normal app icon
         private Icon _trayIconOff;   // grayed copy, shown while ESDeck isn't connected
         private bool _otaRunning = false;
+        private CanvasLink _canvas;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
@@ -69,6 +70,21 @@ namespace ESDeckPC
             _tsMenuFirmware.Click += tsMenuFirmware_Click;
             tsMenuDevice.DropDownItems.Add(_tsMenuFirmware);
             toolStrip.Items.Insert(toolStrip.Items.IndexOf(tsSep1), tsMenuDevice);
+
+            // Canvas > Edit Pages / Open Folder / DevTools (built here too)
+            var tsMenuCanvas = new ToolStripDropDownButton("Canvas")
+            {
+                ShowDropDownArrow = false,
+                ForeColor = Color.FromArgb(220, 220, 220),
+            };
+            tsMenuCanvas.DropDownItems.Add("Edit Pages...", null, (s, e) => new FormCanvasEditor().Show());
+            tsMenuCanvas.DropDownItems.Add("Open Canvas Folder", null, (s, e) =>
+            {
+                CanvasPaths.Ensure();
+                Process.Start("explorer.exe", $"\"{CanvasPaths.Root}\"");
+            });
+            tsMenuCanvas.DropDownItems.Add("Open DevTools", null, (s, e) => _canvas.OpenDevTools());
+            toolStrip.Items.Insert(toolStrip.Items.IndexOf(tsMenuDevice), tsMenuCanvas);
 
             var darkRenderer = new DarkToolStripRenderer(new DarkColorTable());
             ToolStripManager.Renderer = darkRenderer;
@@ -118,6 +134,11 @@ namespace ESDeckPC
             _receiver.OnTouchpadReport += _touchpad.Process;
             // Mini keyboard: same, VK-based SendInput so the IME works.
             _receiver.OnKeyboardReport += _keyboard.Process;
+
+            // Canvas mode: HTML pages rendered here, shown on the ESP.
+            _canvas = new CanvasLink(_receiver, this);
+            _canvas.OnLog += msg => AppendLog(msg, Color.Turquoise);
+            _receiver.OnCanvasReport += _canvas.HandleReport;
 
             _monitor = new MonitorSender(_receiver);
             _monitor.OnLog += msg => AppendLog(msg, Color.CornflowerBlue);
@@ -228,6 +249,7 @@ namespace ESDeckPC
                 _audioLevelSender.Unsubscribe();
                 _nowPlayingImageSender.Unsubscribe();
                 _receiver.Stop();
+                _canvas.OnDisconnected();
                 _touchpad.ReleaseAll();   // unplugged mid-drag: don't leave a button held
                 _keyboard.ReleaseAll();   // ...or a key / modifier
                 _hidConnected = false;
@@ -248,6 +270,7 @@ namespace ESDeckPC
         {
             this.BeginInvoke((Action)(() =>
             {
+                _canvas.Deactivate("ESP switched to Deck");   // in case its "leave" got lost
                 DeckButton button;
                 try
                 {
@@ -281,6 +304,7 @@ namespace ESDeckPC
                 switch (cmd)
                 {
                     case SUBSCRIBE:
+                        _canvas.Deactivate("ESP switched to Monitor");   // in case its "leave" got lost
                         _monitor.Subscribe();
                         AppendLog("Monitor: subscribed", Color.CornflowerBlue);
                         break;
@@ -314,6 +338,7 @@ namespace ESDeckPC
                 switch (cmd)
                 {
                     case SUBSCRIBE:
+                        _canvas.Deactivate("ESP switched to Media");   // in case its "leave" got lost
                         _nowPlayingSender.Subscribe();
                         _audioLevelSender.Subscribe();
                         _nowPlayingImageSender.Subscribe();
@@ -362,8 +387,13 @@ namespace ESDeckPC
         {
             this.BeginInvoke((Action)(() =>
             {
+                _canvas.OnModeReport(mode);
                 switch (mode)
                 {
+                    case HidReceiver.EspMode.Canvas:
+                        AppendLog("Canvas: ESP in canvas mode", Color.Turquoise);
+                        break;
+
                     case HidReceiver.EspMode.Monitor:
                         _monitor.Subscribe();
                         AppendLog("Monitor: ESP already in monitor mode, subscribed", Color.CornflowerBlue);
@@ -463,6 +493,7 @@ namespace ESDeckPC
             if (confirm != DialogResult.Yes) return;
 
             _otaRunning = true;
+            _canvas.Deactivate("firmware update");
             _tsMenuFirmware.Enabled = false;
             _trayMenuFirmware.Enabled = false;
 
@@ -613,6 +644,7 @@ namespace ESDeckPC
             _nowPlayingImageSender.Dispose();
             _audioLevel.Dispose();
             _audioLevelSender.Dispose();
+            _canvas.Dispose();
             _receiver.Stop();
             DiscordRpcClient.Instance.Dispose();
             notifyIcon.Visible = false;

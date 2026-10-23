@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../shared/base.css">
+<style>
+  body  { display: flex; gap: 16px; padding: 16px; }
+  .col  { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  h2    { margin: 0; font-size: 20px; color: #0aa4e8; }
+  .list { flex: 1; overflow-y: auto; min-height: 0; }
+  .item { padding: 14px 12px; border-bottom: 1px solid #2a2a2a; font-size: 18px; }
+  .item:nth-child(odd) { background: #181818; }
+  .chart { height: 220px; display: flex; align-items: flex-end; gap: 8px; padding: 8px; }
+  .chart div { flex: 1; background: #0aa4e8; border-radius: 4px 4px 0 0; transition: height .3s; }
+  .count { font-size: 56px; font-weight: 700; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="col card">
+    <h2>拖曳捲動測試</h2>
+    <div class="list" id="list"></div>
+  </div>
+  <div class="col">
+    <div class="card">
+      <h2>即時更新 (每 2 秒)</h2>
+      <div class="chart" id="chart"></div>
+    </div>
+    <div class="card" style="text-align:center">
+      <h2>點擊測試</h2>
+      <div class="count" id="count">0</div>
+      <button class="btn" id="tap">點我 +1</button>
+      <button class="btn" id="log">寫入 log</button>
+    </div>
+  </div>
+<script>
+  const list = document.getElementById('list');
+  for (let i = 1; i <= 40; i++) {
+    const d = document.createElement('div');
+    d.className = 'item';
+    d.textContent = `第 ${i} 項 -- 用手指上下拖曳`;
+    list.appendChild(d);
+  }
+
+  const chart = document.getElementById('chart');
+  const bars = Array.from({ length: 10 }, () => chart.appendChild(document.createElement('div')));
+  const update = () => bars.forEach(b => b.style.height = `${10 + Math.random() * 90}%`);
+  update();
+  setInterval(update, 2000);
+
+  let n = 0;
+  document.getElementById('tap').addEventListener('click', () =>
+    document.getElementById('count').textContent = ++n);
+  document.getElementById('log').addEventListener('click', () => esdeck.log(`demo page: count = ${n}`));
+</script>
+</body>
+</html>

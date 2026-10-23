@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../shared/base.css">
+<style>
+  .time  { font-size: 120px; font-weight: 700; letter-spacing: 2px; line-height: 1; }
+  .sec   { font-size: 48px; color: #0aa4e8; }
+  .date  { font-size: 28px; }
+  .row   { display: flex; gap: 16px; width: 640px; }
+  .row .card { flex: 1; }
+  .label { font-size: 16px; color: #888; margin-bottom: 6px; }
+  .value { font-size: 30px; font-weight: 600; }
+  .bar   { height: 10px; background: #333; border-radius: 5px; overflow: hidden; margin-top: 8px; }
+  .fill  { height: 100%; background: #0aa4e8; width: 0; }
+</style>
+</head>
+<body>
+<div class="center">
+  <div><span class="time" id="hm">--:--</span><span class="sec" id="ss">:--</span></div>
+  <div class="date" id="date"></div>
+  <div class="row">
+    <div class="card">
+      <div class="label">距離下班 (18:00)</div>
+      <div class="value" id="left">--</div>
+    </div>
+    <div class="card">
+      <div class="label">今天過了</div>
+      <div class="value" id="pct">--</div>
+      <div class="bar"><div class="fill" id="fill"></div></div>
+    </div>
+  </div>
+</div>
+<script>
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, '0');
+  const days = ['日', '一', '二', '三', '四', '五', '六'];
+
+  function tick() {
+    const now = new Date();
+    $('hm').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    $('ss').textContent = `:${pad(now.getSeconds())}`;
+    $('date').textContent = `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} 星期${days[now.getDay()]}`;
+
+    const off = new Date(now); off.setHours(18, 0, 0, 0);
+    const ms = off - now;
+    $('left').textContent = ms > 0
+      ? `${Math.floor(ms / 3600000)} 小時 ${Math.floor(ms / 60000) % 60} 分`
+      : '下班了';
+
+    const start = new Date(now); start.setHours(0, 0, 0, 0);
+    const p = (now - start) / 864000;   // percent of the day
+    $('pct').textContent = `${p.toFixed(1)} %`;
+    $('fill').style.width = `${p}%`;
+  }
+  tick();
+  setInterval(tick, 1000);
+</script>
+</body>
+</html>

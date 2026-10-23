@@ -72,6 +72,14 @@
   -->
   <ItemGroup>
     <Compile Include="ActionExecutor.cs" />
+    <Compile Include="Canvas\CanvasBridge.cs" />
+    <Compile Include="Canvas\CanvasConfig.cs" />
+    <Compile Include="Canvas\CanvasEncoder.cs" />
+    <Compile Include="Canvas\CanvasLink.cs" />
+    <Compile Include="Canvas\CanvasRenderer.cs" />
+    <Compile Include="Forms\FormCanvasEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Controls\DarkColorTable.cs" />
     <Compile Include="Controls\DarkToolStripRenderer.cs" />
     <Compile Include="Config\DeckConfig.cs" />
@@ -303,6 +311,12 @@
     <Content Include="Tools\common_hanzi.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Canvas mode starter files -> <exe folder>\Canvas\ (only copied when
+         newer, so pages edited next to the exe aren't overwritten) -->
+    <Content Include="CanvasFiles\**\*.*">
+      <Link>Canvas\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="AxWMPLib">
@@ -329,6 +343,9 @@
     </PackageReference>
     <PackageReference Include="HidSharp">
       <Version>2.6.4</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Web.WebView2">
+      <Version>1.0.2792.45</Version>
     </PackageReference>
     <PackageReference Include="LibreHardwareMonitorLib">
       <Version>0.9.3</Version>
