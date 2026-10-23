@@ -129,7 +129,7 @@ namespace ESDeckPC
             var capPages = Caption($"Sidebar pages (max {CanvasConfig.MaxPages}, top first)");
             capPages.Dock = DockStyle.Top;
             _lstPages.Dock = DockStyle.Fill;
-            _lstPages.SelectedIndexChanged += (s, e) => ShowDetails();
+            _lstPages.SelectedIndexChanged += (s, e) => { if (!_loading) ShowDetails(); };
 
             var details = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 70, ColumnCount = 3, RowCount = 2, Padding = new Padding(0, 6, 0, 0) };
             details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 44));
@@ -139,6 +139,9 @@ namespace ESDeckPC
             _txtIcon.Dock = DockStyle.Fill;
             _txtName.TextChanged += (s, e) => EditDetails();
             _txtIcon.TextChanged += (s, e) => EditDetails();
+            // list text only when leaving the box -- changing a ListBox item
+            // drops the selection (and with it the text box's focus)
+            _txtName.Leave += (s, e) => UpdateListText();
             details.Controls.Add(new Label { Text = "Name", AutoSize = true, Margin = new Padding(0, 6, 0, 0) }, 0, 0);
             details.Controls.Add(_txtName, 1, 0);
             details.Controls.Add(new Label { Text = "Icon", AutoSize = true, Margin = new Padding(0, 6, 0, 0) }, 0, 1);
@@ -227,6 +230,7 @@ namespace ESDeckPC
 
         private void Save()
         {
+            UpdateListText();
             if (_cfgName == null) { NewConfig(); return; }
             try
             {
@@ -380,9 +384,18 @@ namespace ESDeckPC
             _cfg.Pages[i].Name = _txtName.Text.Trim();
             _cfg.Pages[i].Icon = _txtIcon.Text.Trim();
             _dirty = true;
-            _loading = true;
-            _lstPages.Items[i] = string.IsNullOrWhiteSpace(_cfg.Pages[i].Name)
+        }
+
+        private void UpdateListText()
+        {
+            int i = _lstPages.SelectedIndex;
+            if (i < 0 || i >= _cfg.Pages.Count) return;
+            string text = string.IsNullOrWhiteSpace(_cfg.Pages[i].Name)
                 ? _cfg.Pages[i].Dir : $"{_cfg.Pages[i].Name}   ({_cfg.Pages[i].Dir})";
+            if ((string)_lstPages.Items[i] == text) return;
+            _loading = true;
+            _lstPages.Items[i] = text;
+            _lstPages.SelectedIndex = i;   // setting an item drops the selection
             _loading = false;
         }
 
