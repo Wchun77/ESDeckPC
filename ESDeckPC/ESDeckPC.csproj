@@ -84,6 +84,9 @@
     <Compile Include="Forms\FormCanvasEditor.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\FormCanvasEditor.Designer.cs">
+      <DependentUpon>FormCanvasEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="Controls\DarkColorTable.cs" />
     <Compile Include="Controls\DarkToolStripRenderer.cs" />
     <Compile Include="Config\DeckConfig.cs" />
@@ -257,6 +260,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormMediaEditor.resx">
       <DependentUpon>FormMediaEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FormCanvasEditor.resx">
+      <DependentUpon>FormCanvasEditor.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormPageNamePrompt.resx">
       <DependentUpon>FormPageNamePrompt.cs</DependentUpon>
