@@ -135,6 +135,7 @@ namespace ESDeckPC
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.Name = "FormIcoImporter";
+            this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Icon Importer";
             ((System.ComponentModel.ISupportInitialize)(this.canvas)).EndInit();

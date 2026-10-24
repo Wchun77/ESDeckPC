@@ -117,6 +117,7 @@ namespace ESDeckPC
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "FormSideIconPicker";
+            this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Set Side Icon";

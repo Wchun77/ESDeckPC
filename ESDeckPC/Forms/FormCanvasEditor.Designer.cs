@@ -765,6 +765,8 @@
             this.Controls.Add(this.flowTop);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
             this.MinimumSize = new System.Drawing.Size(880, 640);
             this.Name = "FormCanvasEditor";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;

@@ -190,6 +190,7 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "FormDeckButtonEditor";
+            this.ShowIcon = false;
             this.Text = "Edit Button";
             this.pnlBottom.ResumeLayout(false);
             this.ResumeLayout(false);

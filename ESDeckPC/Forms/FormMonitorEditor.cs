@@ -76,7 +76,6 @@ namespace ESDeckPC
         public FormMonitorEditor()
         {
             InitializeComponent();
-            this.Icon = Resources.computer;
             StyleDarkButtons();
 
             btnJsonNew.Click += BtnJsonNew_Click;

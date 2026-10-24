@@ -558,6 +558,7 @@ namespace ESDeckPC
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.Name = "FormBootAnimConverter";
+            this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Boot Animation Converter";
             this.root.ResumeLayout(false);

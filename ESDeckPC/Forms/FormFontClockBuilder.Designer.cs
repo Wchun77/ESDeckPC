@@ -213,6 +213,7 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "FormFontClockBuilder";
+            this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Font Clock Builder";
             ((System.ComponentModel.ISupportInitialize)(this.nudTime)).EndInit();

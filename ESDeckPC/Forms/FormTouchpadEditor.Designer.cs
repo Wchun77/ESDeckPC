@@ -38,9 +38,9 @@ namespace ESDeckPC
             this.pnlPreview.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picPreview)).BeginInit();
             this.SuspendLayout();
-            //
+            // 
             // TLPanel_FULL
-            //
+            // 
             this.TLPanel_FULL.ColumnCount = 1;
             this.TLPanel_FULL.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.TLPanel_FULL.Controls.Add(this.paneltop, 0, 0);
@@ -53,9 +53,9 @@ namespace ESDeckPC
             this.TLPanel_FULL.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 550F));
             this.TLPanel_FULL.Size = new System.Drawing.Size(1046, 648);
             this.TLPanel_FULL.TabIndex = 0;
-            //
+            // 
             // paneltop
-            //
+            // 
             this.paneltop.Controls.Add(this.btnTouchpadPage);
             this.paneltop.Controls.Add(this.btnSettingsPage);
             this.paneltop.Controls.Add(this.btnSidebarPage);
@@ -65,33 +65,33 @@ namespace ESDeckPC
             this.paneltop.Name = "paneltop";
             this.paneltop.Size = new System.Drawing.Size(1040, 92);
             this.paneltop.TabIndex = 0;
-            //
+            // 
             // btnTouchpadPage
-            //
+            // 
             this.btnTouchpadPage.Location = new System.Drawing.Point(325, 25);
             this.btnTouchpadPage.Name = "btnTouchpadPage";
             this.btnTouchpadPage.Size = new System.Drawing.Size(79, 55);
             this.btnTouchpadPage.TabIndex = 4;
             this.btnTouchpadPage.Text = "Touchpad";
-            //
+            // 
             // btnSettingsPage
-            //
+            // 
             this.btnSettingsPage.Location = new System.Drawing.Point(414, 25);
             this.btnSettingsPage.Name = "btnSettingsPage";
             this.btnSettingsPage.Size = new System.Drawing.Size(79, 55);
             this.btnSettingsPage.TabIndex = 5;
             this.btnSettingsPage.Text = "Settings";
-            //
+            // 
             // btnSidebarPage
-            //
+            // 
             this.btnSidebarPage.Location = new System.Drawing.Point(503, 25);
             this.btnSidebarPage.Name = "btnSidebarPage";
             this.btnSidebarPage.Size = new System.Drawing.Size(79, 55);
             this.btnSidebarPage.TabIndex = 6;
             this.btnSidebarPage.Text = "Sidebar";
-            //
+            // 
             // grpJson
-            //
+            // 
             this.grpJson.Controls.Add(this.btnJsonSaveAs);
             this.grpJson.Controls.Add(this.lblJsonPath);
             this.grpJson.Controls.Add(this.btnJsonNew);
@@ -104,17 +104,17 @@ namespace ESDeckPC
             this.grpJson.TabIndex = 3;
             this.grpJson.TabStop = false;
             this.grpJson.Text = "JSON";
-            //
+            // 
             // btnJsonSaveAs
-            //
+            // 
             this.btnJsonSaveAs.Location = new System.Drawing.Point(206, 42);
             this.btnJsonSaveAs.Name = "btnJsonSaveAs";
             this.btnJsonSaveAs.Size = new System.Drawing.Size(84, 26);
             this.btnJsonSaveAs.TabIndex = 4;
             this.btnJsonSaveAs.Text = "Save As";
-            //
+            // 
             // lblJsonPath
-            //
+            // 
             this.lblJsonPath.Font = new System.Drawing.Font("Consolas", 8.5F);
             this.lblJsonPath.ForeColor = System.Drawing.Color.Gray;
             this.lblJsonPath.Location = new System.Drawing.Point(8, 20);
@@ -122,33 +122,33 @@ namespace ESDeckPC
             this.lblJsonPath.Size = new System.Drawing.Size(218, 16);
             this.lblJsonPath.TabIndex = 0;
             this.lblJsonPath.Text = "(no file)";
-            //
+            // 
             // btnJsonNew
-            //
+            // 
             this.btnJsonNew.Location = new System.Drawing.Point(8, 42);
             this.btnJsonNew.Name = "btnJsonNew";
             this.btnJsonNew.Size = new System.Drawing.Size(60, 26);
             this.btnJsonNew.TabIndex = 1;
             this.btnJsonNew.Text = "New";
-            //
+            // 
             // btnJsonOpen
-            //
+            // 
             this.btnJsonOpen.Location = new System.Drawing.Point(74, 42);
             this.btnJsonOpen.Name = "btnJsonOpen";
             this.btnJsonOpen.Size = new System.Drawing.Size(60, 26);
             this.btnJsonOpen.TabIndex = 2;
             this.btnJsonOpen.Text = "Open";
-            //
+            // 
             // btnJsonSave
-            //
+            // 
             this.btnJsonSave.Location = new System.Drawing.Point(140, 42);
             this.btnJsonSave.Name = "btnJsonSave";
             this.btnJsonSave.Size = new System.Drawing.Size(60, 26);
             this.btnJsonSave.TabIndex = 3;
             this.btnJsonSave.Text = "Save";
-            //
+            // 
             // TLPanel_BOTTOM
-            //
+            // 
             this.TLPanel_BOTTOM.ColumnCount = 2;
             this.TLPanel_BOTTOM.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 27.21154F));
             this.TLPanel_BOTTOM.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 72.78846F));
@@ -161,9 +161,9 @@ namespace ESDeckPC
             this.TLPanel_BOTTOM.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.TLPanel_BOTTOM.Size = new System.Drawing.Size(1040, 544);
             this.TLPanel_BOTTOM.TabIndex = 2;
-            //
+            // 
             // pnlSettingsHost
-            //
+            // 
             this.pnlSettingsHost.AutoScroll = true;
             this.pnlSettingsHost.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
             this.pnlSettingsHost.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -171,9 +171,9 @@ namespace ESDeckPC
             this.pnlSettingsHost.Name = "pnlSettingsHost";
             this.pnlSettingsHost.Size = new System.Drawing.Size(277, 538);
             this.pnlSettingsHost.TabIndex = 3;
-            //
+            // 
             // pnlPreview
-            //
+            // 
             this.pnlPreview.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
             this.pnlPreview.Controls.Add(this.picPreview);
             this.pnlPreview.Controls.Add(this.lblStatus);
@@ -182,9 +182,9 @@ namespace ESDeckPC
             this.pnlPreview.Name = "pnlPreview";
             this.pnlPreview.Size = new System.Drawing.Size(751, 538);
             this.pnlPreview.TabIndex = 2;
-            //
+            // 
             // picPreview
-            //
+            // 
             this.picPreview.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
             this.picPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.picPreview.Location = new System.Drawing.Point(13, 11);
@@ -192,9 +192,9 @@ namespace ESDeckPC
             this.picPreview.Size = new System.Drawing.Size(720, 480);
             this.picPreview.TabIndex = 0;
             this.picPreview.TabStop = false;
-            //
+            // 
             // lblStatus
-            //
+            // 
             this.lblStatus.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.lblStatus.Font = new System.Drawing.Font("Consolas", 8F);
             this.lblStatus.ForeColor = System.Drawing.Color.Gray;
@@ -203,11 +203,10 @@ namespace ESDeckPC
             this.lblStatus.Padding = new System.Windows.Forms.Padding(4, 0, 0, 0);
             this.lblStatus.Size = new System.Drawing.Size(751, 20);
             this.lblStatus.TabIndex = 1;
-            this.lblStatus.Text = "";
             this.lblStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            //
+            // 
             // FormTouchpadEditor
-            //
+            // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
@@ -216,9 +215,10 @@ namespace ESDeckPC
             this.Font = new System.Drawing.Font("Consolas", 9F);
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.MinimizeBox = false;
+            this.MaximizeBox = false;
             this.MinimumSize = new System.Drawing.Size(820, 580);
             this.Name = "FormTouchpadEditor";
+            this.ShowIcon = false;
             this.Text = "Touchpad Editor";
             this.TLPanel_FULL.ResumeLayout(false);
             this.paneltop.ResumeLayout(false);
