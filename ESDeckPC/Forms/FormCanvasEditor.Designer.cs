@@ -480,7 +480,7 @@
             this.panelPreview.Location = new System.Drawing.Point(0, 264);
             this.panelPreview.Name = "panelPreview";
             this.panelPreview.Padding = new System.Windows.Forms.Padding(10, 0, 10, 4);
-            this.panelPreview.Size = new System.Drawing.Size(864, 255);
+            this.panelPreview.Size = new System.Drawing.Size(864, 540);
             this.panelPreview.TabIndex = 27;
             // 
             // panelPrevArea
@@ -490,7 +490,7 @@
             this.panelPrevArea.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelPrevArea.Location = new System.Drawing.Point(10, 52);
             this.panelPrevArea.Name = "panelPrevArea";
-            this.panelPrevArea.Size = new System.Drawing.Size(844, 199);
+            this.panelPrevArea.Size = new System.Drawing.Size(844, 484);
             this.panelPrevArea.TabIndex = 28;
             // 
             // picSide
@@ -550,7 +550,7 @@
             this.btnPageView.Name = "btnPageView";
             this.btnPageView.Size = new System.Drawing.Size(56, 28);
             this.btnPageView.TabIndex = 31;
-            this.btnPageView.Text = "頁面";
+            this.btnPageView.Text = "Page";
             this.btnPageView.UseVisualStyleBackColor = false;
             this.btnPageView.Click += new System.EventHandler(this.btnPageView_Click);
             // 
@@ -562,9 +562,9 @@
             this.btnSetView.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.btnSetView.Location = new System.Drawing.Point(65, 11);
             this.btnSetView.Name = "btnSetView";
-            this.btnSetView.Size = new System.Drawing.Size(56, 28);
+            this.btnSetView.Size = new System.Drawing.Size(70, 28);
             this.btnSetView.TabIndex = 32;
-            this.btnSetView.Text = "設定";
+            this.btnSetView.Text = "Settings";
             this.btnSetView.UseVisualStyleBackColor = false;
             this.btnSetView.Click += new System.EventHandler(this.btnSetView_Click);
             // 
@@ -574,11 +574,11 @@
             this.btnReload.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(70)))), ((int)(((byte)(70)))), ((int)(((byte)(70)))));
             this.btnReload.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnReload.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.btnReload.Location = new System.Drawing.Point(127, 11);
+            this.btnReload.Location = new System.Drawing.Point(141, 11);
             this.btnReload.Name = "btnReload";
-            this.btnReload.Size = new System.Drawing.Size(80, 28);
+            this.btnReload.Size = new System.Drawing.Size(70, 28);
             this.btnReload.TabIndex = 33;
-            this.btnReload.Text = "重新整理";
+            this.btnReload.Text = "Reload";
             this.btnReload.UseVisualStyleBackColor = false;
             this.btnReload.Click += new System.EventHandler(this.btnReload_Click);
             // 
@@ -586,12 +586,12 @@
             // 
             this.lblPreview.AutoSize = true;
             this.lblPreview.ForeColor = System.Drawing.Color.Silver;
-            this.lblPreview.Location = new System.Drawing.Point(224, 14);
+            this.lblPreview.Location = new System.Drawing.Point(228, 14);
             this.lblPreview.Margin = new System.Windows.Forms.Padding(14, 6, 0, 0);
             this.lblPreview.Name = "lblPreview";
-            this.lblPreview.Size = new System.Drawing.Size(176, 15);
+            this.lblPreview.Size = new System.Drawing.Size(240, 15);
             this.lblPreview.TabIndex = 34;
-            this.lblPreview.Text = "預覽：點選左邊或上面的頁面";
+            this.lblPreview.Text = "Preview: select a page on the left or above";
             // 
             // flowLook
             // 
@@ -602,7 +602,7 @@
             this.flowLook.Controls.Add(this.txtSetIcon);
             this.flowLook.Controls.Add(this.btnSetIcon);
             this.flowLook.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.flowLook.Location = new System.Drawing.Point(0, 519);
+            this.flowLook.Location = new System.Drawing.Point(0, 804);
             this.flowLook.Name = "flowLook";
             this.flowLook.Padding = new System.Windows.Forms.Padding(10, 6, 10, 0);
             this.flowLook.Size = new System.Drawing.Size(864, 40);
@@ -616,16 +616,16 @@
             this.lblSetBg.Location = new System.Drawing.Point(10, 13);
             this.lblSetBg.Margin = new System.Windows.Forms.Padding(0, 7, 4, 0);
             this.lblSetBg.Name = "lblSetBg";
-            this.lblSetBg.Size = new System.Drawing.Size(81, 15);
+            this.lblSetBg.Size = new System.Drawing.Size(113, 15);
             this.lblSetBg.TabIndex = 36;
-            this.lblSetBg.Text = "Settings  背景";
+            this.lblSetBg.Text = "Settings background";
             // 
             // txtSetBg
             // 
             this.txtSetBg.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
             this.txtSetBg.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtSetBg.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.txtSetBg.Location = new System.Drawing.Point(98, 9);
+            this.txtSetBg.Location = new System.Drawing.Point(127, 9);
             this.txtSetBg.Name = "txtSetBg";
             this.txtSetBg.Size = new System.Drawing.Size(210, 23);
             this.txtSetBg.TabIndex = 37;
@@ -637,7 +637,7 @@
             this.btnSetBg.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(70)))), ((int)(((byte)(70)))), ((int)(((byte)(70)))));
             this.btnSetBg.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSetBg.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.btnSetBg.Location = new System.Drawing.Point(314, 9);
+            this.btnSetBg.Location = new System.Drawing.Point(343, 9);
             this.btnSetBg.Name = "btnSetBg";
             this.btnSetBg.Size = new System.Drawing.Size(30, 28);
             this.btnSetBg.TabIndex = 38;
@@ -649,19 +649,19 @@
             // 
             this.lblSetIcon.AutoSize = true;
             this.lblSetIcon.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.lblSetIcon.Location = new System.Drawing.Point(361, 13);
+            this.lblSetIcon.Location = new System.Drawing.Point(390, 13);
             this.lblSetIcon.Margin = new System.Windows.Forms.Padding(14, 7, 4, 0);
             this.lblSetIcon.Name = "lblSetIcon";
-            this.lblSetIcon.Size = new System.Drawing.Size(59, 15);
+            this.lblSetIcon.Size = new System.Drawing.Size(56, 15);
             this.lblSetIcon.TabIndex = 39;
-            this.lblSetIcon.Text = "齒輪圖示";
+            this.lblSetIcon.Text = "Gear icon";
             // 
             // txtSetIcon
             // 
             this.txtSetIcon.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
             this.txtSetIcon.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtSetIcon.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.txtSetIcon.Location = new System.Drawing.Point(427, 9);
+            this.txtSetIcon.Location = new System.Drawing.Point(453, 9);
             this.txtSetIcon.Name = "txtSetIcon";
             this.txtSetIcon.Size = new System.Drawing.Size(170, 23);
             this.txtSetIcon.TabIndex = 40;
@@ -673,7 +673,7 @@
             this.btnSetIcon.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(70)))), ((int)(((byte)(70)))), ((int)(((byte)(70)))));
             this.btnSetIcon.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSetIcon.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.btnSetIcon.Location = new System.Drawing.Point(603, 9);
+            this.btnSetIcon.Location = new System.Drawing.Point(629, 9);
             this.btnSetIcon.Name = "btnSetIcon";
             this.btnSetIcon.Size = new System.Drawing.Size(30, 28);
             this.btnSetIcon.TabIndex = 41;
@@ -688,7 +688,7 @@
             this.flowBottom.Controls.Add(this.btnRefreshLib);
             this.flowBottom.Controls.Add(this.lblStatus);
             this.flowBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.flowBottom.Location = new System.Drawing.Point(0, 559);
+            this.flowBottom.Location = new System.Drawing.Point(0, 844);
             this.flowBottom.Name = "flowBottom";
             this.flowBottom.Padding = new System.Windows.Forms.Padding(10, 6, 10, 0);
             this.flowBottom.Size = new System.Drawing.Size(864, 42);
@@ -757,7 +757,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
-            this.ClientSize = new System.Drawing.Size(864, 601);
+            this.ClientSize = new System.Drawing.Size(864, 886);
             this.Controls.Add(this.panelPreview);
             this.Controls.Add(this.tableTop);
             this.Controls.Add(this.flowLook);

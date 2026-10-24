@@ -272,7 +272,7 @@ namespace ESDeckPC
         {
             base.OnShown(e);
             UpdateIconPreview();   // the hint needs the TextBox handle, which exists only now
-            SetHint(txtSearch, $"搜尋頁面…（共 {_libAll.Count} 個）");
+            SetHint(txtSearch, $"Search pages... ({_libAll.Count} total)");
             txtSearch.Focus();
         }
 
@@ -334,7 +334,7 @@ namespace ESDeckPC
             foreach (var d in hits) lstLibrary.Items.Add(d);
             lstLibrary.EndUpdate();
             if (sel != null && hits.Contains(sel)) lstLibrary.SelectedItem = sel;
-            SetHint(txtSearch, $"搜尋頁面…（共 {_libAll.Count} 個）");
+            SetHint(txtSearch, $"Search pages... ({_libAll.Count} total)");
             if (words.Length > 0) SetStatus($"{hits.Count} / {_libAll.Count} pages");
         }
 
@@ -364,7 +364,7 @@ namespace ESDeckPC
             if (_web != null) _web.Visible = !on;
             picSettings.Visible = on;
             if (on) picSettings.BringToFront();
-            lblPreview.Text = on ? "預覽：Settings（模擬，字型與實機略有不同）" : (_previewDir != null ? $"預覽：{_previewDir}" : "預覽：點選左邊或上面的頁面");
+            lblPreview.Text = on ? "Preview: Settings (mock, fonts differ slightly from the device)" : (_previewDir != null ? $"Preview: {_previewDir}" : "Preview: select a page on the left or above");
             UpdateDevice();
         }
 
@@ -534,11 +534,11 @@ namespace ESDeckPC
                 string url = CanvasRenderer.HostUrl + dir.Trim('/').Replace('\\', '/') + "/index.html";
                 if (reload || dir != _previewDir) _web.CoreWebView2.Navigate(url);
                 _previewDir = dir;
-                if (!_showSettings) lblPreview.Text = $"預覽：{dir}";
+                if (!_showSettings) lblPreview.Text = $"Preview: {dir}";
             }
             catch (Exception ex)
             {
-                lblPreview.Text = "預覽無法啟動：" + ex.Message;
+                lblPreview.Text = "Preview failed: " + ex.Message;
             }
         }
 
@@ -664,8 +664,8 @@ namespace ESDeckPC
             var p = _cfg.Pages[i];
             string def = Path.Combine(CanvasPaths.Resolve(p.Dir) ?? "", "icon.png");
             SetHint(txtIcon, File.Exists(def)
-                ? $"預設：{p.Dir.TrimEnd('/')}/icon.png"
-                : "預設：顯示名稱文字");
+                ? $"Default: {p.Dir.TrimEnd('/')}/icon.png"
+                : "Default: page name as text");
             try { picIcon.Image = CanvasEncoder.RenderIcon(p.IconPath, p.Name); }
             catch { /* unreadable image: no preview */ }
         }
