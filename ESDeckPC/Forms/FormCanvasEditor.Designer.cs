@@ -233,6 +233,7 @@
             this.lstLibrary.Size = new System.Drawing.Size(324, 161);
             this.lstLibrary.TabIndex = 9;
             this.lstLibrary.SelectedIndexChanged += new System.EventHandler(this.lstLibrary_SelectedIndexChanged);
+            this.lstLibrary.Format += new System.Windows.Forms.ListControlConvertEventHandler(this.lstLibrary_Format);
             this.lstLibrary.DoubleClick += new System.EventHandler(this.lstLibrary_DoubleClick);
             // 
             // panelSearch

@@ -118,6 +118,8 @@ namespace ESDeckPC
 
         private void lstLibrary_DoubleClick(object sender, EventArgs e) => AddSelected();
         private void lstLibrary_SelectedIndexChanged(object sender, EventArgs e) => QueuePreview(lstLibrary.SelectedItem as string);
+        // items stay "pages/xxx" (what config.json stores); only the display drops the prefix
+        private void lstLibrary_Format(object sender, ListControlConvertEventArgs e) => e.Value = PageLabel(e.ListItem as string);
 
         // search: filters the list while typing (space = several words, all must match)
         private void txtSearch_TextChanged(object sender, EventArgs e) => FilterLibrary();
@@ -328,7 +330,7 @@ namespace ESDeckPC
         {
             string sel = lstLibrary.SelectedItem as string;
             var words = txtSearch.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            var hits = _libAll.Where(d => words.All(w => d.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+            var hits = _libAll.Where(d => words.All(w => PageLabel(d).IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
             lstLibrary.BeginUpdate();
             lstLibrary.Items.Clear();
             foreach (var d in hits) lstLibrary.Items.Add(d);
@@ -364,7 +366,7 @@ namespace ESDeckPC
             if (_web != null) _web.Visible = !on;
             picSettings.Visible = on;
             if (on) picSettings.BringToFront();
-            lblPreview.Text = on ? "Preview: Settings (mock, fonts differ slightly from the device)" : (_previewDir != null ? $"Preview: {_previewDir}" : "Preview: select a page on the left or above");
+            lblPreview.Text = on ? "Preview: Settings (mock, fonts differ slightly from the device)" : (_previewDir != null ? $"Preview: {PageLabel(_previewDir)}" : "Preview: select a page on the left or above");
             UpdateDevice();
         }
 
@@ -534,7 +536,7 @@ namespace ESDeckPC
                 string url = CanvasRenderer.HostUrl + dir.Trim('/').Replace('\\', '/') + "/index.html";
                 if (reload || dir != _previewDir) _web.CoreWebView2.Navigate(url);
                 _previewDir = dir;
-                if (!_showSettings) lblPreview.Text = $"Preview: {dir}";
+                if (!_showSettings) lblPreview.Text = $"Preview: {PageLabel(dir)}";
             }
             catch (Exception ex)
             {
@@ -608,7 +610,7 @@ namespace ESDeckPC
         {
             lstPages.Items.Clear();
             foreach (var p in _cfg.Pages)
-                lstPages.Items.Add(string.IsNullOrWhiteSpace(p.Name) ? p.Dir : $"{p.Name}   ({p.Dir})");
+                lstPages.Items.Add(PageText(p));
             if (select < 0 && lstPages.Items.Count > 0) select = 0;   // something to show in details / preview
             if (select >= 0 && select < lstPages.Items.Count) lstPages.SelectedIndex = select;
             ShowDetails();
@@ -664,7 +666,7 @@ namespace ESDeckPC
             var p = _cfg.Pages[i];
             string def = Path.Combine(CanvasPaths.Resolve(p.Dir) ?? "", "icon.png");
             SetHint(txtIcon, File.Exists(def)
-                ? $"Default: {p.Dir.TrimEnd('/')}/icon.png"
+                ? $"Default: {PageLabel(p.Dir)}/icon.png"
                 : "Default: page name as text");
             try { picIcon.Image = CanvasEncoder.RenderIcon(p.IconPath, p.Name); }
             catch { /* unreadable image: no preview */ }
@@ -696,8 +698,7 @@ namespace ESDeckPC
         {
             int i = lstPages.SelectedIndex;
             if (i < 0 || i >= _cfg.Pages.Count) return;
-            string text = string.IsNullOrWhiteSpace(_cfg.Pages[i].Name)
-                ? _cfg.Pages[i].Dir : $"{_cfg.Pages[i].Name}   ({_cfg.Pages[i].Dir})";
+            string text = PageText(_cfg.Pages[i]);
             if ((string)lstPages.Items[i] == text) return;
             _loading = true;
             lstPages.Items[i] = text;
@@ -733,15 +734,26 @@ namespace ESDeckPC
             string dir = Path.Combine(CanvasPaths.Pages, name);
             if (Directory.Exists(dir))
             {
-                MessageBox.Show(this, $"pages/{name} already exists.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, $"{name} already exists.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
             Directory.CreateDirectory(dir);
             File.WriteAllText(Path.Combine(dir, "index.html"), PageTemplate.Replace("{{NAME}}", name));
             RefreshLibrary();
             lstLibrary.SelectedItem = $"pages/{name}";
-            SetStatus($"Created pages/{name}/index.html");
+            SetStatus($"Created {name}");
         }
+
+        /// <summary>Page folder as the user sees it: "pages/clock" -> "clock".</summary>
+        private static string PageLabel(string dir)
+        {
+            if (string.IsNullOrEmpty(dir)) return dir;
+            string d = dir.Replace('\\', '/').Trim('/');
+            return d.StartsWith("pages/", StringComparison.OrdinalIgnoreCase) ? d.Substring(6) : d;
+        }
+
+        private static string PageText(CanvasPageEntry p) =>
+            string.IsNullOrWhiteSpace(p.Name) ? PageLabel(p.Dir) : $"{p.Name}   ({PageLabel(p.Dir)})";
 
         private static string SafeName(string name) =>
             Regex.Replace(name.Trim(), @"[\\/:*?""<>|\s]+", "_");
