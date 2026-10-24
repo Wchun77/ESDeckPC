@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -59,6 +61,15 @@ namespace ESDeckPC
         // don't do anything on the PC).
         private readonly Panel _previewBox = new Panel { BackColor = Color.Black };
         private readonly Label _lblPreview = new Label { AutoSize = true, ForeColor = Color.Silver };
+
+        // The whole ESP screen (800 x 480): sidebar picture on the left
+        // (page icons + gear, drawn like the ESP draws them), the page or
+        // the Settings mock on the right.
+        private readonly PictureBox _sidePic = new PictureBox { SizeMode = PictureBoxSizeMode.StretchImage, BackColor = Color.FromArgb(0x11, 0x11, 0x11), Cursor = Cursors.Hand };
+        private readonly PictureBox _setPic = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.StretchImage, Visible = false, BackColor = Color.FromArgb(0x22, 0x22, 0x22) };
+        private bool _showSettings;
+        private int _previewIndex = -1;       // sidebar slot being previewed, -1 = a library page not in this config
+        private Button _btnPageView, _btnSetView;
         private WebView2 _web;
         private Task _webInit;
         private string _previewDir;
@@ -237,10 +248,18 @@ namespace ESDeckPC
             var prevHead = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 34, Padding = new Padding(0, 8, 0, 0), WrapContents = false };
             _lblPreview.Text = "預覽：點選左邊或上面的頁面";
             _lblPreview.Margin = new Padding(0, 6, 8, 0);
+            _btnPageView = MakeButton("頁面", (s, e) => SetSettingsView(false), 56);
+            _btnSetView = MakeButton("設定", (s, e) => SetSettingsView(true), 56);
+            prevHead.Controls.Add(_btnPageView);
+            prevHead.Controls.Add(_btnSetView);
+            prevHead.Controls.Add(MakeButton("重新整理", (s, e) => { UpdateDevice(); ShowPreview(_previewDir, true); }, 80));
             prevHead.Controls.Add(_lblPreview);
-            prevHead.Controls.Add(MakeButton("重新整理", (s, e) => ShowPreview(_previewDir, true), 80));
+            _lblPreview.Margin = new Padding(8, 6, 0, 0);
             var prevArea = new Panel { Dock = DockStyle.Fill };
+            prevArea.Controls.Add(_sidePic);
             prevArea.Controls.Add(_previewBox);
+            _previewBox.Controls.Add(_setPic);
+            _sidePic.MouseClick += SidebarClick;
             prevArea.Resize += (s, e) => LayoutPreview(prevArea);
             _previewTimer.Tick += (s, e) => { _previewTimer.Stop(); ShowPreview(_pendingPreview, false); };
 
@@ -423,17 +442,183 @@ namespace ESDeckPC
         {
             if (string.IsNullOrEmpty(dir)) return;
             _pendingPreview = dir;
+            _previewIndex = _cfg.Pages.FindIndex(p => string.Equals(p.Dir, dir, StringComparison.OrdinalIgnoreCase));
+            if (_showSettings) SetSettingsView(false); else UpdateDevice();
             _previewTimer.Stop();
             _previewTimer.Start();
         }
 
-        /// <summary>Largest 3:2 box that fits, centered.</summary>
+        /// <summary>Largest 800 x 480 (5:3) screen that fits, centered:
+        /// 80 px sidebar + 720 px content, same proportions as the ESP.</summary>
         private void LayoutPreview(Control area)
         {
             int w = area.ClientSize.Width, h = area.ClientSize.Height;
-            if (w * 2 > h * 3) w = h * 3 / 2; else h = w * 2 / 3;
-            _previewBox.SetBounds((area.ClientSize.Width - w) / 2, 0, Math.Max(w, 1), Math.Max(h, 1));
+            if (w * 3 > h * 5) w = h * 5 / 3; else h = w * 3 / 5;
+            w = Math.Max(w, 10); h = Math.Max(h, 6);
+            int x = (area.ClientSize.Width - w) / 2, side = w * 80 / 800;
+            _sidePic.SetBounds(x, 0, side, h);
+            _previewBox.SetBounds(x + side, 0, w - side, h);
             ApplyPreviewZoom();
+        }
+
+        // ------------------------------------------------------------------
+        // ESP screen mock: sidebar + Settings page
+        // ------------------------------------------------------------------
+
+        private void SetSettingsView(bool on)
+        {
+            _showSettings = on;
+            if (_web != null) _web.Visible = !on;
+            _setPic.Visible = on;
+            if (on) _setPic.BringToFront();
+            _lblPreview.Text = on ? "預覽：Settings（模擬，字型與實機略有不同）" : (_previewDir != null ? $"預覽：{_previewDir}" : "預覽：點選左邊或上面的頁面");
+            UpdateDevice();
+        }
+
+        /// <summary>Redraws the sidebar and the Settings mock from the
+        /// config being edited (call after any page / icon / look change).</summary>
+        private void UpdateDevice()
+        {
+            var oldSide = _sidePic.Image;
+            _sidePic.Image = RenderSidebar();
+            oldSide?.Dispose();
+            if (_showSettings)
+            {
+                var oldSet = _setPic.Image;
+                _setPic.Image = RenderSettings();
+                oldSet?.Dispose();
+            }
+            if (_btnPageView != null)
+            {
+                _btnPageView.BackColor = _showSettings ? PanelColor : Color.FromArgb(0, 85, 204);
+                _btnSetView.BackColor = _showSettings ? Color.FromArgb(0, 85, 204) : PanelColor;
+            }
+        }
+
+        private static GraphicsPath Rounded(Rectangle r, int rad)
+        {
+            var g = new GraphicsPath();
+            int d = rad * 2;
+            g.AddArc(r.X, r.Y, d, d, 180, 90);
+            g.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            g.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            g.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            g.CloseFigure();
+            return g;
+        }
+
+        // sidebar layout on the ESP (ui_canvas.c / ui.c): buttons 64 x 64 at
+        // x 8, first at y 8, 80 px apart; gear at (8, 408); selected = 3 px
+        // blue outline (#0055cc); background #111111
+        private const int SbBtn = 64, SbX = 8, SbY0 = 8, SbStep = 80, GearY = 408;
+
+        private Bitmap RenderSidebar()
+        {
+            var bmp = new Bitmap(80, 480);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(Color.FromArgb(0x11, 0x11, 0x11));
+                var blue = Color.FromArgb(0x00, 0x55, 0xcc);
+                for (int i = 0; i < _cfg.Pages.Count && i < CanvasConfig.MaxPages; i++)
+                {
+                    var r = new Rectangle(SbX, SbY0 + i * SbStep, SbBtn, SbBtn);
+                    Bitmap icon = null;
+                    try { icon = CanvasEncoder.RenderIcon(_cfg.Pages[i].IconPath, _cfg.Pages[i].Name); } catch { }
+                    using (var path = Rounded(r, 8))
+                    {
+                        g.SetClip(path);
+                        if (icon != null) g.DrawImage(icon, r);
+                        else using (var b = new SolidBrush(Color.FromArgb(0x2a, 0x2a, 0x2a))) g.FillRectangle(b, r);
+                        g.ResetClip();
+                        if (!_showSettings && i == _previewIndex)
+                            using (var pen = new Pen(blue, 3)) g.DrawPath(pen, Rounded(Rectangle.Inflate(r, 2, 2), 9));
+                    }
+                    icon?.Dispose();
+                }
+                // gear: the config's side_icon, or the built-in gear glyph
+                var gr = new Rectangle(SbX, GearY, SbBtn, SbBtn);
+                Bitmap gearImg = null;
+                try { gearImg = CanvasEncoder.RenderIconFile(CanvasPaths.Resolve(_cfg.Settings?.SideIcon)); } catch { }
+                using (var path = Rounded(gr, 8))
+                {
+                    bool glyphSel = _showSettings && gearImg == null;
+                    using (var b = new SolidBrush(glyphSel ? blue : Color.FromArgb(0x2a, 0x2a, 0x2a))) g.FillPath(b, path);
+                    if (gearImg != null)
+                    {
+                        g.SetClip(path); g.DrawImage(gearImg, gr); g.ResetClip();
+                        if (_showSettings) using (var pen = new Pen(blue, 3)) g.DrawPath(pen, Rounded(Rectangle.Inflate(gr, 2, 2), 9));
+                    }
+                    else
+                    {
+                        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                        using (var f = new Font("Segoe UI Symbol", 20f, FontStyle.Regular, GraphicsUnit.Pixel))
+                        using (var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                            g.DrawString("\u2699", f, Brushes.White, gr, fmt);
+                    }
+                }
+                gearImg?.Dispose();
+            }
+            return bmp;
+        }
+
+        // Settings page on the ESP (ui_settings.c): background image scaled
+        // to cover + 50 % black mask (else #222222); 16 px padding; header 40
+        // px (close button, "Settings" centered); rows 48 px, 8 px apart,
+        // #2a2a2a at 50 %, radius 6, label 16 px at x + 12
+        private Bitmap RenderSettings()
+        {
+            var bmp = new Bitmap(720, 480);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                g.Clear(Color.FromArgb(0x22, 0x22, 0x22));
+                Bitmap bg = null;
+                try { bg = CanvasEncoder.LoadCover(CanvasPaths.Resolve(_cfg.Settings?.BgImage), 720, 480); } catch { }
+                if (bg != null)
+                {
+                    g.DrawImage(bg, 0, 0, 720, 480);
+                    using (var mask = new SolidBrush(Color.FromArgb(128, 0, 0, 0))) g.FillRectangle(mask, 0, 0, 720, 480);
+                    bg.Dispose();
+                }
+                var btnBrush = new SolidBrush(Color.FromArgb(128, 0x2a, 0x2a, 0x2a));
+                using (btnBrush)
+                using (var title = new Font("Segoe UI", 20f, FontStyle.Regular, GraphicsUnit.Pixel))
+                using (var rowFont = new Font("Segoe UI", 16f, FontStyle.Regular, GraphicsUnit.Pixel))
+                using (var sym = new Font("Segoe UI Symbol", 16f, FontStyle.Regular, GraphicsUnit.Pixel))
+                using (var center = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                using (var left = new StringFormat { LineAlignment = StringAlignment.Center })
+                using (var txt = new SolidBrush(Color.FromArgb(0xee, 0xee, 0xee)))
+                {
+                    var close = new Rectangle(16, 18, 36, 36);
+                    using (var path = Rounded(close, 6)) g.FillPath(btnBrush, path);
+                    g.DrawString("\u2715", sym, txt, close, center);
+                    g.DrawString("Settings", title, Brushes.White, new RectangleF(16, 16, 688, 40), center);
+                    string[] rows = { "System", "Bluetooth", "Custom", "Mode" };
+                    for (int i = 0; i < rows.Length; i++)
+                    {
+                        var r = new Rectangle(16, 68 + i * 56, 688, 48);
+                        using (var path = Rounded(r, 6)) g.FillPath(btnBrush, path);
+                        g.DrawString(rows[i], rowFont, txt, new RectangleF(r.X + 12, r.Y, 400, r.Height), left);
+                        g.DrawString("\u203A", rowFont, txt, new RectangleF(r.Right - 30, r.Y, 20, r.Height), center);
+                    }
+                }
+            }
+            return bmp;
+        }
+
+        /// <summary>Tap on the sidebar mock: a page icon previews that page,
+        /// the gear shows the Settings mock -- like on the ESP.</summary>
+        private void SidebarClick(object sender, MouseEventArgs e)
+        {
+            if (_sidePic.Height <= 0) return;
+            int y = e.Y * 480 / _sidePic.Height;
+            if (y >= GearY - 4) { SetSettingsView(true); return; }
+            int i = (y - SbY0 + (SbStep - SbBtn) / 2) / SbStep;
+            if (i < 0 || i >= _cfg.Pages.Count) return;
+            _lstPages.SelectedIndex = i;      // -> details + preview of that page
+            SetSettingsView(false);
         }
 
         /// <summary>Zoom so the page's CSS viewport is exactly 720 x 480
@@ -456,7 +641,7 @@ namespace ESDeckPC
                 string url = CanvasRenderer.HostUrl + dir.Trim('/').Replace('\\', '/') + "/index.html";
                 if (reload || dir != _previewDir) _web.CoreWebView2.Navigate(url);
                 _previewDir = dir;
-                _lblPreview.Text = $"預覽：{dir}";
+                if (!_showSettings) _lblPreview.Text = $"預覽：{dir}";
             }
             catch (Exception ex)
             {
@@ -474,6 +659,8 @@ namespace ESDeckPC
             var env = await CoreWebView2Environment.CreateAsync(null, dataDir);
             _web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.Black };
             _previewBox.Controls.Add(_web);
+            _web.Visible = !_showSettings;
+            _setPic.BringToFront();
             await _web.EnsureCoreWebView2Async(env);
             var core = _web.CoreWebView2;
             core.Settings.AreDefaultContextMenusEnabled = false;
@@ -504,6 +691,7 @@ namespace ESDeckPC
             _cfg.Settings.BgImage = _txtSetBg.Text.Trim();
             _cfg.Settings.SideIcon = _txtSetIcon.Text.Trim();
             _dirty = true;
+            UpdateDevice();
         }
 
         private void BrowseInto(TextBox box, string title)
@@ -531,6 +719,7 @@ namespace ESDeckPC
             if (select >= 0 && select < _lstPages.Items.Count) _lstPages.SelectedIndex = select;
             ShowDetails();
             ShowLook();
+            UpdateDevice();
         }
 
         private void AddSelected()
@@ -606,6 +795,7 @@ namespace ESDeckPC
             _cfg.Pages[i].Icon = _txtIcon.Text.Trim();
             _dirty = true;
             UpdateIconPreview();
+            UpdateDevice();
         }
 
         private void UpdateListText()
