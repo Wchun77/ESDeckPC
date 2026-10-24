@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Threading;
 using LibreHardwareMonitor.Hardware;
@@ -90,8 +91,28 @@ namespace ESDeckPC
         // Single worker thread, single Computer instance (see class remarks)
         private Thread _workerThread;
         private Computer _computer;
-        private volatile bool _subscribed = false;
         private volatile bool _disposed = false;
+
+        // Two consumers can keep the worker running:
+        //   _wantEsp    -- ESP in Monitor mode: HID reports every second
+        //   _wantCanvas -- a Canvas page polls esdeck.stats(); no HID reports,
+        //                  only the snapshot below. Lapses on its own when the
+        //                  page stops asking for CanvasIdleSeconds.
+        // _running is set / cleared under _runLock only, so a request can't
+        // slip in between the worker deciding to exit and it exiting.
+        private volatile bool _wantEsp = false;
+        private volatile bool _wantCanvas = false;
+        private DateTime _canvasLastReq = DateTime.MinValue;
+        private const int CanvasIdleSeconds = 6;
+        private readonly object _runLock = new object();
+        private bool _running = false;
+
+        // Latest values as JSON for Canvas pages (see RequestForCanvas)
+        private volatile string _latestJson = "{}";
+
+        // Hardware init failed once: Canvas polls don't retry it every second
+        // (Subscribe() from the ESP still does, as before).
+        private volatile bool _initFailed = false;
 
         // Storage values -- refreshed every STORAGE_PERIOD ticks
         private int _diskUsage = 0;  // 0-100 %
@@ -123,38 +144,78 @@ namespace ESDeckPC
 
         public void Subscribe()
         {
-            if (_subscribed) return;
-            _subscribed = true;
-
-            _workerThread = new Thread(WorkerLoop)
-            {
-                IsBackground = true,
-                Name = "MonitorSender_Worker",
-            };
-            _workerThread.Start();
-
+            if (_wantEsp) return;
+            _wantEsp = true;
+            _initFailed = false;
+            EnsureRunning();
             Log("Monitor: started sending");
         }
 
         public void Unsubscribe()
         {
-            if (!_subscribed) return;
-            _subscribed = false;
+            if (!_wantEsp) return;
+            _wantEsp = false;
 
+            // A Canvas page still reading the values keeps the worker going
+            // (it just stops sending to the ESP); otherwise wait for it to end.
+            if (!CanvasWanted())
+                JoinWorker();
+
+            Log("Monitor: stopped sending");
+        }
+
+        /// <summary>
+        /// For Canvas pages (esdeck.stats()): the latest values as JSON, and
+        /// keeps the sensors running for another CanvasIdleSeconds. "{}"
+        /// until the first poll after starting. UI thread.
+        /// </summary>
+        public string RequestForCanvas()
+        {
+            if (_disposed || _initFailed) return "{}";
+            _canvasLastReq = DateTime.UtcNow;
+            _wantCanvas = true;
+            EnsureRunning();
+            return _latestJson;
+        }
+
+        private bool CanvasWanted() =>
+            _wantCanvas && (DateTime.UtcNow - _canvasLastReq).TotalSeconds < CanvasIdleSeconds;
+
+        private bool Wanted() => !_disposed && (_wantEsp || CanvasWanted());
+
+        private void EnsureRunning()
+        {
+            lock (_runLock)
+            {
+                if (_running) return;
+                // The previous worker may still be closing its Computer --
+                // never let two overlap (see class remarks on Ring0).
+                var old = _workerThread;
+                if (old != null && old.IsAlive && old != Thread.CurrentThread)
+                    old.Join(12000);
+
+                _running = true;
+                _workerThread = new Thread(WorkerLoop)
+                {
+                    IsBackground = true,
+                    Name = "MonitorSender_Worker",
+                };
+                _workerThread.Start();
+            }
+        }
+
+        private void JoinWorker()
+        {
             // Join blocks until the worker loop finishes its current cycle
             // and calls Computer.Close() itself, from the same thread that
             // opened it. We deliberately do not touch _computer from here.
-            bool joined = _workerThread?.Join(12000) ?? true;
-
+            var t = _workerThread;
+            bool joined = t?.Join(12000) ?? true;
             if (!joined)
                 Log("Monitor: worker thread did not exit in time");
 
-            _workerThread = null;
-
             _prevNetSent = -1;
             _prevNetReceived = -1;
-
-            Log("Monitor: stopped sending");
         }
 
         // ------------------------------------------------------------------
@@ -191,7 +252,10 @@ namespace ESDeckPC
             catch (Exception ex)
             {
                 Log($"Monitor: hardware init failed, monitor disabled for this session: {ex.Message}");
-                _subscribed = false;
+                _wantEsp = false;
+                _wantCanvas = false;
+                _initFailed = true;
+                lock (_runLock) _running = false;
 
                 try { computer.Close(); }
                 catch { /* best effort -- computer may be only partially open */ }
@@ -202,8 +266,13 @@ namespace ESDeckPC
 
             int tick = 0;
 
-            while (_subscribed)
+            while (true)
             {
+                lock (_runLock)
+                {
+                    if (!Wanted()) { _running = false; break; }
+                }
+
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 try
                 {
@@ -213,8 +282,12 @@ namespace ESDeckPC
                     if (tick % STORAGE_PERIOD == 0)
                         CollectStorageSensors();
 
-                    SendTimeNow();
-                    SendData(data);
+                    _latestJson = ToJson(data);
+                    if (_wantEsp)
+                    {
+                        SendTimeNow();
+                        SendData(data);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -488,6 +561,19 @@ namespace ESDeckPC
         // Send helpers
         // ------------------------------------------------------------------
 
+        private string ToJson(MonitorData d)
+        {
+            // Field meanings / units: see the CMD_DATA layout in the class remarks.
+            return string.Format(CultureInfo.InvariantCulture,
+                "{{\"cpu\":{0},\"cpuTemp\":{1},\"cpuMHz\":{2},\"cpuW\":{3},\"ram\":{4}," +
+                "\"gpu\":{5},\"gpuTemp\":{6},\"vram\":{7},\"gpuPower\":{8}," +
+                "\"netUp\":{9},\"netDown\":{10},\"disk\":{11},\"ssdLife\":{12},\"t\":{13}}}",
+                d.CpuUsage, d.CpuTemp, d.CpuFreq * 100, d.CpuPower, d.RamUsage,
+                d.GpuUsage, d.GpuTemp, d.GpuVram, d.GpuPower,
+                d.NetUp, d.NetDown, _diskUsage, _ssdLife,
+                (long)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds);
+        }
+
         private void SendData(MonitorData data)
         {
             var report = new byte[REPORT_SIZE];
@@ -548,8 +634,10 @@ namespace ESDeckPC
         public void Dispose()
         {
             if (_disposed) return;
-            _disposed = true;
-            Unsubscribe();
+            _disposed = true;     // Wanted() is false from here on
+            _wantCanvas = false;
+            _wantEsp = false;
+            JoinWorker();
         }
     }
 

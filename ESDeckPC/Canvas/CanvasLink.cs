@@ -82,6 +82,7 @@ namespace ESDeckPC
 
         public event Action<string> OnLog;
         public bool Active => _active;
+        internal CanvasBridge Bridge => _bridge;
 
         public CanvasLink(HidReceiver hid, Control ui)
         {

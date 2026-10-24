@@ -202,6 +202,45 @@ esdeck.log("hello");
 </script>
 ```
 
+### 系統狀態：`esdeck.stats()`
+
+和 Monitor 模式同一組感測器（LibreHardwareMonitor）。頁面每秒呼叫一次即可；
+停止呼叫約 6 秒後感測器會自動停止。剛開始的第一次可能回傳 `{}`。
+
+```js
+const s = await esdeck.stats();
+// { cpu: 12, cpuTemp: 48, cpuMHz: 3600, cpuW: 25, ram: 41,
+//   gpu: 3, gpuTemp: 40, vram: 18, gpuPower: 12,
+//   netUp: 0, netDown: 1, disk: 2, ssdLife: 98, t: 1761234567890 }
+```
+
+| 欄位 | 單位 |
+|---|---|
+| `cpu` `ram` `gpu` `vram` `disk` | % |
+| `cpuTemp` `gpuTemp` | °C |
+| `cpuMHz` | MHz（以 100 MHz 為單位） |
+| `cpuW` | W；`gpuPower`：NVIDIA 為 %，AMD / Intel 為 W |
+| `netUp` `netDown` | MB/s（整數） |
+| `ssdLife` | 剩餘壽命 %（每 10 秒更新） |
+| `t` | 取樣時間（Unix 毫秒），可用來判斷資料是否過舊 |
+
+### 正在播放：`esdeck.media()`
+
+讀取 Windows 的媒體工作階段（Spotify、瀏覽器播放的 YouTube 等）。
+
+```js
+const m = await esdeck.media();
+// { active: true, title, artist, album, pos: 毫秒, dur: 毫秒, playing: true, cover: 3 }
+// 沒有播放中的工作階段：{ active: false }
+
+const url = await esdeck.mediaCover();   // 封面 data: URL，沒有則為 ""
+// m.cover 這個數字改變時才需要重新取封面
+
+esdeck.mediaCmd('toggle');   // 'toggle' | 'next' | 'prev'
+```
+
+`pos` 在播放中會自動推算，不用自己計時；進度條每秒更新一次就夠。
+
 ---
 
 ## 6. 資料保存與網路

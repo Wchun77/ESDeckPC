@@ -114,6 +114,10 @@ namespace ESDeckPC
   window.esdeck = {
     action: a => host().Action(typeof a === 'string' ? a : JSON.stringify(a)),
     log:    m => host().Log(String(m)),
+    stats:  async () => JSON.parse(await host().Stats()),
+    media:  async () => JSON.parse(await host().Media()),
+    mediaCover: () => host().MediaCover(),
+    mediaCmd: c => host().MediaCmd(String(c)),
   };
   const css = '::-webkit-scrollbar{display:none} html,body{user-select:none;-webkit-user-select:none}';
   const add = () => { const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); };

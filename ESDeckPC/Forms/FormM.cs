@@ -165,6 +165,7 @@ namespace ESDeckPC
             _nowPlaying = new NowPlayingWatcher();
             _nowPlaying.OnLog += msg => AppendLog(msg, Color.MediumPurple);
             _nowPlaying.Start();
+            _canvas.Bridge.Attach(_monitor, _nowPlaying);   // esdeck.stats() / esdeck.media() for Canvas pages
 
             _nowPlayingSender = new NowPlayingSender(_receiver, _nowPlaying);
             _nowPlayingSender.OnLog += msg => AppendLog(msg, Color.MediumPurple);
