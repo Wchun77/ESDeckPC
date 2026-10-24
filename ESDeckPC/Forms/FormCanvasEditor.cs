@@ -6,7 +6,10 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 
 namespace ESDeckPC
 {
@@ -26,6 +29,8 @@ namespace ESDeckPC
         private readonly ComboBox _cboConfig = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
         private readonly Label _lblActive = new Label { AutoSize = true, ForeColor = Color.Gray };
         private readonly ListBox _lstLibrary = new ListBox { IntegralHeight = false };
+        private readonly TextBox _txtSearch = new TextBox();
+        private List<string> _libAll = new List<string>();   // every page folder; _lstLibrary shows the matches
         private readonly ListBox _lstPages = new ListBox { IntegralHeight = false };
         private readonly TextBox _txtName = new TextBox();
         private readonly TextBox _txtIcon = new TextBox();
@@ -39,6 +44,25 @@ namespace ESDeckPC
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, string lParam);
         private const int EM_SETCUEBANNER = 0x1501;
+
+        // Dark scroll bars on the list boxes (Windows 10 1809+; ignored elsewhere).
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        private static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubIdList);
+
+        private static void DarkScrollBars(Control c)
+        {
+            c.HandleCreated += (s, e) => { try { SetWindowTheme(c.Handle, "DarkMode_Explorer", null); } catch { } };
+        }
+
+        // Live preview of the selected page (its own WebView2, separate from
+        // the one that renders for the ESP; no esdeck object, so buttons
+        // don't do anything on the PC).
+        private readonly Panel _previewBox = new Panel { BackColor = Color.Black };
+        private readonly Label _lblPreview = new Label { AutoSize = true, ForeColor = Color.Silver };
+        private WebView2 _web;
+        private Task _webInit;
+        private string _previewDir;
+        private readonly Timer _previewTimer = new Timer { Interval = 250 };   // selection settles before loading
 
         private static void SetHint(TextBox box, string hint)
         {
@@ -57,8 +81,8 @@ namespace ESDeckPC
         public FormCanvasEditor()
         {
             Text = "Canvas Pages";
-            ClientSize = new Size(780, 510);
-            MinimumSize = new Size(760, 480);
+            ClientSize = new Size(900, 620);
+            MinimumSize = new Size(880, 600);
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Bg;
             ForeColor = Fg;
@@ -82,6 +106,7 @@ namespace ESDeckPC
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             CanvasPaths.ActiveChanged -= OnActiveChanged;
+            _previewTimer.Dispose();
             base.OnFormClosed(e);
         }
 
@@ -113,7 +138,9 @@ namespace ESDeckPC
 
         private void BuildLayout()
         {
-            foreach (Control c in new Control[] { _cboConfig, _lstLibrary, _lstPages, _txtName, _txtIcon, _txtSetBg, _txtSetIcon }) Style(c);
+            foreach (Control c in new Control[] { _cboConfig, _lstLibrary, _lstPages, _txtName, _txtIcon, _txtSetBg, _txtSetIcon, _txtSearch }) Style(c);
+            DarkScrollBars(_lstLibrary);
+            DarkScrollBars(_lstPages);
             _cboConfig.FlatStyle = FlatStyle.Flat;
 
             // --- top: config file ---
@@ -148,7 +175,24 @@ namespace ESDeckPC
             capLib.Dock = DockStyle.Top;
             _lstLibrary.Dock = DockStyle.Fill;
             _lstLibrary.DoubleClick += (s, e) => AddSelected();
+            _lstLibrary.SelectedIndexChanged += (s, e) => QueuePreview(_lstLibrary.SelectedItem as string);
+            // search: filters the list while typing (space = several words, all must match)
+            var searchRow = new Panel { Dock = DockStyle.Top, Height = 30, Padding = new Padding(0, 2, 0, 4) };
+            _txtSearch.Dock = DockStyle.Fill;
+            _txtSearch.TextChanged += (s, e) => FilterLibrary();
+            _txtSearch.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Escape) { _txtSearch.Clear(); e.SuppressKeyPress = true; }
+                else if (e.KeyCode == Keys.Down && _lstLibrary.Items.Count > 0) { _lstLibrary.Focus(); _lstLibrary.SelectedIndex = 0; e.SuppressKeyPress = true; }
+                else if (e.KeyCode == Keys.Enter && _lstLibrary.Items.Count > 0)
+                {
+                    if (_lstLibrary.SelectedIndex < 0) _lstLibrary.SelectedIndex = 0;
+                    AddSelected(); e.SuppressKeyPress = true;
+                }
+            };
+            searchRow.Controls.Add(_txtSearch);
             left.Controls.Add(_lstLibrary);
+            left.Controls.Add(searchRow);
             left.Controls.Add(capLib);
 
             var mid = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(8, 30, 0, 0) };
@@ -160,10 +204,17 @@ namespace ESDeckPC
             var right = new Panel { Dock = DockStyle.Fill };
             var capPages = Caption($"Sidebar pages (max {CanvasConfig.MaxPages}, top first)");
             capPages.Dock = DockStyle.Top;
-            _lstPages.Dock = DockStyle.Fill;
-            _lstPages.SelectedIndexChanged += (s, e) => { if (!_loading) ShowDetails(); };
+            // at most 4 entries, so only as tall as that; the preview gets the rest
+            _lstPages.Dock = DockStyle.Top;
+            _lstPages.Height = _lstPages.ItemHeight * CanvasConfig.MaxPages + 8;
+            _lstPages.SelectedIndexChanged += (s, e) =>
+            {
+                if (!_loading) ShowDetails();
+                int i = _lstPages.SelectedIndex;
+                if (i >= 0 && i < _cfg.Pages.Count) QueuePreview(_cfg.Pages[i].Dir);
+            };
 
-            var details = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 76, ColumnCount = 4, RowCount = 2, Padding = new Padding(0, 6, 0, 0) };
+            var details = new TableLayoutPanel { Dock = DockStyle.Top, Height = 76, ColumnCount = 4, RowCount = 2, Padding = new Padding(0, 6, 0, 0) };
             details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 44));
             details.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             details.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
@@ -183,8 +234,21 @@ namespace ESDeckPC
             details.Controls.Add(_picIcon, 3, 0);
             details.SetRowSpan(_picIcon, 2);   // preview = exactly what the ESP sidebar gets
 
-            right.Controls.Add(_lstPages);
+            var prevHead = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 34, Padding = new Padding(0, 8, 0, 0), WrapContents = false };
+            _lblPreview.Text = "預覽：點選左邊或上面的頁面";
+            _lblPreview.Margin = new Padding(0, 6, 8, 0);
+            prevHead.Controls.Add(_lblPreview);
+            prevHead.Controls.Add(MakeButton("重新整理", (s, e) => ShowPreview(_previewDir, true), 80));
+            var prevArea = new Panel { Dock = DockStyle.Fill };
+            prevArea.Controls.Add(_previewBox);
+            prevArea.Resize += (s, e) => LayoutPreview(prevArea);
+            _previewTimer.Tick += (s, e) => { _previewTimer.Stop(); ShowPreview(_pendingPreview, false); };
+
+            // docked controls: the last one added is laid out first
+            right.Controls.Add(prevArea);
+            right.Controls.Add(prevHead);
             right.Controls.Add(details);
+            right.Controls.Add(_lstPages);
             right.Controls.Add(capPages);
 
             grid.Controls.Add(left, 0, 0);
@@ -311,6 +375,9 @@ namespace ESDeckPC
         {
             base.OnShown(e);
             UpdateIconPreview();   // the hint needs the TextBox handle, which exists only now
+            SetHint(_txtSearch, $"搜尋頁面…（共 {_libAll.Count} 個）");
+            _lstPages.Height = _lstPages.ItemHeight * CanvasConfig.MaxPages + 8;   // real font / DPI known now
+            _txtSearch.Focus();
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -325,8 +392,101 @@ namespace ESDeckPC
 
         private void RefreshLibrary()
         {
+            _libAll = CanvasPaths.ListPageDirs();
+            FilterLibrary();
+        }
+
+        /// <summary>Shows the page folders matching the search box (every
+        /// space-separated word must appear, case-insensitive), keeping the
+        /// selection when it still matches.</summary>
+        private void FilterLibrary()
+        {
+            string sel = _lstLibrary.SelectedItem as string;
+            var words = _txtSearch.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var hits = _libAll.Where(d => words.All(w => d.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+            _lstLibrary.BeginUpdate();
             _lstLibrary.Items.Clear();
-            foreach (var d in CanvasPaths.ListPageDirs()) _lstLibrary.Items.Add(d);
+            foreach (var d in hits) _lstLibrary.Items.Add(d);
+            _lstLibrary.EndUpdate();
+            if (sel != null && hits.Contains(sel)) _lstLibrary.SelectedItem = sel;
+            SetHint(_txtSearch, $"搜尋頁面…（共 {_libAll.Count} 個）");
+            if (words.Length > 0) SetStatus($"{hits.Count} / {_libAll.Count} pages");
+        }
+
+        // ------------------------------------------------------------------
+        // Preview
+        // ------------------------------------------------------------------
+
+        private string _pendingPreview;
+
+        private void QueuePreview(string dir)
+        {
+            if (string.IsNullOrEmpty(dir)) return;
+            _pendingPreview = dir;
+            _previewTimer.Stop();
+            _previewTimer.Start();
+        }
+
+        /// <summary>Largest 3:2 box that fits, centered.</summary>
+        private void LayoutPreview(Control area)
+        {
+            int w = area.ClientSize.Width, h = area.ClientSize.Height;
+            if (w * 2 > h * 3) w = h * 3 / 2; else h = w * 2 / 3;
+            _previewBox.SetBounds((area.ClientSize.Width - w) / 2, 0, Math.Max(w, 1), Math.Max(h, 1));
+            ApplyPreviewZoom();
+        }
+
+        /// <summary>Zoom so the page's CSS viewport is exactly 720 x 480
+        /// whatever the box size and monitor DPI.</summary>
+        private void ApplyPreviewZoom()
+        {
+            if (_web?.CoreWebView2 == null || _previewBox.Width < 10) return;
+            double dpi = DeviceDpi / 96.0;
+            _web.ZoomFactor = _previewBox.Width / (720.0 * dpi);
+        }
+
+        private async void ShowPreview(string dir, bool reload)
+        {
+            if (string.IsNullOrEmpty(dir)) return;
+            try
+            {
+                if (_webInit == null) _webInit = InitPreviewAsync();
+                await _webInit;
+                if (_web?.CoreWebView2 == null || IsDisposed) return;
+                string url = CanvasRenderer.HostUrl + dir.Trim('/').Replace('\\', '/') + "/index.html";
+                if (reload || dir != _previewDir) _web.CoreWebView2.Navigate(url);
+                _previewDir = dir;
+                _lblPreview.Text = $"預覽：{dir}";
+            }
+            catch (Exception ex)
+            {
+                _lblPreview.Text = "預覽無法啟動：" + ex.Message;
+            }
+        }
+
+        private async Task InitPreviewAsync()
+        {
+            // own data folder: the ESP renderer's WebView2 uses different
+            // browser options, and two environments on one folder must match
+            string dataDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ESDeckPC", "WebView2Preview");
+            var env = await CoreWebView2Environment.CreateAsync(null, dataDir);
+            _web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.Black };
+            _previewBox.Controls.Add(_web);
+            await _web.EnsureCoreWebView2Async(env);
+            var core = _web.CoreWebView2;
+            core.Settings.AreDefaultContextMenusEnabled = false;
+            core.Settings.IsZoomControlEnabled = false;
+            core.Settings.IsStatusBarEnabled = false;
+            core.SetVirtualHostNameToFolderMapping(CanvasRenderer.HostName, CanvasPaths.Root,
+                                                   CoreWebView2HostResourceAccessKind.Allow);
+            // no scroll bars, same as on the ESP
+            await core.AddScriptToExecuteOnDocumentCreatedAsync(
+                "document.addEventListener('DOMContentLoaded', () => { const s = document.createElement('style');" +
+                " s.textContent = '::-webkit-scrollbar{display:none}'; document.head.appendChild(s); });");
+            core.NavigationCompleted += (s, e) => ApplyPreviewZoom();
+            ApplyPreviewZoom();
         }
 
         private void ShowLook()
