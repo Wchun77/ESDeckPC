@@ -24,6 +24,11 @@ namespace ESDeckPC
     /// resolves to ActionExecutor's result text.
     ///
     /// Called by WebView2 on the UI thread.
+    ///
+    /// PreviewCopy() gives the Canvas editor's preview a read-only bridge:
+    /// stats / media come from this one (real data), action / mediaCmd do
+    /// nothing, so clicking around in the editor can't launch programs,
+    /// send keys or power the PC off.
     /// </summary>
     [ComVisible(true)]
     [ClassInterface(ClassInterfaceType.AutoDual)]
@@ -34,11 +39,21 @@ namespace ESDeckPC
         private NowPlayingWatcher _nowPlaying;
         private volatile string _cover = "";     // data: URL of the current cover art
         private volatile int _coverVer = 0;      // bumped whenever _cover changes
+        private readonly CanvasBridge _live;     // non-null = read-only preview copy of this bridge
 
         public CanvasBridge(System.Action<string> log)
         {
             _log = log;
         }
+
+        private CanvasBridge(CanvasBridge live)
+        {
+            _live = live;
+            _log = live._log;
+        }
+
+        /// <summary>Read-only bridge for the editor preview (see class remarks).</summary>
+        internal CanvasBridge PreviewCopy() => new CanvasBridge(this);
 
         /// <summary>Data sources for stats() / media(). Internal, so it isn't
         /// exposed to pages.</summary>
@@ -59,7 +74,7 @@ namespace ESDeckPC
 
         /// <summary>Latest sensor values (see MonitorSender.RequestForCanvas);
         /// asking keeps the sensors running, so poll about once a second.</summary>
-        public string Stats() => _monitor?.RequestForCanvas() ?? "{}";
+        public string Stats() => _live != null ? _live.Stats() : _monitor?.RequestForCanvas() ?? "{}";
 
         // ------------------------------------------------------------------
         // Now playing
@@ -67,6 +82,7 @@ namespace ESDeckPC
 
         public string Media()
         {
+            if (_live != null) return _live.Media();
             var np = _nowPlaying;
             var p = np?.CurrentProperties;
             if (np == null || p == null)
@@ -84,10 +100,11 @@ namespace ESDeckPC
             });
         }
 
-        public string MediaCover() => _cover;
+        public string MediaCover() => _live != null ? _live.MediaCover() : _cover;
 
         public void MediaCmd(string cmd)
         {
+            if (_live != null) return;   // preview: read-only
             var np = _nowPlaying;
             if (np == null) return;
             switch ((cmd ?? "").ToLowerInvariant())
@@ -138,6 +155,11 @@ namespace ESDeckPC
             {
                 _log?.Invoke($"Canvas action: bad JSON ({ex.Message})");
                 return "bad JSON";
+            }
+            if (_live != null)
+            {
+                _log?.Invoke($"Canvas preview action [{button?.Label ?? button?.Action}]: not run (preview)");
+                return "preview: not run";
             }
             string result = ActionExecutor.Run(button);
             _log?.Invoke($"Canvas action [{button?.Label ?? button?.Action}]: {result}");

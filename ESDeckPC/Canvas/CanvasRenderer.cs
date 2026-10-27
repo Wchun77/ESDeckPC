@@ -108,7 +108,16 @@ namespace ESDeckPC
 
             // Every page gets window.esdeck (PC actions, log) and no
             // scrollbars / text selection -- it's a touch screen.
-            await _core.AddScriptToExecuteOnDocumentCreatedAsync(@"
+            await _core.AddScriptToExecuteOnDocumentCreatedAsync(EsdeckScript);
+            await _core.AddScriptToExecuteOnDocumentCreatedAsync(TouchScreenScript);
+
+            await SetViewportAsync();
+            Log("WebView2 ready " + env.BrowserVersionString);
+        }
+
+        /// <summary>window.esdeck on top of the "esdeck" host object (a
+        /// CanvasBridge). Also used by the editor preview (read-only bridge).</summary>
+        internal const string EsdeckScript = @"
 (() => {
   const host = () => chrome.webview.hostObjects.esdeck;
   window.esdeck = {
@@ -119,14 +128,15 @@ namespace ESDeckPC
     mediaCover: () => host().MediaCover(),
     mediaCmd: c => host().MediaCmd(String(c)),
   };
+})();";
+
+        /// <summary>No scrollbars / text selection, same as on the ESP.</summary>
+        internal const string TouchScreenScript = @"
+(() => {
   const css = '::-webkit-scrollbar{display:none} html,body{user-select:none;-webkit-user-select:none}';
   const add = () => { const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); };
   if (document.head) add(); else document.addEventListener('DOMContentLoaded', add);
-})();");
-
-            await SetViewportAsync();
-            Log("WebView2 ready " + env.BrowserVersionString);
-        }
+})();";
 
         private Task SetViewportAsync() =>
             _core.CallDevToolsProtocolMethodAsync("Emulation.setDeviceMetricsOverride",

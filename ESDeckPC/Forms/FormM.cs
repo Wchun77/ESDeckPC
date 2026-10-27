@@ -90,7 +90,7 @@ namespace ESDeckPC
             foldIn(tsMenuMeida, tsMenuMediaEdit, "Media Editor...");
             foldIn(tsMenuTouchpad, tsMenuTouchpadEdit, "Touchpad Editor...");
             tsMenuModes.DropDownItems.Add(new ToolStripSeparator());
-            tsMenuModes.DropDownItems.Add("Canvas Pages...", null, (s, e) => new FormCanvasEditor().Show());
+            tsMenuModes.DropDownItems.Add("Canvas Pages...", null, (s, e) => new FormCanvasEditor(_canvas?.Bridge).Show());
             tsMenuModes.DropDownItems.Add("Open Canvas Folder", null, (s, e) =>
             {
                 CanvasPaths.Ensure();

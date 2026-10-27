@@ -58,18 +58,24 @@ namespace ESDeckPC
         // like the other modes' previews) -- picSide is the sidebar
         // (page icons + gear, drawn like the ESP draws them), panelPreviewBox
         // the page (its own WebView2, separate from the one that renders for
-        // the ESP; no esdeck object, so buttons do nothing on the PC) or the
-        // Settings mock (picSettings).
+        // the ESP, with a read-only esdeck: real stats / media, actions not
+        // run) or the Settings mock (picSettings).
         private bool _showSettings;
         private int _previewIndex = -1;       // sidebar slot being previewed, -1 = a library page not in this config
         private WebView2 _web;
         private Task _webInit;
         private string _previewDir;
+        private readonly CanvasBridge _liveBridge;   // ESP renderer's bridge; preview gets a read-only copy
 
         private CanvasConfig _cfg = new CanvasConfig();
         private string _cfgName;        // file name in configs/, null = unsaved new
         private bool _dirty;
         private bool _loading;
+
+        public FormCanvasEditor(CanvasBridge liveBridge) : this()
+        {
+            _liveBridge = liveBridge;
+        }
 
         public FormCanvasEditor()
         {
@@ -563,10 +569,14 @@ namespace ESDeckPC
             core.Settings.IsStatusBarEnabled = false;
             core.SetVirtualHostNameToFolderMapping(CanvasRenderer.HostName, CanvasPaths.Root,
                                                    CoreWebView2HostResourceAccessKind.Allow);
-            // no scroll bars, same as on the ESP
-            await core.AddScriptToExecuteOnDocumentCreatedAsync(
-                "document.addEventListener('DOMContentLoaded', () => { const s = document.createElement('style');" +
-                " s.textContent = '::-webkit-scrollbar{display:none}'; document.head.appendChild(s); });");
+            // Read-only window.esdeck: pages show real stats / now playing
+            // instead of their demo data; actions only return "preview: not run".
+            if (_liveBridge != null)
+            {
+                core.AddHostObjectToScript("esdeck", _liveBridge.PreviewCopy());
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(CanvasRenderer.EsdeckScript);
+            }
+            await core.AddScriptToExecuteOnDocumentCreatedAsync(CanvasRenderer.TouchScreenScript);
             core.NavigationCompleted += (s, e) => ApplyPreviewZoom();
             ApplyPreviewZoom();
         }
