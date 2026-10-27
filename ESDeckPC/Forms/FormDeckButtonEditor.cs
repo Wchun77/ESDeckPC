@@ -63,7 +63,7 @@ namespace ESDeckPC
             cmbAction.Items.AddRange(new object[]
             {
                 "launch", "hotkey", "media", "discord",
-                "scroll", "sequence", "text", "mouse_click", "power",
+                "scroll", "sequence", "text", "paste", "mouse_click", "power",
             });
 
             cmbAction.SelectedItem = button.Action ?? "launch";
@@ -246,6 +246,7 @@ namespace ESDeckPC
                     break;
 
                 case "text":
+                case "paste":
                     _dynLabel = MakeLabel("Text");
                     _dynLabel.Location = new Point(0, 0);
 
@@ -373,7 +374,7 @@ namespace ESDeckPC
                         _button.Keys.Add(trimmed);
                 }
             }
-            else if (action == "text")
+            else if (action == "text" || action == "paste")
             {
                 _button.Keys = null;
                 _button.ChannelId = null;

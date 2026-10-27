@@ -176,7 +176,8 @@ esdeck.log("hello");
 | `launch` | `target`：程式、檔案、資料夾或網址 | `{ action: "launch", target: "calc.exe" }`、`{ action: "launch", target: "https://example.com" }` |
 | `hotkey` | `keys`：按鍵陣列，同時按下 | `{ action: "hotkey", keys: ["ctrl", "shift", "esc"] }`、`{ action: "hotkey", keys: ["win", "shift", "s"] }` |
 | `sequence` | `keys`：組合鍵字串陣列，依序送出（間隔 50 ms），每個字串用逗號分隔按鍵 | `{ action: "sequence", keys: ["ctrl,c", "alt,tab", "ctrl,v"] }` |
-| `text` | `target`：要輸入的文字 | `{ action: "text", target: "Hello" }` |
+| `text` | `target`：要輸入的文字，逐字模擬鍵入（中文輸入法開著時，中文和全形標點可能錯位） | `{ action: "text", target: "Hello" }` |
+| `paste` | `target`：要貼上的文字，透過剪貼簿貼上（Ctrl+V），之後還原剪貼簿；中文、標點不會錯位，但 Ctrl+V 不是貼上的程式（部分終端機）不適用 | `{ action: "paste", target: "收到，謝謝！" }` |
 | `media` | `target`：`play_pause` `stop` `prev` `next` `vol_up` `vol_down` `mute` | `{ action: "media", target: "play_pause" }` |
 | `scroll` | `target`：`up` `down` `left` `right`；`amount`：120 = 一格（選填） | `{ action: "scroll", target: "down", amount: 360 }` |
 | `mouse_click` | `target`：`double` = 雙擊，其他 = 單擊 | `{ action: "mouse_click", target: "double" }` |

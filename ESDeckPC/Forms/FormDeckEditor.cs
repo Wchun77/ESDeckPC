@@ -283,6 +283,7 @@ namespace ESDeckPC
                 case "sequence":
                 case "scroll":
                 case "text":
+                case "paste":
                 case "power":
                     MessageBox.Show(
                         $"Action \"{button.Action}\" is not supported in preview mode.",

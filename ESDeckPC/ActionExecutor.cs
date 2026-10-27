@@ -164,6 +164,7 @@ namespace ESDeckPC
                 case "scroll": return ExecScroll(button.Target, button.Amount);
                 case "sequence": return ExecSequence(button.Keys);
                 case "text": return ExecText(button.Target);
+                case "paste": return ExecPaste(button.Target);
                 case "mouse_click": return ExecMouseClick(button.Target);
                 case "power": return ExecPower(button.Target);
                 default: return $"unknown action: {button.Action}";
@@ -517,6 +518,115 @@ namespace ESDeckPC
                 SendInputUnicode(ch);
 
             return $"text: {target.Length} char(s)";
+        }
+
+        // ------------------------------------------------------------------
+        // paste: put the text on the clipboard, send Ctrl+V, then put the
+        // user's clipboard back. Unlike "text" (one SendInput per char) the
+        // IME never sees it, so CJK text and full-width punctuation can't
+        // get reordered. Apps where Ctrl+V isn't paste (some terminals)
+        // should keep using "text".
+        // ------------------------------------------------------------------
+
+        // Clipboard history (Win+V) and cloud sync skip data carrying this format.
+        private const string ExcludeFromHistory = "ExcludeClipboardContentFromMonitorProcessing";
+        // Time for the target app to read the clipboard after Ctrl+V
+        // before the old content goes back.
+        private const int PasteRestoreDelayMs = 500;
+        private static readonly object PasteLock = new object();
+
+        private static string ExecPaste(string target)
+        {
+            if (string.IsNullOrEmpty(target))
+                return "paste failed: target is empty";
+
+            // Clipboard needs an STA thread; callers (HID receiver, Canvas
+            // bridge) may not be one, and the restore delay must not block them.
+            string result = null;
+            var sent = new System.Threading.ManualResetEvent(false);
+            var worker = new System.Threading.Thread(() =>
+            {
+                lock (PasteLock)   // back-to-back pastes: never back up our own text
+                {
+                    DataObject backup = null;
+                    try
+                    {
+                        backup = BackupClipboard();
+                        var data = new DataObject();
+                        data.SetText(target, TextDataFormat.UnicodeText);
+                        data.SetData(ExcludeFromHistory, new System.IO.MemoryStream(new byte[] { 0 }));
+                        Clipboard.SetDataObject(data, true, 5, 50);
+                        SendCtrlV();
+                        result = $"paste: {target.Length} char(s)";
+                    }
+                    catch (Exception ex)
+                    {
+                        result = $"paste failed: {ex.Message}";
+                    }
+                    finally
+                    {
+                        sent.Set();
+                    }
+                    if (result.StartsWith("paste failed")) return;
+
+                    System.Threading.Thread.Sleep(PasteRestoreDelayMs);
+                    try
+                    {
+                        // Only if it's still ours -- the user may have copied something meanwhile.
+                        if (Clipboard.ContainsText() && Clipboard.GetText() == target)
+                        {
+                            if (backup != null) Clipboard.SetDataObject(backup, true, 5, 50);
+                            else Clipboard.Clear();
+                        }
+                    }
+                    catch { /* clipboard busy: leave the pasted text there */ }
+                }
+            });
+            worker.SetApartmentState(System.Threading.ApartmentState.STA);
+            worker.IsBackground = true;
+            worker.Start();
+
+            return sent.WaitOne(3000) ? result : "paste failed: timed out";
+        }
+
+        /// <summary>Copy of every format currently on the clipboard that can
+        /// be read back (text, images, files, HTML, RTF...); null if empty.
+        /// Delay-rendered or app-private formats may not survive.</summary>
+        private static DataObject BackupClipboard()
+        {
+            IDataObject cur = Clipboard.GetDataObject();
+            if (cur == null) return null;
+
+            var copy = new DataObject();
+            bool any = false;
+            foreach (string fmt in cur.GetFormats(false))
+            {
+                try
+                {
+                    object v = cur.GetData(fmt, false);
+                    if (v == null) continue;
+                    copy.SetData(fmt, false, v);
+                    any = true;
+                }
+                catch { /* unreadable format: skip */ }
+            }
+            if (!any) return null;
+            copy.SetData(ExcludeFromHistory, new System.IO.MemoryStream(new byte[] { 0 }));
+            return copy;
+        }
+
+        private static void SendCtrlV()
+        {
+            const ushort VK_CONTROL = 0x11, VK_V = 0x56;
+            var inputs = new INPUT[4];
+            ushort[] vks = { VK_CONTROL, VK_V, VK_V, VK_CONTROL };
+            for (int i = 0; i < 4; i++)
+            {
+                inputs[i].type = INPUT_KEYBOARD;
+                inputs[i].u.ki.wVk = vks[i];
+                inputs[i].u.ki.dwFlags = i < 2 ? 0 : KEYEVENTF_KEYUP;
+            }
+            SendInput(4, inputs, Marshal.SizeOf(typeof(INPUT)));
         }
 
     }
