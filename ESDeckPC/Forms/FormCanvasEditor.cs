@@ -315,7 +315,9 @@ namespace ESDeckPC
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            if (!ConfirmDiscard()) e.Cancel = true;
+            // Windows shutdown / logoff: no Save? prompt (it would block
+            // shutdown with nobody there to answer) -- unsaved changes are dropped.
+            if (e.CloseReason != CloseReason.WindowsShutDown && !ConfirmDiscard()) e.Cancel = true;
             base.OnFormClosing(e);
         }
 

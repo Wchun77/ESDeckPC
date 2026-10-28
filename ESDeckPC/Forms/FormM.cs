@@ -648,6 +648,16 @@ namespace ESDeckPC
         private void FormM_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (_forceClose) return;
+            if (e.CloseReason != CloseReason.UserClosing)
+            {
+                // Windows shutdown / logoff, Task Manager, Application.Exit:
+                // really quit. Cancelling here would block shutdown (Windows
+                // counts the veto as soon as any window of ours is visible,
+                // e.g. the off-screen Canvas renderer).
+                Shutdown();
+                return;
+            }
+            // X button: keep running in the tray
             e.Cancel = true;
             this.Hide();
             notifyIcon.ShowBalloonTip(1000, "ESDeck PC",
@@ -659,6 +669,14 @@ namespace ESDeckPC
 
         private void trayMenuExit_Click(object sender, EventArgs e)
         {
+            Shutdown();
+            Application.Exit();
+        }
+
+        /// <summary>Stops everything (tray Exit, Windows shutdown). Once only.</summary>
+        private void Shutdown()
+        {
+            if (_forceClose) return;
             _forceClose = true;
             _monitor.Dispose();
             _nowPlaying.Dispose();
@@ -670,7 +688,6 @@ namespace ESDeckPC
             _receiver.Stop();
             DiscordRpcClient.Instance.Dispose();
             notifyIcon.Visible = false;
-            Application.Exit();
         }
 
         private void SetTrayConnected(bool connected)
