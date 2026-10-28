@@ -19,6 +19,9 @@ namespace ESDeckPC
     /// device metrics), so captures are exactly the ESP's canvas, whatever
     /// the monitor DPI. The Canvas folder is served as https://canvas.esdeck/.
     ///
+    /// AttachTo() / Detach() move the same WebView into the PC's Canvas
+    /// window and back (only one of the ESP and the PC shows Canvas).
+    ///
     /// UI thread only (WebView2 requirement).
     /// </summary>
     public sealed class CanvasRenderer : IDisposable
@@ -213,6 +216,29 @@ namespace ESDeckPC
         }
 
         public void OpenDevTools() => _core?.OpenDevToolsWindow();
+
+        // ------------------------------------------------------------------
+        // Shown on the PC (Canvas window) instead of off-screen
+        // ------------------------------------------------------------------
+
+        /// <summary>Moves the WebView into host (a visible 720 x 480 panel):
+        /// the same page keeps running, now with real mouse / keyboard input.
+        /// Call Detach() before host's handle goes away.</summary>
+        public void AttachTo(Control host)
+        {
+            if (_ctl == null || host == null) return;
+            if (_ctl.ParentWindow != host.Handle) _ctl.ParentWindow = host.Handle;
+            _ctl.Bounds = new Rectangle(0, 0, W, H);
+            _ctl.IsVisible = true;
+        }
+
+        /// <summary>Back to the off-screen form (rendering for the ESP).</summary>
+        public void Detach()
+        {
+            if (_ctl == null || _form == null) return;
+            if (_ctl.ParentWindow != _form.Handle) _ctl.ParentWindow = _form.Handle;
+            _ctl.Bounds = new Rectangle(0, 0, W, H);
+        }
 
         private void Log(string msg) => OnLog?.Invoke("Canvas: " + msg);
 

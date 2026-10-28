@@ -81,11 +81,18 @@
     <Compile Include="Canvas\CanvasEncoder.cs" />
     <Compile Include="Canvas\CanvasLink.cs" />
     <Compile Include="Canvas\CanvasRenderer.cs" />
+    <Compile Include="Canvas\CanvasSidebar.cs" />
     <Compile Include="Forms\FormCanvasEditor.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Forms\FormCanvasEditor.Designer.cs">
       <DependentUpon>FormCanvasEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\FormCanvasWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormCanvasWindow.Designer.cs">
+      <DependentUpon>FormCanvasWindow.cs</DependentUpon>
     </Compile>
     <Compile Include="Controls\DarkColorTable.cs" />
     <Compile Include="Controls\DarkToolStripRenderer.cs" />
@@ -263,6 +270,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormCanvasEditor.resx">
       <DependentUpon>FormCanvasEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FormCanvasWindow.resx">
+      <DependentUpon>FormCanvasWindow.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormPageNamePrompt.resx">
       <DependentUpon>FormPageNamePrompt.cs</DependentUpon>

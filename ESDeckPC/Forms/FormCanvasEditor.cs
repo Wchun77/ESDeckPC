@@ -413,55 +413,8 @@ namespace ESDeckPC
         // blue outline (#0055cc); background #111111
         private const int SbBtn = 64, SbX = 8, SbY0 = 8, SbStep = 80, GearY = 408;
 
-        private Bitmap RenderSidebar()
-        {
-            var bmp = new Bitmap(80, 480);
-            using (var g = Graphics.FromImage(bmp))
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.FromArgb(0x11, 0x11, 0x11));
-                var blue = Color.FromArgb(0x00, 0x55, 0xcc);
-                for (int i = 0; i < _cfg.Pages.Count && i < CanvasConfig.MaxPages; i++)
-                {
-                    var r = new Rectangle(SbX, SbY0 + i * SbStep, SbBtn, SbBtn);
-                    Bitmap icon = null;
-                    try { icon = CanvasEncoder.RenderIcon(_cfg.Pages[i].IconPath, _cfg.Pages[i].Name); } catch { }
-                    using (var path = Rounded(r, 8))
-                    {
-                        g.SetClip(path);
-                        if (icon != null) g.DrawImage(icon, r);
-                        else using (var b = new SolidBrush(Color.FromArgb(0x2a, 0x2a, 0x2a))) g.FillRectangle(b, r);
-                        g.ResetClip();
-                        if (!_showSettings && i == _previewIndex)
-                            using (var pen = new Pen(blue, 3)) g.DrawPath(pen, Rounded(Rectangle.Inflate(r, 2, 2), 9));
-                    }
-                    icon?.Dispose();
-                }
-                // gear: the config's side_icon, or the built-in gear glyph
-                var gr = new Rectangle(SbX, GearY, SbBtn, SbBtn);
-                Bitmap gearImg = null;
-                try { gearImg = CanvasEncoder.RenderIconFile(CanvasPaths.Resolve(_cfg.Settings?.SideIcon)); } catch { }
-                using (var path = Rounded(gr, 8))
-                {
-                    bool glyphSel = _showSettings && gearImg == null;
-                    using (var b = new SolidBrush(glyphSel ? blue : Color.FromArgb(0x2a, 0x2a, 0x2a))) g.FillPath(b, path);
-                    if (gearImg != null)
-                    {
-                        g.SetClip(path); g.DrawImage(gearImg, gr); g.ResetClip();
-                        if (_showSettings) using (var pen = new Pen(blue, 3)) g.DrawPath(pen, Rounded(Rectangle.Inflate(gr, 2, 2), 9));
-                    }
-                    else
-                    {
-                        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                        using (var f = new Font("Segoe UI Symbol", 20f, FontStyle.Regular, GraphicsUnit.Pixel))
-                        using (var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                            g.DrawString("\u2699", f, Brushes.White, gr, fmt);
-                    }
-                }
-                gearImg?.Dispose();
-            }
-            return bmp;
-        }
+        private Bitmap RenderSidebar() =>
+            CanvasSidebar.Render(_cfg, _showSettings ? -1 : _previewIndex, _showSettings);
 
         // Settings page on the ESP (ui_settings.c): background image scaled
         // to cover + 50 % black mask (else #222222); 16 px padding; header 40

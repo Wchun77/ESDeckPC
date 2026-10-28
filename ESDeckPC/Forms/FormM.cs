@@ -31,6 +31,7 @@ namespace ESDeckPC
         private Icon _trayIconOff;   // grayed copy, shown while ESDeck isn't connected
         private bool _otaRunning = false;
         private CanvasLink _canvas;
+        private FormCanvasWindow _canvasWindow;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
@@ -91,6 +92,7 @@ namespace ESDeckPC
             foldIn(tsMenuTouchpad, tsMenuTouchpadEdit, "Touchpad Editor...");
             tsMenuModes.DropDownItems.Add(new ToolStripSeparator());
             tsMenuModes.DropDownItems.Add("Canvas Pages...", null, (s, e) => new FormCanvasEditor(_canvas?.Bridge).Show());
+            tsMenuModes.DropDownItems.Add("Canvas Window...", null, (s, e) => ShowCanvasWindow());
             tsMenuModes.DropDownItems.Add("Open Canvas Folder", null, (s, e) =>
             {
                 CanvasPaths.Ensure();
@@ -208,6 +210,12 @@ namespace ESDeckPC
             };
             _trayMenuFirmware.Click += tsMenuFirmware_Click;
             trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuFirmware);
+            var trayCanvas = new ToolStripMenuItem("Canvas Window")
+            {
+                ForeColor = Color.FromArgb(220, 220, 220),
+            };
+            trayCanvas.Click += (s, e) => ShowCanvasWindow();
+            trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), trayCanvas);
             SetTrayConnected(false);
 
             DiscordRpcClient.Instance.ConnectionChanged +=
@@ -689,6 +697,25 @@ namespace ESDeckPC
                         return (Icon)tmp.Clone();
                 }
                 finally { DestroyIcon(h); }
+            }
+        }
+
+        /// <summary>Canvas on the PC (one window; shows Canvas while the ESP
+        /// is in another mode, see FormCanvasWindow).</summary>
+        private void ShowCanvasWindow()
+        {
+            if (_canvas == null) return;
+            if (_canvasWindow == null || _canvasWindow.IsDisposed)
+            {
+                _canvasWindow = new FormCanvasWindow(_canvas);
+                _canvasWindow.FormClosed += (s, e) => _canvasWindow = null;
+                _canvasWindow.Show();
+            }
+            else
+            {
+                if (_canvasWindow.WindowState == FormWindowState.Minimized)
+                    _canvasWindow.WindowState = FormWindowState.Normal;
+                _canvasWindow.Activate();
             }
         }
 

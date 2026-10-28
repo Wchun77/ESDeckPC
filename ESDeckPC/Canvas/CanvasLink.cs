@@ -22,6 +22,12 @@ namespace ESDeckPC
     /// (drag) in the page. Files under Canvas/ are watched: saving the page
     /// or the config shows up on the ESP right away.
     ///
+    /// Canvas window (FormCanvasWindow): Canvas runs on one side at a time.
+    /// While the ESP is in Canvas mode it owns the page and the window says
+    /// so; when the ESP leaves (or disconnects) the same WebView moves into
+    /// the window and keeps going there, until the ESP enters Canvas again.
+    /// One page instance, so there's one state (localStorage, timers...).
+    ///
     /// UI thread, except the HID writes (one batch at a time, background).
     /// </summary>
     public sealed class CanvasLink : IDisposable
@@ -76,6 +82,11 @@ namespace ESDeckPC
         // file changes, collected until _reloadTimer fires
         private bool _changedConfig, _changedPage;
 
+        // Canvas window (PC side); shows Canvas while the ESP doesn't
+        private FormCanvasWindow _window;
+        private int _pcPage;
+        private int _pcGen;              // bumped per PcShow, so an older one stops
+
         // touch
         private bool _touchDown, _dragging;
         private int _downX, _downY, _lastX, _lastY;
@@ -117,6 +128,7 @@ namespace ESDeckPC
                     int page = b[3];
                     byte reason = b[4];
                     if (!_active) Log(reason == REQ_SYNC ? "ESP is in Canvas mode, sending page" : "ESP entered Canvas mode");
+                    if (!_active && _window != null) PcYield();
                     _active = true;
                     StartWatcher();
                     // entering / reconnecting: sidebar icons too, config re-read
@@ -230,8 +242,88 @@ namespace ESDeckPC
             _lastPx = null;
             _pendingFull = _pendingIcons = _pendingReload = false;
             _touchDown = false;
-            if (why != null) Log(why + ", stopped");
-            _ = _renderer.BlankAsync();   // stop the page's scripts
+            if (why != null) Log(why + (_window != null ? ", continuing in the Canvas window" : ", stopped"));
+            if (_window != null) _ = PcShow(_page, false, false);   // the page the ESP had, still running
+            else _ = _renderer.BlankAsync();   // stop the page's scripts
+        }
+
+        // ------------------------------------------------------------------
+        // Canvas window (PC side)
+        // ------------------------------------------------------------------
+
+        public bool HasWindow => _window != null;
+
+        /// <summary>The window opened: show Canvas there unless the ESP has it.</summary>
+        public void OpenWindow(FormCanvasWindow window)
+        {
+            _window = window;
+            StartWatcher();
+            if (_active) window.ShowEspOwned(_cfg);
+            else _ = PcShow(_pcPage, true, false);
+        }
+
+        /// <summary>The window is closing (handle still alive): take the
+        /// WebView back; stop the page unless the ESP is using it.</summary>
+        public void CloseWindow(FormCanvasWindow window)
+        {
+            if (_window != window) return;
+            _window = null;
+            _pcGen++;
+            _renderer.Detach();
+            if (!_active) _ = _renderer.BlankAsync();
+        }
+
+        /// <summary>Sidebar tap in the window.</summary>
+        public void PcSelect(int page)
+        {
+            if (_window != null && !_active) _ = PcShow(page, false, false);
+        }
+
+        /// <summary>The ESP entered Canvas mode while the window had it.</summary>
+        private void PcYield()
+        {
+            _pcGen++;
+            _renderer.Detach();
+            _window.ShowEspOwned(_cfg);
+            Log("Canvas window: ESP took over");
+        }
+
+        private async Task PcShow(int page, bool loadCfg, bool reload)
+        {
+            var w = _window;
+            if (w == null || _active) return;
+            int gen = ++_pcGen;
+
+            if (loadCfg || _cfg == null)
+            {
+                _cfg = CanvasConfig.LoadActive(out string name, out string error);
+                _cfgName = name;
+                if (_cfg == null) Log(error);
+            }
+            if (_cfg == null || _cfg.Pages.Count == 0)
+            {
+                _renderer.Detach();
+                w.ShowEmpty(_cfg);
+                return;
+            }
+
+            try { await _renderer.InitAsync(_bridge); }
+            catch (Exception ex)
+            {
+                Log("WebView2 failed to start (is the WebView2 Runtime installed?): " + ex.Message);
+                w.ShowEmpty(_cfg);
+                return;
+            }
+            if (gen != _pcGen || _window != w || _active) return;
+
+            if (page < 0 || page >= _cfg.Pages.Count) page = 0;
+            _pcPage = page;
+            var entry = _cfg.Pages[page];
+            if (!File.Exists(entry.IndexPath)) Log($"page not found: {entry.IndexPath}");
+            w.ShowPcOwned(_cfg, page);
+            _renderer.AttachTo(w.PageHost);
+            if (reload || _renderer.CurrentUrl != entry.Url)
+                await _renderer.NavigateAsync(entry.Url);
         }
 
         public void OpenDevTools()
@@ -284,6 +376,7 @@ namespace ESDeckPC
                 if (_cfg != null) Log($"config: {name} ({_cfg.Pages.Count} pages)");
                 else Log(error);
             }
+            _window?.ShowEspOwned(_cfg);   // sidebar follows the config the ESP shows
             if (_cfg == null || _cfg.Pages.Count == 0)
             {
                 _frameTimer.Stop();
@@ -504,9 +597,11 @@ namespace ESDeckPC
             }
         }
 
+        private bool PcShowing => _window != null && !_active;
+
         private void OnFileChanged(string fullPath)
         {
-            if (!_active) return;
+            if (!_active && !PcShowing) return;
             string rel = CanvasPaths.MakeRelative(fullPath).ToLowerInvariant();
             // active.txt naming the config already shown (written by SelectFromEsp,
             // or Use This Config on the same one): nothing to reload
@@ -525,8 +620,9 @@ namespace ESDeckPC
 
         private bool IsCurrentPage(string rel)
         {
-            if (_cfg == null || _page >= _cfg.Pages.Count) return false;
-            string dir = _cfg.Pages[_page].Dir.Trim('/').Replace('\\', '/').ToLowerInvariant();
+            int cur = _active ? _page : _pcPage;
+            if (_cfg == null || cur >= _cfg.Pages.Count) return false;
+            string dir = _cfg.Pages[cur].Dir.Trim('/').Replace('\\', '/').ToLowerInvariant();
             return rel == dir || rel.StartsWith(dir + "/");
         }
 
@@ -535,6 +631,11 @@ namespace ESDeckPC
             _reloadTimer.Stop();
             bool cfg = _changedConfig, page = _changedPage;
             _changedConfig = _changedPage = false;
+            if (PcShowing)
+            {
+                if (cfg || page) _ = PcShow(_pcPage, cfg, true);
+                return;
+            }
             if (!_active) return;
             if (cfg)
             {
