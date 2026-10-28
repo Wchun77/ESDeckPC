@@ -43,6 +43,8 @@ namespace ESDeckPC
         [DllImport("user32.dll")] private static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenu(IntPtr hMenu, uint uFlags, UIntPtr uIDNewItem, string lpNewItem);
         [DllImport("user32.dll")] private static extern uint CheckMenuItem(IntPtr hMenu, uint uIDCheckItem, uint uCheck);
+        [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 
         private const int WM_SYSCOMMAND = 0x0112;
         private const uint MF_STRING = 0x0000, MF_SEPARATOR = 0x0800, MF_CHECKED = 0x0008, MF_UNCHECKED = 0x0000;
@@ -54,6 +56,8 @@ namespace ESDeckPC
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
+            int dark = 1;   // dark title bar, same as the other editors
+            DwmSetWindowAttribute(Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
             IntPtr menu = GetSystemMenu(Handle, false);
             AppendMenu(menu, MF_SEPARATOR, UIntPtr.Zero, null);
             AppendMenu(menu, MF_STRING, (UIntPtr)IdTopMost, "Always on Top");
