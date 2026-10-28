@@ -23,7 +23,6 @@ namespace ESDeckPC
         private readonly TouchpadInput _touchpad = new TouchpadInput();
         private readonly KeyboardInput _keyboard = new KeyboardInput();
         private bool _forceClose = false;
-        private bool _editorOpen = false;
         private OtaUploader _ota;
         private ToolStripMenuItem _tsMenuFirmware;
         private ToolStripMenuItem _trayMenuFirmware;
@@ -91,7 +90,7 @@ namespace ESDeckPC
             foldIn(tsMenuMeida, tsMenuMediaEdit, "Media Editor...");
             foldIn(tsMenuTouchpad, tsMenuTouchpadEdit, "Touchpad Editor...");
             tsMenuModes.DropDownItems.Add(new ToolStripSeparator());
-            tsMenuModes.DropDownItems.Add("Canvas Pages...", null, (s, e) => new FormCanvasEditor(_canvas?.Bridge).Show());
+            tsMenuModes.DropDownItems.Add("Canvas Pages...", null, (s, e) => SingleWindow.Show(() => new FormCanvasEditor(_canvas?.Bridge)));
             tsMenuModes.DropDownItems.Add("Canvas Window...", null, (s, e) => ShowCanvasWindow());
             tsMenuModes.DropDownItems.Add("Open Canvas Folder", null, (s, e) =>
             {
@@ -456,16 +455,7 @@ namespace ESDeckPC
 
         private void tsMenuDeckEdit_Click(object sender, EventArgs e)
         {
-            if (_editorOpen)
-            {
-                MessageBox.Show("The deck editor is already open.",
-                    "ESDeck PC", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-            var editor = new FormDeckEditor();
-            editor.FormClosed += (s, args) => _editorOpen = false;
-            _editorOpen = true;
-            editor.Show();
+            SingleWindow.Show(() => new FormDeckEditor());   // already open: brought to the front
         }
 
         // ------------------------------------------------------------------
@@ -564,7 +554,7 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
         private void tsMenuMonitorEdit_Click(object sender, EventArgs e)
         {
-            new FormMonitorEditor().Show();
+            SingleWindow.Show(() => new FormMonitorEditor());
         }
 
         // ------------------------------------------------------------------
@@ -572,7 +562,7 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
         private void tsMenuMediaEdit_Click(object sender, EventArgs e)
         {
-            new FormMediaEditor().Show();
+            SingleWindow.Show(() => new FormMediaEditor());
         }
 
         // ------------------------------------------------------------------
@@ -580,7 +570,7 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
         private void tsMenuTouchpadEdit_Click(object sender, EventArgs e)
         {
-            new FormTouchpadEditor().Show();
+            SingleWindow.Show(() => new FormTouchpadEditor());
         }
 
         // ------------------------------------------------------------------
@@ -589,32 +579,32 @@ namespace ESDeckPC
 
         private void tsMenuAssetsFontClock_Click(object sender, EventArgs e)
         {
-            new FormFontClockBuilder().Show();
+            SingleWindow.Show(() => new FormFontClockBuilder());
         }
 
         private void tsMenuAssetsFontNotify_Click(object sender, EventArgs e)
         {
-            new FormFontNotifyBuilder().Show();
+            SingleWindow.Show(() => new FormFontNotifyBuilder());
         }
 
         private void tsMenuAssetsBg_Click(object sender, EventArgs e)
         {
-            new FormBgImporter().Show();
+            SingleWindow.Show(() => new FormBgImporter());
         }
 
         private void tsMenuAssetsIco_Click(object sender, EventArgs e)
         {
-            new FormIcoImporter().Show();
+            SingleWindow.Show(() => new FormIcoImporter());
         }
 
         private void tsMenuAssetsSideIcon_Click(object sender, EventArgs e)
         {
-            new FormSideIconImporter().Show();
+            SingleWindow.Show(() => new FormSideIconImporter());
         }
 
         private void tsMenuAssetsBootAnim_Click(object sender, EventArgs e)
         {
-            new FormBootAnimConverter().Show();
+            SingleWindow.Show(() => new FormBootAnimConverter());
         }
 
         // ------------------------------------------------------------------

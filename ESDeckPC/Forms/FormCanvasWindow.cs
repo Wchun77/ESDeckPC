@@ -258,7 +258,7 @@ namespace ESDeckPC
             int y = e.Y * CanvasSidebar.Height / picSide.Height;
             int hit = CanvasSidebar.HitTest(y, _cfg?.Pages.Count ?? 0);
             if (hit == CanvasSidebar.HitGear)
-                new FormCanvasEditor(_link?.Bridge).Show();
+                SingleWindow.Show(() => new FormCanvasEditor(_link?.Bridge));
             else if (hit >= 0 && _pcOwned && hit != _selected)
                 _link?.PcSelect(hit);
         }

@@ -88,6 +88,7 @@
     <Compile Include="Forms\FormCanvasEditor.Designer.cs">
       <DependentUpon>FormCanvasEditor.cs</DependentUpon>
     </Compile>
+    <Compile Include="Forms\SingleWindow.cs" />
     <Compile Include="Forms\FormCanvasWindow.cs">
       <SubType>Form</SubType>
     </Compile>
