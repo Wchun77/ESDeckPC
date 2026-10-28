@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -40,6 +41,7 @@ namespace ESDeckPC
         private CoreWebView2Controller _ctl;
         private CoreWebView2 _core;
         private Task _init;
+        private double _scale = 1.0;     // view scale while shown in the Canvas window (layout stays 720 x 480)
 
         public event Action<string> OnLog;
         public bool IsReady => _core != null;
@@ -141,9 +143,13 @@ namespace ESDeckPC
   if (document.head) add(); else document.addEventListener('DOMContentLoaded', add);
 })();";
 
+        // scale: the 720 x 480 layout drawn smaller / larger (Canvas window
+        // resized); always 1 while rendering for the ESP.
         private Task SetViewportAsync() =>
+            _core == null ? Task.CompletedTask :
             _core.CallDevToolsProtocolMethodAsync("Emulation.setDeviceMetricsOverride",
-                $"{{\"width\":{W},\"height\":{H},\"deviceScaleFactor\":1,\"mobile\":false}}");
+                $"{{\"width\":{W},\"height\":{H},\"deviceScaleFactor\":1,\"mobile\":false," +
+                $"\"scale\":{_scale.ToString("0.####", CultureInfo.InvariantCulture)}}}");
 
         /// <summary>Loads url (also when it's the current one = reload) and
         /// waits until it has loaded and settled.</summary>
@@ -221,15 +227,31 @@ namespace ESDeckPC
         // Shown on the PC (Canvas window) instead of off-screen
         // ------------------------------------------------------------------
 
-        /// <summary>Moves the WebView into host (a visible 720 x 480 panel):
+        /// <summary>Moves the WebView into host (a visible panel, 3:2, any size):
         /// the same page keeps running, now with real mouse / keyboard input.
         /// Call Detach() before host's handle goes away.</summary>
         public void AttachTo(Control host)
         {
             if (_ctl == null || host == null) return;
             if (_ctl.ParentWindow != host.Handle) _ctl.ParentWindow = host.Handle;
-            _ctl.Bounds = new Rectangle(0, 0, W, H);
             _ctl.IsVisible = true;
+            FitTo(host);
+        }
+
+        /// <summary>Host resized: same 720 x 480 page, drawn at host's size
+        /// (only while attached to it).</summary>
+        public void FitTo(Control host)
+        {
+            if (_ctl == null || host == null || _ctl.ParentWindow != host.Handle) return;
+            var size = host.ClientSize;
+            if (size.Width < 1 || size.Height < 1) return;
+            _ctl.Bounds = new Rectangle(0, 0, size.Width, size.Height);
+            double s = size.Width / (double)W;
+            if (Math.Abs(s - _scale) > 0.0005)
+            {
+                _scale = s;
+                _ = SetViewportAsync();
+            }
         }
 
         /// <summary>Back to the off-screen form (rendering for the ESP).</summary>
@@ -238,6 +260,11 @@ namespace ESDeckPC
             if (_ctl == null || _form == null) return;
             if (_ctl.ParentWindow != _form.Handle) _ctl.ParentWindow = _form.Handle;
             _ctl.Bounds = new Rectangle(0, 0, W, H);
+            if (_scale != 1.0)
+            {
+                _scale = 1.0;            // captures for the ESP must be 720 x 480
+                _ = SetViewportAsync();
+            }
         }
 
         private void Log(string msg) => OnLog?.Invoke("Canvas: " + msg);

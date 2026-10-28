@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -13,8 +14,9 @@ namespace ESDeckPC
     /// soon as the ESP leaves. The page is the same WebView that renders
     /// for the ESP, moved in here, so its state carries over both ways.
     /// Sidebar: tap a page to switch, the gear opens Canvas Pages.
-    /// "Always on Top" is in the window menu (right-click the title bar),
-    /// remembered across runs.
+    /// "Always on Top" is in the window menu (right-click the title bar).
+    /// Resizable down from 800 x 480, kept at that ratio; sidebar and page
+    /// scale together (the page layout stays 720 x 480). Both remembered.
     /// </summary>
     public partial class FormCanvasWindow : Form
     {
@@ -33,7 +35,7 @@ namespace ESDeckPC
             _link = link;
         }
 
-        /// <summary>Panel the WebView is moved into (720 x 480).</summary>
+        /// <summary>Panel the WebView is moved into (3:2, scaled with the window).</summary>
         internal Control PageHost => panelPage;
 
         // ------------------------------------------------------------------
@@ -61,7 +63,7 @@ namespace ESDeckPC
             IntPtr menu = GetSystemMenu(Handle, false);
             AppendMenu(menu, MF_SEPARATOR, UIntPtr.Zero, null);
             AppendMenu(menu, MF_STRING, (UIntPtr)IdTopMost, "Always on Top");
-            SetTopMost(LoadTopMost(), false);
+            SetTopMost(LoadPref("topmost") == "1", false);
         }
 
         protected override void WndProc(ref Message m)
@@ -71,6 +73,12 @@ namespace ESDeckPC
                 SetTopMost(!TopMost, true);
                 return;
             }
+            if (m.Msg == WM_SIZING)
+            {
+                KeepRatio(m.WParam.ToInt32(), m.LParam);
+                m.Result = (IntPtr)1;
+                return;
+            }
             base.WndProc(ref m);
         }
 
@@ -78,19 +86,109 @@ namespace ESDeckPC
         {
             TopMost = on;
             CheckMenuItem(GetSystemMenu(Handle, false), IdTopMost, on ? MF_CHECKED : MF_UNCHECKED);
-            if (!save) return;
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(PrefsPath));
-                File.WriteAllText(PrefsPath, on ? "topmost=1" : "topmost=0");
-            }
-            catch { /* not remembered: still applied for this window */ }
+            if (save) SavePref("topmost", on ? "1" : "0");
         }
 
-        private static bool LoadTopMost()
+        // ------------------------------------------------------------------
+        // Size: 800:480, width MinWidth..800 -- the page (emulated 720 x 480
+        // viewport) can be drawn smaller but not larger. No Maximize: a
+        // maximized window can't keep the ratio.
+        // ------------------------------------------------------------------
+
+        private const int BaseW = 800, BaseH = 480, MinWidth = 400;
+        private const int WM_SIZING = 0x0214;
+        private const int WMSZ_LEFT = 1, WMSZ_TOP = 3, WMSZ_TOPLEFT = 4, WMSZ_TOPRIGHT = 5, WMSZ_BOTTOM = 6, WMSZ_BOTTOMLEFT = 7;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT { public int Left, Top, Right, Bottom; }
+
+        /// <summary>WM_SIZING: bend the dragged rectangle so the client area
+        /// stays 800:480 (the edge being dragged decides which side moves).</summary>
+        private void KeepRatio(int edge, IntPtr lParam)
         {
-            try { return File.Exists(PrefsPath) && File.ReadAllText(PrefsPath).Trim() == "topmost=1"; }
-            catch { return false; }
+            var r = (RECT)Marshal.PtrToStructure(lParam, typeof(RECT));
+            int ncW = Width - ClientSize.Width, ncH = Height - ClientSize.Height;
+            int cw = r.Right - r.Left - ncW, ch = r.Bottom - r.Top - ncH;
+            if (edge == WMSZ_TOP || edge == WMSZ_BOTTOM) cw = ch * BaseW / BaseH;
+            cw = Math.Max(MinWidth, Math.Min(BaseW, cw));   // WebView2 only scales the page down
+            ch = cw * BaseH / BaseW;
+
+            if (edge == WMSZ_LEFT || edge == WMSZ_TOPLEFT || edge == WMSZ_BOTTOMLEFT) r.Left = r.Right - (cw + ncW);
+            else r.Right = r.Left + cw + ncW;
+            if (edge == WMSZ_TOP || edge == WMSZ_TOPLEFT || edge == WMSZ_TOPRIGHT) r.Top = r.Bottom - (ch + ncH);
+            else r.Bottom = r.Top + ch + ncH;
+            Marshal.StructureToPtr(r, lParam, false);
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            int w = int.TryParse(LoadPref("width"), out int saved) ? saved : BaseW;
+            var wa = Screen.FromControl(this).WorkingArea;
+            int maxW = Math.Max(MinWidth, Math.Min(BaseW, wa.Width - (Width - ClientSize.Width)));
+            maxW = Math.Max(MinWidth, Math.Min(maxW,
+                                       (wa.Height - (Height - ClientSize.Height)) * BaseW / BaseH));
+            w = Math.Max(MinWidth, Math.Min(w, maxW));
+            MaximumSize = SizeFromClientSize(new Size(BaseW, BaseH));   // also against Aero Snap, which skips WM_SIZING
+            ClientSize = new Size(w, w * BaseH / BaseW);
+            CenterToScreen();
+            LayoutScaled();
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            if (WindowState != FormWindowState.Minimized) LayoutScaled();
+        }
+
+        protected override void OnResizeEnd(EventArgs e)
+        {
+            base.OnResizeEnd(e);
+            SavePref("width", ClientSize.Width.ToString());
+        }
+
+        /// <summary>Sidebar 80 + page 720 of every 800 px of width.</summary>
+        private void LayoutScaled()
+        {
+            if (picSide == null || ClientSize.Width < 1) return;
+            int w = ClientSize.Width, h = ClientSize.Height;
+            int side = (int)Math.Round(w * (double)CanvasSidebar.Width / BaseW);
+            picSide.Bounds = new Rectangle(0, 0, side, h);
+            panelPage.Bounds = new Rectangle(side, 0, w - side, h);
+            _link?.PcResized(this);
+        }
+
+        // ------------------------------------------------------------------
+        // Prefs: key=value lines in %LOCALAPPDATA%\ESDeckPC\CanvasWindow.txt
+        // ------------------------------------------------------------------
+
+        private static string LoadPref(string key)
+        {
+            try
+            {
+                if (!File.Exists(PrefsPath)) return null;
+                foreach (string line in File.ReadAllLines(PrefsPath))
+                {
+                    int eq = line.IndexOf('=');
+                    if (eq > 0 && line.Substring(0, eq).Trim() == key) return line.Substring(eq + 1).Trim();
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private static void SavePref(string key, string value)
+        {
+            try
+            {
+                var lines = File.Exists(PrefsPath) ? new System.Collections.Generic.List<string>(File.ReadAllLines(PrefsPath))
+                                                   : new System.Collections.Generic.List<string>();
+                lines.RemoveAll(l => l.StartsWith(key + "="));
+                lines.Add(key + "=" + value);
+                Directory.CreateDirectory(Path.GetDirectoryName(PrefsPath));
+                File.WriteAllLines(PrefsPath, lines);
+            }
+            catch { /* not remembered: still applied for this window */ }
         }
 
         protected override void OnShown(EventArgs e)

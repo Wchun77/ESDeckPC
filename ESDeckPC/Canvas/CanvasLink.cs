@@ -273,6 +273,12 @@ namespace ESDeckPC
             if (!_active) _ = _renderer.BlankAsync();
         }
 
+        /// <summary>The window was resized: rescale the page if it's shown there.</summary>
+        public void PcResized(FormCanvasWindow window)
+        {
+            if (_window == window && !_active) _renderer.FitTo(window.PageHost);
+        }
+
         /// <summary>Sidebar tap in the window.</summary>
         public void PcSelect(int page)
         {

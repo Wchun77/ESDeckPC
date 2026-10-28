@@ -29,6 +29,7 @@
             this.picSide.Location = new System.Drawing.Point(0, 0);
             this.picSide.Name = "picSide";
             this.picSide.Size = new System.Drawing.Size(80, 480);
+            this.picSide.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.picSide.TabIndex = 0;
             this.picSide.TabStop = false;
             this.picSide.MouseClick += new System.Windows.Forms.MouseEventHandler(this.picSide_MouseClick);
@@ -61,7 +62,6 @@
             this.ClientSize = new System.Drawing.Size(800, 480);
             this.Controls.Add(this.panelPage);
             this.Controls.Add(this.picSide);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.Name = "FormCanvasWindow";
             this.ShowIcon = false;
