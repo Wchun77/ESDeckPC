@@ -13,7 +13,7 @@ namespace ESDeckPC
     /// in Canvas mode this only says so, and it picks the page back up as
     /// soon as the ESP leaves. The page is the same WebView that renders
     /// for the ESP, moved in here, so its state carries over both ways.
-    /// Sidebar: tap a page to switch, the gear opens Canvas Pages.
+    /// Sidebar: tap a page to switch, the gear opens the Canvas Editor.
     /// "Always on Top" is in the window menu (right-click the title bar).
     /// Resizable down from 800 x 480, kept at that ratio; sidebar and page
     /// scale together (the page layout stays 720 x 480). Both remembered.
@@ -231,7 +231,7 @@ namespace ESDeckPC
             _pcOwned = false;
             _cfg = cfg;
             _selected = -1;
-            ShowMessage("The active config has no pages.\nAdd some in Canvas Pages (the gear).");
+            ShowMessage("The active config has no pages.\nAdd some in the Canvas Editor (the gear).");
         }
 
         private void ShowMessage(string text)

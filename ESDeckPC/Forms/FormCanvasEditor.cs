@@ -16,7 +16,7 @@ using Microsoft.Web.WebView2.WinForms;
 namespace ESDeckPC
 {
     /// <summary>
-    /// Canvas > Edit Pages: pick which pages (up to 4) a config shows on the
+    /// Modes > Canvas Editor: pick which pages (up to 4) a config shows on the
     /// ESP sidebar, their order, names and icons, and which config is in use.
     /// Everything is saved under the Canvas folder; while the ESP is in
     /// Canvas mode, saving shows up there right away (CanvasLink watches the

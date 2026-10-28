@@ -262,7 +262,7 @@ esdeck.mediaCmd('toggle');   // 'toggle' | 'next' | 'prev'
   - 其他頁面的變動不會觸發（切換到該頁時就會載入新版）。
 - **新增頁面**：在 `pages/` 建資料夾、放 `index.html`，再把它加進某個 config 的 `pages`。
 - **切換 config**（兩種方式，會互相同步）：
-  - PC：**Modes → Canvas Pages...**，選 config → **Use This Config**。
+  - PC：**Modes → Canvas Editor...**，選 config → **Use This Config**。
   - 裝置：Canvas 模式下開 **Settings → Select Config**，清單由 PC 提供。
 - **除錯**：**Modes → Canvas DevTools** 可以打開目前頁面的開發者工具（Console、元素檢查）。
   ESDeckPC 主視窗的 log 會顯示載入、傳送大小、錯誤和 `esdeck.log()` 的內容。

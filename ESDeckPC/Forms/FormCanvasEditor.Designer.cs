@@ -771,7 +771,7 @@
             this.MinimumSize = new System.Drawing.Size(880, 640);
             this.Name = "FormCanvasEditor";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Canvas Pages";
+            this.Text = "Canvas Editor";
             this.flowTop.ResumeLayout(false);
             this.flowTop.PerformLayout();
             this.tableTop.ResumeLayout(false);
