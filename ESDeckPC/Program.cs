@@ -68,6 +68,11 @@ namespace ESDeckPC
                         if (DateTime.Now - timestamp > Timeout)
                             return (false, null);
 
+                        // Left behind (killed at shutdown, crash): the PID
+                        // that wrote it isn't an ESDeck PC process any more.
+                        if (!IsOurProcessAlive(p[2]))
+                            return (false, null);
+
                         return (true,
                             $"ESDeck PC is already running.\n" +
                             $"User: {p[1]}\nTime: {p[0]}\nOpen duration: {p[3]} minutes");
@@ -84,9 +89,41 @@ namespace ESDeckPC
             }
         }
 
+        /// <summary>"PID:1234" from the lock file still running this program?
+        /// (After a reboot the PID may belong to something else.)</summary>
+        private static bool IsOurProcessAlive(string pidField)
+        {
+            if (pidField == null || !pidField.StartsWith("PID:") ||
+                !int.TryParse(pidField.Substring(4), out int pid))
+                return true;   // can't tell: keep the old behaviour
+            try
+            {
+                using (var proc = Process.GetProcessById(pid))
+                using (var self = Process.GetCurrentProcess())
+                    return !proc.HasExited &&
+                           string.Equals(proc.ProcessName, self.ProcessName, StringComparison.OrdinalIgnoreCase);
+            }
+            catch (ArgumentException)
+            {
+                return false;  // no process with that PID
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
         // ------------------------------------------------------------------
         // Lock file management
         // ------------------------------------------------------------------
+
+        /// <summary>For FormM on Windows shutdown / logoff: Windows may end the
+        /// process right after, before Main's finally gets to run.</summary>
+        internal static void ReleaseLock()
+        {
+            StopUpdateTimer();
+            ReleaseLockFile();
+        }
 
         private static void CreateLockFile()
         {

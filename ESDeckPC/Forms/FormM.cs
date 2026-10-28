@@ -655,6 +655,7 @@ namespace ESDeckPC
                 // counts the veto as soon as any window of ours is visible,
                 // e.g. the off-screen Canvas renderer).
                 Shutdown();
+                Program.ReleaseLock();   // the process may be killed before Main's finally
                 return;
             }
             // X button: keep running in the tray
