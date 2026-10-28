@@ -14,8 +14,9 @@ namespace ESDeckPC
     ///   - Buttons: LV_FLEX_FLOW_ROW_WRAP, 160x150 each,
     ///              pad_all=8, pad_row=10, pad_col=10, radius=10, bg_opa=50%
     ///   - Icon: 100x100 centered, label below
-    ///   - Right-click: context menu (Edit / Add Button / Clear Button)
-    ///   - Left drag: reorder buttons
+    ///   - Right-click: context menu (Edit / Move to Page / Add Button / Clear Button)
+    ///   - Left drag: reorder buttons; dropped outside the panel -> DragOutside
+    ///     (the editor moves it to the page under the cursor in its page list)
     /// </summary>
     public class DeckPreviewPanel : Control
     {
@@ -50,6 +51,11 @@ namespace ESDeckPC
         /// </summary>
         public bool AllowButtons { get; set; } = true;
 
+        /// <summary>All page names (for "Move to Page"), and which one is shown.
+        /// null = no Move to Page item.</summary>
+        public IList<string> MoveTargetNames { get; set; }
+        public int CurrentPageIndex { get; set; } = -1;
+
         // Icon bitmap cache: key = icon filename
         private readonly Dictionary<string, Bitmap> _iconCache = new Dictionary<string, Bitmap>();
 
@@ -76,6 +82,13 @@ namespace ESDeckPC
 
         /// <summary>Fired when the user left-clicks a button (for preview action execution).</summary>
         public event EventHandler<int> ButtonClicked;
+
+        /// <summary>Right-click Move to Page: button ButtonIndex goes to page TargetPage.</summary>
+        public event EventHandler<DeckMoveEventArgs> MoveButtonRequested;
+
+        /// <summary>A button is being dragged outside the panel (Released = dropped
+        /// there). Set Accept if the point is a valid target -- drives the cursor.</summary>
+        public event EventHandler<DeckDragOutsideEventArgs> DragOutside;
 
         // ------------------------------------------------------------------
         // Constructor
@@ -269,6 +282,17 @@ namespace ESDeckPC
             if (dx < SystemInformation.DragSize.Width &&
                 dy < SystemInformation.DragSize.Height) return;
 
+            // Outside the panel: maybe a page in the editor's page list
+            if (!ClientRectangle.Contains(e.Location))
+            {
+                if (_dropInsertIndex != -1) { _dropInsertIndex = -1; Invalidate(); }
+                var args = new DeckDragOutsideEventArgs(_dragIndex, PointToScreen(e.Location), false);
+                DragOutside?.Invoke(this, args);
+                Cursor = args.Accept ? Cursors.Hand : Cursors.No;
+                return;
+            }
+            Cursor = Cursors.Default;
+
             // Start drag
             int dropIdx = FindDropIndex(e.Location);
             if (dropIdx != _dropInsertIndex)
@@ -299,6 +323,17 @@ namespace ESDeckPC
                     _dragIndex = -1;
                     _dropInsertIndex = -1;
                     Invalidate();
+                    return;
+                }
+
+                Cursor = Cursors.Default;
+                if (!ClientRectangle.Contains(e.Location))
+                {
+                    int from = _dragIndex;
+                    _dragIndex = -1;
+                    _dropInsertIndex = -1;
+                    Invalidate();
+                    DragOutside?.Invoke(this, new DeckDragOutsideEventArgs(from, PointToScreen(e.Location), true));
                     return;
                 }
 
@@ -343,7 +378,7 @@ namespace ESDeckPC
             {
                 BackColor = darkBg,
                 ForeColor = darkFg,
-                Renderer = new ToolStripProfessionalRenderer(new DeckDarkMenuColors()),
+                Renderer = new DarkToolStripRenderer(new DeckDarkMenuColors()),   // light submenu arrow
                 ShowImageMargin = false,
             };
 
@@ -352,6 +387,22 @@ namespace ESDeckPC
                 var miEdit = new ToolStripMenuItem("Edit") { ForeColor = darkFg };
                 miEdit.Click += (s, e) => EditButtonRequested?.Invoke(this, btnIdx);
                 cms.Items.Add(miEdit);
+
+                if (MoveTargetNames != null && MoveTargetNames.Count > 1)
+                {
+                    var miMove = new ToolStripMenuItem("Move to Page") { ForeColor = darkFg };
+                    for (int i = 0; i < MoveTargetNames.Count; i++)
+                    {
+                        if (i == CurrentPageIndex) continue;
+                        int target = i;
+                        var mi = new ToolStripMenuItem(MoveTargetNames[i]) { ForeColor = darkFg };
+                        mi.Click += (s, e) => MoveButtonRequested?.Invoke(this, new DeckMoveEventArgs(btnIdx, target));
+                        miMove.DropDownItems.Add(mi);
+                    }
+                    miMove.DropDown.BackColor = darkBg;
+                    ((ToolStripDropDownMenu)miMove.DropDown).ShowImageMargin = false;
+                    cms.Items.Add(miMove);
+                }
 
                 var miClear = new ToolStripMenuItem("Clear Button") { ForeColor = Color.FromArgb(220, 80, 80) };
                 miClear.Click += (s, e) => ClearButtonRequested?.Invoke(this, btnIdx);
@@ -493,5 +544,22 @@ namespace ESDeckPC
             }
             base.Dispose(disposing);
         }
+    }
+
+    public class DeckMoveEventArgs : EventArgs
+    {
+        public int ButtonIndex { get; }
+        public int TargetPage { get; }
+        public DeckMoveEventArgs(int buttonIndex, int targetPage) { ButtonIndex = buttonIndex; TargetPage = targetPage; }
+    }
+
+    public class DeckDragOutsideEventArgs : EventArgs
+    {
+        public int ButtonIndex { get; }
+        public Point ScreenPoint { get; }
+        public bool Released { get; }
+        public bool Accept { get; set; }
+        public DeckDragOutsideEventArgs(int buttonIndex, Point screenPoint, bool released)
+        { ButtonIndex = buttonIndex; ScreenPoint = screenPoint; Released = released; }
     }
 }

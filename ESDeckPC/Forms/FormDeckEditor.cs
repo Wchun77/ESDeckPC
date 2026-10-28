@@ -62,6 +62,8 @@ namespace ESDeckPC
             _preview.ClearButtonRequested += Preview_ClearButtonRequested;
             _preview.ReorderCompleted += (s, e) => UpdatePageList();
             _preview.ButtonClicked += Preview_ButtonClicked;
+            _preview.MoveButtonRequested += (s, e) => MoveButton(lstPages.SelectedIndex, e.ButtonIndex, e.TargetPage);
+            _preview.DragOutside += Preview_DragOutside;
 
             lstPages.SelectedIndexChanged += lstPages_SelectedIndexChanged;
             lstPages.MouseUp += lstPages_MouseUp;
@@ -134,7 +136,45 @@ namespace ESDeckPC
 
             SetSettingsButtonSelected(false);
             _preview.AllowButtons = true;
+            SyncMoveTargets();
             _preview.SetPage(_deckConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
+        }
+
+        // ------------------------------------------------------------------
+        // Moving a button to another page: right-click > Move to Page, or
+        // drag it from the preview onto a page in the page list. It goes to
+        // the end of that page; the current page stays shown.
+        // ------------------------------------------------------------------
+
+        private void SyncMoveTargets()
+        {
+            var names = new List<string>();
+            foreach (var pg in _deckConfig.Pages) names.Add(pg.Name);
+            _preview.MoveTargetNames = names;
+            _preview.CurrentPageIndex = lstPages.SelectedIndex;
+        }
+
+        private void Preview_DragOutside(object sender, DeckDragOutsideEventArgs e)
+        {
+            int from = lstPages.SelectedIndex;
+            Point pt = lstPages.PointToClient(e.ScreenPoint);
+            int to = lstPages.ClientRectangle.Contains(pt) ? lstPages.IndexFromPoint(pt) : ListBox.NoMatches;
+            e.Accept = to != ListBox.NoMatches && to != from && to < _deckConfig.Pages.Count;
+            if (e.Accept && e.Released) MoveButton(from, e.ButtonIndex, to);
+        }
+
+        private void MoveButton(int fromPage, int btnIdx, int toPage)
+        {
+            if (fromPage < 0 || fromPage >= _deckConfig.Pages.Count) return;
+            if (toPage < 0 || toPage >= _deckConfig.Pages.Count || toPage == fromPage) return;
+            var src = _deckConfig.Pages[fromPage];
+            if (btnIdx < 0 || btnIdx >= src.Buttons.Count) return;
+
+            var btn = src.Buttons[btnIdx];
+            src.Buttons.RemoveAt(btnIdx);
+            _deckConfig.Pages[toPage].Buttons.Add(btn);
+            _preview.SetPage(src, _assetsBackgroundsDir, _assetsIconsDir);
+            UpdatePageList();   // button counts in the list
         }
 
         // ------------------------------------------------------------------
@@ -454,6 +494,7 @@ namespace ESDeckPC
                 lstPages.Items.Add($"{pg.Name} ({pg.Buttons.Count})");
             if (sel >= 0 && sel < lstPages.Items.Count)
                 lstPages.SelectedIndex = sel;
+            SyncMoveTargets();   // page added / renamed / removed
         }
 
         private void lstPages_MouseUp(object sender, MouseEventArgs e)
