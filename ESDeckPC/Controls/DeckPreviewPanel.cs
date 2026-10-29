@@ -11,8 +11,8 @@ namespace ESDeckPC
     /// <summary>
     /// Self-drawing deck preview control. Mirrors ui_deck.c layout:
     ///   - Background image: zoom-fill + 50% black mask
-    ///   - Buttons: LV_FLEX_FLOW_ROW_WRAP, 160x150 each,
-    ///              pad_all=8, pad_row=10, pad_col=10, radius=10, bg_opa=50%
+    ///   - Buttons: 4 x 3 = 12 per page (more are not shown), 167x146 each,
+    ///              pad_all=11, pad_row=10, pad_col=10, radius=10, bg_opa=50%
     ///   - Icon: 100x100 centered, label below
     ///   - Right-click: context menu (Edit / Move to Page / Add Button / Clear Button)
     ///   - Left drag: reorder buttons; dropped outside the panel -> DragOutside
@@ -26,9 +26,12 @@ namespace ESDeckPC
 
         private const int PanelW = 720;
         private const int PanelH = 480;
-        private const int BtnW = 160;
-        private const int BtnH = 150;
-        private const int PadAll = 8;
+        private const int BtnW = 167;
+        private const int BtnH = 146;
+        private const int PadAll = 11;
+
+        /// <summary>Buttons per page the ESP shows (4 x 3, DECK_BTNS_MAX in ui_deck.c).</summary>
+        public const int MaxButtons = 12;
         private const int PadRow = 10;
         private const int PadCol = 10;
         private const int BtnRadius = 10;
@@ -54,6 +57,8 @@ namespace ESDeckPC
         /// <summary>All page names (for "Move to Page"), and which one is shown.
         /// null = no Move to Page item.</summary>
         public IList<string> MoveTargetNames { get; set; }
+        /// <summary>Per page: already has MaxButtons (shown disabled as a target).</summary>
+        public IList<bool> MoveTargetFull { get; set; }
         public int CurrentPageIndex { get; set; } = -1;
 
         // Icon bitmap cache: key = icon filename
@@ -85,6 +90,10 @@ namespace ESDeckPC
 
         /// <summary>Right-click Move to Page: button ButtonIndex goes to page TargetPage.</summary>
         public event EventHandler<DeckMoveEventArgs> MoveButtonRequested;
+
+        /// <summary>Right-click Move Hidden Buttons to Page: the buttons past
+        /// MaxButtons (not shown, so not clickable) go to page TargetPage.</summary>
+        public event EventHandler<int> MoveHiddenRequested;
 
         /// <summary>A button is being dragged outside the panel (Released = dropped
         /// there). Set Accept if the point is a valid target -- drives the cursor.</summary>
@@ -150,7 +159,7 @@ namespace ESDeckPC
 
             if (_page?.Buttons == null) return;
 
-            for (int i = 0; i < _page.Buttons.Count; i++)
+            for (int i = 0; i < Shown; i++)
             {
                 var rect = ButtonRect(i);
                 bool isDragging = (i == _dragIndex);
@@ -167,7 +176,24 @@ namespace ESDeckPC
 
                 DrawButton(g, rect, _page.Buttons[i], isDragging, isInsertLeft, isInsertRight);
             }
+
+            // More than the ESP shows: say so (they stay in the config)
+            int hidden = _page.Buttons.Count - Shown;
+            if (hidden > 0)
+            {
+                string msg = $"+{hidden} button(s) not shown -- max {MaxButtons} per page";
+                using (var f = new Font("Segoe UI", 9f, FontStyle.Bold))
+                {
+                    var sz = g.MeasureString(msg, f);
+                    var r = new RectangleF(PanelW - sz.Width - 12, PanelH - sz.Height - 6, sz.Width + 8, sz.Height + 2);
+                    using (var bg = new SolidBrush(Color.FromArgb(200, 0, 0, 0))) g.FillRectangle(bg, r);
+                    using (var fg = new SolidBrush(Color.FromArgb(240, 90, 90))) g.DrawString(msg, f, fg, r.X + 4, r.Y + 1);
+                }
+            }
         }
+
+        /// <summary>Buttons actually laid out (the ESP builds the first MaxButtons).</summary>
+        private int Shown => _page?.Buttons == null ? 0 : Math.Min(_page.Buttons.Count, MaxButtons);
 
         private void DrawBackground(Graphics g)
         {
@@ -395,7 +421,12 @@ namespace ESDeckPC
                     {
                         if (i == CurrentPageIndex) continue;
                         int target = i;
-                        var mi = new ToolStripMenuItem(MoveTargetNames[i]) { ForeColor = darkFg };
+                        bool full = MoveTargetFull != null && i < MoveTargetFull.Count && MoveTargetFull[i];
+                        var mi = new ToolStripMenuItem(full ? MoveTargetNames[i] + "  (full)" : MoveTargetNames[i])
+                        {
+                            ForeColor = full ? Color.FromArgb(120, 120, 120) : darkFg,
+                            Enabled = !full,
+                        };
                         mi.Click += (s, e) => MoveButtonRequested?.Invoke(this, new DeckMoveEventArgs(btnIdx, target));
                         miMove.DropDownItems.Add(mi);
                     }
@@ -411,9 +442,37 @@ namespace ESDeckPC
                 cms.Items.Add(new ToolStripSeparator());
             }
 
+            int hiddenCount = (_page?.Buttons?.Count ?? 0) - Shown;
+            if (hiddenCount > 0 && MoveTargetNames != null && MoveTargetNames.Count > 1)
+            {
+                var miHidden = new ToolStripMenuItem($"Move {hiddenCount} Hidden Button(s) to Page") { ForeColor = Color.FromArgb(240, 90, 90) };
+                for (int i = 0; i < MoveTargetNames.Count; i++)
+                {
+                    if (i == CurrentPageIndex) continue;
+                    int target = i;
+                    bool full = MoveTargetFull != null && i < MoveTargetFull.Count && MoveTargetFull[i];
+                    var mi = new ToolStripMenuItem(full ? MoveTargetNames[i] + "  (full)" : MoveTargetNames[i])
+                    {
+                        ForeColor = full ? Color.FromArgb(120, 120, 120) : darkFg,
+                        Enabled = !full,
+                    };
+                    mi.Click += (s, e) => MoveHiddenRequested?.Invoke(this, target);
+                    miHidden.DropDownItems.Add(mi);
+                }
+                miHidden.DropDown.BackColor = darkBg;
+                ((ToolStripDropDownMenu)miHidden.DropDown).ShowImageMargin = false;
+                cms.Items.Add(miHidden);
+                cms.Items.Add(new ToolStripSeparator());
+            }
+
             if (AllowButtons)
             {
-                var miAdd = new ToolStripMenuItem("Add Button") { ForeColor = darkFg };
+                bool pageFull = (_page?.Buttons?.Count ?? 0) >= MaxButtons;
+                var miAdd = new ToolStripMenuItem(pageFull ? $"Add Button  (page full, max {MaxButtons})" : "Add Button")
+                {
+                    ForeColor = pageFull ? Color.FromArgb(120, 120, 120) : darkFg,
+                    Enabled = !pageFull,
+                };
                 miAdd.Click += (s, e) => AddButtonRequested?.Invoke(this, EventArgs.Empty);
                 cms.Items.Add(miAdd);
             }
@@ -454,7 +513,7 @@ namespace ESDeckPC
         private int HitTest(Point p)
         {
             if (_page?.Buttons == null) return -1;
-            for (int i = 0; i < _page.Buttons.Count; i++)
+            for (int i = 0; i < Shown; i++)
             {
                 if (ButtonRect(i).Contains(p)) return i;
             }
@@ -467,7 +526,7 @@ namespace ESDeckPC
 
             int cols = Math.Max(1, (PanelW - PadAll * 2 + PadCol) / (BtnW + PadCol));
 
-            for (int i = 0; i < _page.Buttons.Count; i++)
+            for (int i = 0; i < Shown; i++)
             {
                 var r = ButtonRect(i);
                 int midX = r.X + r.Width / 2;
@@ -481,7 +540,7 @@ namespace ESDeckPC
                 if (btnRow == row && p.X < midX)
                     return i;
             }
-            return _page.Buttons.Count;
+            return Shown;
         }
 
         private static GraphicsPath RoundedRect(Rectangle r, int radius)

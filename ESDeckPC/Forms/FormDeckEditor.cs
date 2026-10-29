@@ -64,6 +64,7 @@ namespace ESDeckPC
             _preview.ButtonClicked += Preview_ButtonClicked;
             _preview.MoveButtonRequested += (s, e) => MoveButton(lstPages.SelectedIndex, e.ButtonIndex, e.TargetPage);
             _preview.DragOutside += Preview_DragOutside;
+            _preview.MoveHiddenRequested += (s, target) => MoveHiddenButtons(lstPages.SelectedIndex, target);
 
             lstPages.SelectedIndexChanged += lstPages_SelectedIndexChanged;
             lstPages.MouseUp += lstPages_MouseUp;
@@ -149,8 +150,14 @@ namespace ESDeckPC
         private void SyncMoveTargets()
         {
             var names = new List<string>();
-            foreach (var pg in _deckConfig.Pages) names.Add(pg.Name);
+            var full = new List<bool>();
+            foreach (var pg in _deckConfig.Pages)
+            {
+                names.Add(pg.Name);
+                full.Add(pg.Buttons.Count >= DeckPreviewPanel.MaxButtons);
+            }
             _preview.MoveTargetNames = names;
+            _preview.MoveTargetFull = full;
             _preview.CurrentPageIndex = lstPages.SelectedIndex;
         }
 
@@ -159,14 +166,54 @@ namespace ESDeckPC
             int from = lstPages.SelectedIndex;
             Point pt = lstPages.PointToClient(e.ScreenPoint);
             int to = lstPages.ClientRectangle.Contains(pt) ? lstPages.IndexFromPoint(pt) : ListBox.NoMatches;
-            e.Accept = to != ListBox.NoMatches && to != from && to < _deckConfig.Pages.Count;
+            e.Accept = to != ListBox.NoMatches && to != from && to < _deckConfig.Pages.Count &&
+                       _deckConfig.Pages[to].Buttons.Count < DeckPreviewPanel.MaxButtons;
             if (e.Accept && e.Released) MoveButton(from, e.ButtonIndex, to);
+        }
+
+        /// <summary>Pages with more buttons than the ESP shows (older configs).</summary>
+        private void WarnOverfullPages()
+        {
+            var lines = new List<string>();
+            foreach (var pg in _deckConfig.Pages)
+                if (pg.Buttons.Count > DeckPreviewPanel.MaxButtons)
+                    lines.Add($"  {pg.Name}: {pg.Buttons.Count} buttons");
+            if (lines.Count == 0) return;
+            MessageBox.Show(
+                $"The ESDeck shows {DeckPreviewPanel.MaxButtons} buttons per page. These pages have more:\n\n" +
+                string.Join("\n", lines) +
+                "\n\nThe extra buttons are kept in the file but not shown. To move them: open the page, " +
+                "right-click the preview > Move Hidden Buttons to Page.",
+                "Deck Editor", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        /// <summary>Buttons past the 12th on fromPage -> end of toPage, as many as fit.</summary>
+        private void MoveHiddenButtons(int fromPage, int toPage)
+        {
+            if (fromPage < 0 || fromPage >= _deckConfig.Pages.Count) return;
+            if (toPage < 0 || toPage >= _deckConfig.Pages.Count || toPage == fromPage) return;
+            var src = _deckConfig.Pages[fromPage].Buttons;
+            var dst = _deckConfig.Pages[toPage].Buttons;
+            int moved = 0;
+            while (src.Count > DeckPreviewPanel.MaxButtons && dst.Count < DeckPreviewPanel.MaxButtons)
+            {
+                dst.Add(src[DeckPreviewPanel.MaxButtons]);
+                src.RemoveAt(DeckPreviewPanel.MaxButtons);
+                moved++;
+            }
+            if (src.Count > DeckPreviewPanel.MaxButtons)
+                MessageBox.Show($"Moved {moved}; \"{_deckConfig.Pages[toPage].Name}\" is now full. " +
+                                $"{src.Count - DeckPreviewPanel.MaxButtons} still hidden -- move them to another page.",
+                                "Deck Editor", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            _preview.SetPage(_deckConfig.Pages[fromPage], _assetsBackgroundsDir, _assetsIconsDir);
+            UpdatePageList();
         }
 
         private void MoveButton(int fromPage, int btnIdx, int toPage)
         {
             if (fromPage < 0 || fromPage >= _deckConfig.Pages.Count) return;
             if (toPage < 0 || toPage >= _deckConfig.Pages.Count || toPage == fromPage) return;
+            if (_deckConfig.Pages[toPage].Buttons.Count >= DeckPreviewPanel.MaxButtons) return;   // full
             var src = _deckConfig.Pages[fromPage];
             if (btnIdx < 0 || btnIdx >= src.Buttons.Count) return;
 
@@ -259,6 +306,7 @@ namespace ESDeckPC
             if (pageIdx < 0 || pageIdx >= _deckConfig.Pages.Count) return;
 
             var page = _deckConfig.Pages[pageIdx];
+            if (page.Buttons.Count >= DeckPreviewPanel.MaxButtons) return;   // menu item is disabled anyway
             var newBtn = new DeckButton { Label = "", Action = "launch" };
             page.Buttons.Add(newBtn);
 
@@ -409,6 +457,7 @@ namespace ESDeckPC
                     ResolveAssetDirs();
                     LoadPages();
                     UpdateJsonPathLabel();
+                    WarnOverfullPages();
                 }
                 catch (Exception ex)
                 {
