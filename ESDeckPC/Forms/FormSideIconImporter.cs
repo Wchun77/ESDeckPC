@@ -200,7 +200,7 @@ namespace ESDeckPC
         {
             var g = e.Graphics;
             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            g.Clear(Color.FromArgb(18, 18, 18));
+            g.Clear(Color.FromArgb(0x2a, 0x2a, 0x2a));   // ESP sidebar button color (#2a2a2a), so dark icons show as they will there
 
             if (_source == null) return;
 
