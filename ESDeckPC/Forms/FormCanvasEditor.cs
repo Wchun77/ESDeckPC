@@ -54,6 +54,35 @@ namespace ESDeckPC
             if (c.IsHandleCreated) { try { SetWindowTheme(c.Handle, "DarkMode_Explorer", null); } catch { } }
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct COMBOBOXINFO
+        {
+            public int cbSize;
+            public Rectangle rcItem, rcButton;   // RECTs; only the size of the struct matters here
+            public int stateButton;
+            public IntPtr hwndCombo, hwndItem, hwndList;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetComboBoxInfo(IntPtr hwndCombo, ref COMBOBOXINFO info);
+
+        /// <summary>Dark scroll bar in a combo box's drop-down list (its own window).</summary>
+        private static void DarkComboList(ComboBox c)
+        {
+            void apply()
+            {
+                try
+                {
+                    var info = new COMBOBOXINFO { cbSize = Marshal.SizeOf(typeof(COMBOBOXINFO)) };
+                    if (GetComboBoxInfo(c.Handle, ref info) && info.hwndList != IntPtr.Zero)
+                        SetWindowTheme(info.hwndList, "DarkMode_Explorer", null);
+                }
+                catch { }
+            }
+            c.HandleCreated += (s, e) => apply();
+            if (c.IsHandleCreated) apply();
+        }
+
         // Preview: the whole ESP screen at 800 x 480 (fixed in the designer,
         // like the other modes' previews) -- picSide is the sidebar
         // (page icons + gear, drawn like the ESP draws them), panelPreviewBox
@@ -83,6 +112,7 @@ namespace ESDeckPC
             lblPages.Text = $"Sidebar pages (max {CanvasConfig.MaxPages}, top first)";
             DarkScrollBars(lstLibrary);
             DarkScrollBars(lstPages);
+            DarkComboList(cboConfig);
 
             CanvasPaths.Ensure();
             RefreshLibrary();
