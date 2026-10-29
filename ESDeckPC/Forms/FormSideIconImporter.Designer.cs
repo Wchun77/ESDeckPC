@@ -96,9 +96,9 @@ namespace ESDeckPC
             this.canvas.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
             this.canvas.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.canvas.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.canvas.Location = new System.Drawing.Point(124, 74);
+            this.canvas.Location = new System.Drawing.Point(123, 73);
             this.canvas.Name = "canvas";
-            this.canvas.Size = new System.Drawing.Size(64, 56);
+            this.canvas.Size = new System.Drawing.Size(66, 58);
             this.canvas.TabIndex = 5;
             this.canvas.TabStop = false;
             this.canvas.Paint += new System.Windows.Forms.PaintEventHandler(this.Canvas_Paint);

@@ -96,9 +96,9 @@ namespace ESDeckPC
             this.canvas.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
             this.canvas.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.canvas.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.canvas.Location = new System.Drawing.Point(98, 72);
+            this.canvas.Location = new System.Drawing.Point(97, 71);
             this.canvas.Name = "canvas";
-            this.canvas.Size = new System.Drawing.Size(100, 100);
+            this.canvas.Size = new System.Drawing.Size(102, 102);
             this.canvas.TabIndex = 5;
             this.canvas.TabStop = false;
             this.canvas.Paint += new System.Windows.Forms.PaintEventHandler(this.Canvas_Paint);
@@ -137,7 +137,7 @@ namespace ESDeckPC
             this.Name = "FormIcoImporter";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Icon Importer";
+            this.Text = "Icon";
             ((System.ComponentModel.ISupportInitialize)(this.canvas)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

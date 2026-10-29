@@ -204,11 +204,14 @@ namespace ESDeckPC
 
             if (_source == null) return;
 
-            g.DrawImage(_source, _offsetX, _offsetY, _scaledW, _scaledH);
-
-            // Output boundary -- the actual 64x56 asset edge, in both modes.
-            using (var pen = new Pen(Color.FromArgb(160, 255, 255, 255), 1))
-                g.DrawRectangle(pen, 0, 0, OutputW - 1, OutputH - 1);
+            // Exactly what Save writes, 1:1, centered in the canvas (the
+            // canvas border sits outside the 64x56; form scaling may add a
+            // few px, which stay as an even margin).
+            using (var bmp = CropToBitmap())
+            {
+                var cs = canvas.ClientSize;
+                g.DrawImageUnscaled(bmp, (cs.Width - OutputW) / 2, (cs.Height - OutputH) / 2);
+            }
         }
 
         // ------------------------------------------------------------------
