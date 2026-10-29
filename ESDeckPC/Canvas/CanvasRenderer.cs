@@ -132,6 +132,14 @@ namespace ESDeckPC
     media:  async () => JSON.parse(await host().Media()),
     mediaCover: () => host().MediaCover(),
     mediaCmd: c => host().MediaCmd(String(c)),
+    fetch: async url => {   // GET via ESDeckPC (no CORS): { ok, status, text, error }
+      const id = await host().FetchStart(String(url));
+      for (;;) {
+        const r = await host().FetchResult(id);
+        if (r) return JSON.parse(r);
+        await new Promise(res => setTimeout(res, 100));
+      }
+    },
   };
 })();";
 

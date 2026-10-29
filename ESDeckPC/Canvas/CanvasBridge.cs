@@ -1,5 +1,11 @@
 using System;
+using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Windows.Media.Control;
@@ -19,6 +25,8 @@ namespace ESDeckPC
     ///                                     position, duration, playing, cover)
     ///   esdeck.mediaCover()            -> cover art as a data: URL, or ""
     ///   esdeck.mediaCmd("toggle" | "next" | "prev")
+    ///   esdeck.fetch(url)              -> { ok, status, text, error } -- GET
+    ///                                     through ESDeckPC, so no CORS limits
     /// action takes the same fields as a Deck button (launch, hotkey, media,
     /// text, power, ...), run by ActionExecutor. Both return promises; action
     /// resolves to ActionExecutor's result text.
@@ -170,5 +178,99 @@ namespace ESDeckPC
         {
             _log?.Invoke("Canvas page: " + message);
         }
+
+        // ------------------------------------------------------------------
+        // fetch: HTTP GET for pages (RSS, APIs without CORS headers).
+        // Host-object calls run on the UI thread, so the download can't
+        // happen inside one: FetchStart() starts it and returns an id,
+        // FetchResult(id) is "" until it's done, then the JSON result.
+        // esdeck.fetch() in CanvasRenderer.EsdeckScript wraps the polling.
+        // ------------------------------------------------------------------
+
+        private const int FetchMaxBytes = 2 * 1024 * 1024;
+        private static readonly HttpClient Http = CreateHttp();
+        private readonly ConcurrentDictionary<int, Task<string>> _fetches = new ConcurrentDictionary<int, Task<string>>();
+        private int _fetchId;
+
+        private static HttpClient CreateHttp()
+        {
+            var h = new HttpClient(new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            })
+            { Timeout = TimeSpan.FromSeconds(15) };
+            h.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) ESDeckPC");
+            return h;
+        }
+
+        public int FetchStart(string url)
+        {
+            if (_live != null) return _live.FetchStart(url);   // preview: reading is fine
+            int id = Interlocked.Increment(ref _fetchId);
+            _fetches[id] = FetchAsync(url);
+            // results a page never collected (navigated away): drop old ones
+            foreach (var k in _fetches.Keys)
+                if (k < id - 200) _fetches.TryRemove(k, out _);
+            return id;
+        }
+
+        public string FetchResult(int id)
+        {
+            if (_live != null) return _live.FetchResult(id);
+            if (!_fetches.TryGetValue(id, out var t))
+                return FetchJson(false, 0, null, "unknown fetch id");
+            if (!t.IsCompleted) return "";
+            _fetches.TryRemove(id, out _);
+            return t.Result;   // FetchAsync never throws
+        }
+
+        private static async Task<string> FetchAsync(string url)
+        {
+            try
+            {
+                if (!Uri.TryCreate(url, UriKind.Absolute, out Uri u) ||
+                    (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps))
+                    return FetchJson(false, 0, null, "only http / https URLs");
+
+                using (var resp = await Http.GetAsync(u, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+                {
+                    long? len = resp.Content.Headers.ContentLength;
+                    if (len > FetchMaxBytes) return FetchJson(false, (int)resp.StatusCode, null, "response too large");
+                    byte[] bytes = await resp.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    if (bytes.Length > FetchMaxBytes) return FetchJson(false, (int)resp.StatusCode, null, "response too large");
+                    string text = Decode(bytes, resp.Content.Headers.ContentType?.CharSet);
+                    return FetchJson(resp.IsSuccessStatusCode, (int)resp.StatusCode, text,
+                                     resp.IsSuccessStatusCode ? null : resp.ReasonPhrase);
+                }
+            }
+            catch (Exception ex)
+            {
+                var inner = ex is AggregateException ? ex.InnerException ?? ex : ex;
+                string msg = inner is TaskCanceledException ? "timed out" : inner.Message;
+                return FetchJson(false, 0, null, msg);
+            }
+        }
+
+        /// <summary>Charset from the header, else from an XML / HTML
+        /// declaration (some Taiwanese feeds are Big5), else UTF-8.</summary>
+        private static string Decode(byte[] bytes, string charset)
+        {
+            if (string.IsNullOrEmpty(charset))
+            {
+                string head = Encoding.ASCII.GetString(bytes, 0, Math.Min(bytes.Length, 1024));
+                var m = Regex.Match(head, @"(?:encoding|charset)\s*=\s*[""']?([\w-]+)", RegexOptions.IgnoreCase);
+                if (m.Success) charset = m.Groups[1].Value;
+            }
+            Encoding enc = Encoding.UTF8;
+            if (!string.IsNullOrEmpty(charset))
+            {
+                try { enc = Encoding.GetEncoding(charset.Trim('"')); } catch { }
+            }
+            string s = enc.GetString(bytes);
+            return s.Length > 0 && s[0] == '\uFEFF' ? s.Substring(1) : s;
+        }
+
+        private static string FetchJson(bool ok, int status, string text, string error) =>
+            JsonConvert.SerializeObject(new { ok, status, text = text ?? "", error = error ?? "" });
     }
 }

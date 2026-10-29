@@ -242,6 +242,23 @@ esdeck.mediaCmd('toggle');   // 'toggle' | 'next' | 'prev'
 
 `pos` 在播放中會自動推算，不用自己計時；進度條每秒更新一次就夠。
 
+### 抓網路資料：`esdeck.fetch(url)`
+
+由 ESDeckPC 代為送出 HTTP GET，不受瀏覽器 CORS 限制（RSS、沒開放跨網域的 API 都能抓）。
+
+```js
+const r = await esdeck.fetch('https://example.com/feed.xml');
+// { ok: true, status: 200, text: '<?xml ...', error: '' }
+// 失敗：{ ok: false, status: 404 或 0, text: '', error: '原因' }
+if (r.ok) {
+  const xml = new DOMParser().parseFromString(r.text, 'text/xml');
+}
+```
+
+- 只支援 `http` / `https`，逾時 15 秒，回應上限 2 MB。
+- 編碼依回應的 charset，或 XML / HTML 宣告裡的 encoding（Big5 也可以），都沒有就當 UTF-8。
+- 編輯器預覽也能用（讀取資料不受唯讀限制）。
+
 ---
 
 ## 6. 資料保存與網路
@@ -250,7 +267,8 @@ esdeck.mediaCmd('toggle');   // 'toggle' | 'next' | 'prev'
   所有頁面同一個網域（`https://canvas.esdeck`），**key 請加上自己頁面的前綴**，例如 `myclock.alarm`，避免互相覆蓋。
 - 切換頁面時會**重新載入**該頁；離開 Canvas 模式時頁面會關閉。所以頁面裡的計時器只在顯示時運作，
   需要延續的狀態（例如番茄鐘的開始時間）請存進 localStorage，回來時再算。
-- 頁面可以 `fetch` 外部網路（例如天氣 API），但要自行處理 CORS、逾時與離線狀況，失敗時顯示舊資料或提示。
+- 頁面可以用瀏覽器的 `fetch` 抓有開放 CORS 的 API（例如天氣），其他的用 `esdeck.fetch()`（見上）。
+  兩者都要自行處理逾時與離線狀況，失敗時顯示舊資料或提示。
 
 ---
 
