@@ -245,8 +245,13 @@ namespace ESDeckPC
             }
             catch (Exception ex)
             {
-                var inner = ex is AggregateException ? ex.InnerException ?? ex : ex;
-                string msg = inner is TaskCanceledException ? "timed out" : inner.Message;
+                var top = ex is AggregateException ? ex.InnerException ?? ex : ex;
+                if (top is TaskCanceledException) return FetchJson(false, 0, null, "timed out");
+                // HttpRequestException only says "error while sending the request";
+                // the real cause (DNS, connection reset, TLS...) is further in.
+                string msg = top.Message;
+                for (var e = top.InnerException; e != null; e = e.InnerException)
+                    msg += " -> " + e.Message;
                 return FetchJson(false, 0, null, msg);
             }
         }
