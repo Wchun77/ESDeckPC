@@ -95,6 +95,8 @@ namespace ESDeckPC
         }
     }
 
+    // Only the [JsonProperty] members go into the file (computed paths stay out).
+    [JsonObject(MemberSerialization.OptIn)]
     public class CanvasPageEntry
     {
         // Page folder, relative to the Canvas folder ("pages/clock"); the
@@ -131,6 +133,7 @@ namespace ESDeckPC
     /// <summary>The ESP's Settings page look while in Canvas mode. Both
     /// paths relative to the Canvas folder; empty = gear glyph / plain bg.
     /// Sent to the ESP as images -- nothing for Canvas lives on the SD card.</summary>
+    [JsonObject(MemberSerialization.OptIn)]
     public class CanvasSettingsLook
     {
         [JsonProperty("bg_image")]
@@ -140,6 +143,7 @@ namespace ESDeckPC
         public string SideIcon { get; set; } = "";
     }
 
+    [JsonObject(MemberSerialization.OptIn)]
     public class CanvasConfig
     {
         public const int MaxPages = 4;   // = CANVAS_MAX_PAGES on the ESP
