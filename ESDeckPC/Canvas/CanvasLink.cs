@@ -37,7 +37,7 @@ namespace ESDeckPC
         private const byte CMD_CFG = 0x24;                  // one config list entry, [2] = EV_LIST seq
         private const byte CFG_F_ACTIVE = 0x01;
         private const int CfgNameMax = 58;                  // UTF-8 bytes (+ NUL = HID_CANVAS_CFG_NAME_MAX)
-        private const int CfgListMax = 32;                  // CANVAS_CFG_LIST_MAX on the ESP
+        private const int CfgListMax = 64;                  // CANVAS_CFG_LIST_MAX on the ESP (must match)
         private const byte F_FULL = 0x01, F_EMPTY = 0x02, F_ICONS = 0x04;
         private const byte REC_RECT = 1, REC_ICON = 2, REC_GEAR = 3, REC_SETTINGS_BG = 4;
         // ESP -> PC (IN report: [0] report ID, [1] page 0xF9, [2] event, ...)
