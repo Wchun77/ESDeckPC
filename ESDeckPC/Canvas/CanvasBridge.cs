@@ -187,7 +187,7 @@ namespace ESDeckPC
         // esdeck.fetch() in CanvasRenderer.EsdeckScript wraps the polling.
         // ------------------------------------------------------------------
 
-        private const int FetchMaxBytes = 2 * 1024 * 1024;
+        private const int FetchMaxBytes = 8 * 1024 * 1024;   // full HTML pages (e.g. Netflix Top 10) run 2-5 MB
         private static readonly HttpClient Http = CreateHttp();
         private readonly ConcurrentDictionary<int, Task<string>> _fetches = new ConcurrentDictionary<int, Task<string>>();
         private int _fetchId;

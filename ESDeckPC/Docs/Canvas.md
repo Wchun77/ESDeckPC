@@ -255,7 +255,7 @@ if (r.ok) {
 }
 ```
 
-- 只支援 `http` / `https`，逾時 15 秒，回應上限 2 MB。
+- 只支援 `http` / `https`，逾時 15 秒，回應上限 8 MB。
 - 編碼依回應的 charset，或 XML / HTML 宣告裡的 encoding（Big5 也可以），都沒有就當 UTF-8。
 - 編輯器預覽也能用（讀取資料不受唯讀限制）。
 
