@@ -33,6 +33,18 @@ namespace ESDeckPC
 
         private List<string> _libAll = new List<string>();   // every page folder; lstLibrary shows the matches
 
+        // Dark title bar, like the other editors (Windows 10 20H1+; ignored elsewhere).
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            int value = 1;
+            DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
+        }
+
         // Grey hint text in an empty TextBox (.NET Framework has no PlaceholderText).
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, string lParam);
