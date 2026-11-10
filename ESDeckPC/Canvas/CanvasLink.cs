@@ -498,20 +498,31 @@ namespace ESDeckPC
             {
                 Bitmap bmp = await _renderer.CaptureAsync();
                 int[] prev = _lastPx;
-                int[] px = null;
-                var recs = await Task.Run(() =>
+                if (!_active || prev == null)
                 {
-                    px = CanvasEncoder.ToPixels(bmp);
-                    var rects = CanvasEncoder.Diff(prev, px, CanvasRenderer.W, CanvasRenderer.H);
-                    // a quarter of the page or more changed (scrolling, page
-                    // transitions): favor size over sharpness
-                    bool big = rects.Sum(r => r.Width * r.Height) * 4 >= CanvasRenderer.W * CanvasRenderer.H;
-                    return rects.Select(r => ToRec(CanvasEncoder.Encode(bmp, px, r, big))).ToList();
-                });
-                bmp.Dispose();
-                if (recs.Count > 0 && _active && _lastPx == prev)
+                    // The ESP left Canvas mode during the capture (Deactivate()
+                    // clears _lastPx): this frame is no longer wanted. No early
+                    // return -- RunPending() below must still run in case it
+                    // came straight back and asked for a full page meanwhile.
+                    bmp.Dispose();
+                }
+                else
                 {
-                    if (await SendAsync(0, _page, 0, recs)) _lastPx = px;
+                    int[] px = null;
+                    var recs = await Task.Run(() =>
+                    {
+                        px = CanvasEncoder.ToPixels(bmp);
+                        var rects = CanvasEncoder.Diff(prev, px, CanvasRenderer.W, CanvasRenderer.H);
+                        // a quarter of the page or more changed (scrolling, page
+                        // transitions): favor size over sharpness
+                        bool big = rects.Sum(r => r.Width * r.Height) * 4 >= CanvasRenderer.W * CanvasRenderer.H;
+                        return rects.Select(r => ToRec(CanvasEncoder.Encode(bmp, px, r, big))).ToList();
+                    });
+                    bmp.Dispose();
+                    if (recs.Count > 0 && _active && _lastPx == prev)
+                    {
+                        if (await SendAsync(0, _page, 0, recs)) _lastPx = px;
+                    }
                 }
             }
             catch (Exception ex)
