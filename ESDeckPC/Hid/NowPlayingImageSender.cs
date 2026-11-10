@@ -79,7 +79,18 @@ namespace ESDeckPC
             _subscribed = true;
             // Send whatever's already playing right away instead of
             // waiting for the next track change.
-            _ = SendCurrentAsync();
+            if (_watcher.CurrentProperties != null)
+            {
+                _ = SendCurrentAsync();
+            }
+            else
+            {
+                // Nothing playing: clear once so the ESP doesn't keep the
+                // cover/info from an earlier session (the watcher only reports
+                // "focus lost" once, at the moment it happens).
+                SendClear(KIND_COVER);
+                SendClear(KIND_INFO);
+            }
         }
 
         public void Unsubscribe()

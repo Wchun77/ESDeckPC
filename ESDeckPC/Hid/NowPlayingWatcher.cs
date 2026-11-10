@@ -175,8 +175,15 @@ namespace ESDeckPC
                 _positionBaseAt = DateTime.UtcNow;
                 Duration        = TimeSpan.Zero;
                 IsPlaying       = false;
+                // Only tell listeners once, when something was showing: the
+                // recovery timer calls ForceUpdate() every 3 s while nothing is
+                // focused, and each call reports "no session" again -- passing
+                // that on made NowPlayingImageSender re-send its clear (and log
+                // it) every 3 s. A listener that starts later and needs the
+                // empty state reads CurrentProperties (null) instead.
+                bool hadProps = CurrentProperties != null;
                 CurrentProperties = null;
-                OnMediaPropertiesChanged?.Invoke(null);
+                if (hadProps) OnMediaPropertiesChanged?.Invoke(null);
                 return;
             }
 
