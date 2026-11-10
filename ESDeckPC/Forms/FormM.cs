@@ -418,7 +418,7 @@ namespace ESDeckPC
 
                     case HidReceiver.EspMode.Monitor:
                         _monitor.Subscribe();
-                        AppendLog("Monitor: ESP already in monitor mode, subscribed", Color.CornflowerBlue);
+                        AppendLog("Monitor: ESP in monitor mode, subscribed", Color.CornflowerBlue);
                         break;
 
                     case HidReceiver.EspMode.Media:
@@ -431,15 +431,20 @@ namespace ESDeckPC
                         _nowPlayingSender.Subscribe();
                         _audioLevelSender.Subscribe();
                         _nowPlayingImageSender.Subscribe();
-                        AppendLog("NowPlaying: ESP already in media mode, subscribed", Color.MediumPurple);
+                        AppendLog("NowPlaying: ESP in media mode, subscribed", Color.MediumPurple);
                         break;
 
                     case HidReceiver.EspMode.Touchpad:
                         AppendLog("Touchpad: ESP in touchpad mode", Color.Gray);
                         break;
 
+                    case HidReceiver.EspMode.Deck:
+                        AppendLog("Deck: ESP in deck mode", Color.Gray);
+                        break;
+
                     default:
-                        AppendLog("Monitor: ESP in deck mode", Color.Gray);
+                        // a mode this build doesn't know yet (newer firmware)
+                        AppendLog($"Mode: ESP reported unknown mode {(int)mode}", Color.Gray);
                         break;
                 }
             }));
