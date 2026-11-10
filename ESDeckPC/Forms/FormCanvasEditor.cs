@@ -29,7 +29,7 @@ namespace ESDeckPC
     public partial class FormCanvasEditor : Form
     {
         private static readonly Color PanelColor = Color.FromArgb(40, 40, 40);
-        private static readonly Color ActiveBlue = ActiveBlue;
+        private static readonly Color ActiveBlue = Color.FromArgb(0, 85, 204);
 
         private List<string> _libAll = new List<string>();   // every page folder; lstLibrary shows the matches
 
