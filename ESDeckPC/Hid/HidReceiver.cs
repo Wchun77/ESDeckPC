@@ -112,6 +112,20 @@ public class HidReceiver
         Task.Run(() => ReadLoop(_cts.Token));
     }
 
+    // ------------------------------------------------------------------
+    // Ask the ESP which UI mode it is in: CMD 0x05 on the vendor channel
+    // ([0] Report ID 0x00, [1] 0x05, rest unused). The reply comes back as a
+    // page=0xFF mode report -> OnModeReport. Not tied to any one mode, so it
+    // lives here next to that reply (it used to be in MonitorSender).
+    // ------------------------------------------------------------------
+    public bool SendModeQuery()
+    {
+        var report = new byte[65];
+        report[0] = 0x00;
+        report[1] = 0x05;
+        return WriteReport(report);
+    }
+
     public void Stop()
     {
         _cts?.Cancel();

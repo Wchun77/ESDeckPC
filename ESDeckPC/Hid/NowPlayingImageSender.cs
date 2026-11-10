@@ -47,6 +47,7 @@ namespace ESDeckPC
         private const byte CMD_IMG_END   = 0x0A;
         private const byte KIND_COVER    = 0;
         private const byte KIND_INFO     = 1;
+        private static string KindName(byte kind) => kind == KIND_COVER ? "cover" : "info image";
 
         private const int COVER_W = 220, COVER_H = 220;
         private const int INFO_W  = 480, INFO_H  = 70;
@@ -298,7 +299,7 @@ namespace ESDeckPC
             byte[] encoded = format == ImageFormat.Png ? EncodePng(bmp) : EncodeJpeg(bmp, 80L);
             if (encoded.Length > MAX_JPEG_SIZE)
             {
-                Log($"Media: image too large ({encoded.Length} bytes), skipping kind {kind}");
+                Log($"Media: {KindName(kind)} too large ({encoded.Length} bytes), skipped");
                 return;
             }
 
@@ -338,7 +339,7 @@ namespace ESDeckPC
             _receiver.WriteReport(end);
 
             int chunkCount = (encoded.Length + CHUNK_DATA_SIZE - 1) / CHUNK_DATA_SIZE;
-            Log($"Media: image sent kind {kind}, {encoded.Length} bytes ({format.ToString()}) in {chunkCount} chunks");
+            Log($"Media: {KindName(kind)} sent, {encoded.Length} bytes ({format.ToString()}) in {chunkCount} chunks");
         }
 
         private static byte[] EncodePng(Bitmap bmp)

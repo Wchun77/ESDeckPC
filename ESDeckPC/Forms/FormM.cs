@@ -266,7 +266,8 @@ namespace ESDeckPC
                     _monitor.SendTimeNow();
 
                     /* Query ESP for current mode — reply arrives via OnModeReport */
-                    _monitor.SendQuery();
+                    _receiver.SendModeQuery();
+                    AppendLog("HID: sent mode query", LogMisc);
                 }
             }
             else if (detected && _hidConnected)
@@ -314,14 +315,14 @@ namespace ESDeckPC
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"Deck action: bad JSON ({ex.Message})", LogError);
+                    AppendLog($"Deck: bad action JSON ({ex.Message})", LogError);
                     return;
                 }
                 if (button == null) return;
 
                 string result = ActionExecutor.Run(button);
                 string label = string.IsNullOrEmpty(button.Label) ? "?" : button.Label;
-                AppendLog($"[{label}] {result}",
+                AppendLog($"Deck: [{label}] {result}",
                           result.Contains("failed") ? LogError : LogDeck);
             }));
         }
@@ -341,13 +342,13 @@ namespace ESDeckPC
                 {
                     case SUBSCRIBE:
                         _canvas.Deactivate("ESP switched to Monitor");   // in case its "leave" got lost
-                        _monitor.Subscribe();
                         AppendLog("Monitor: subscribed", LogMonitor);
+                        _monitor.Subscribe();
                         break;
 
                     case UNSUBSCRIBE:
-                        _monitor.Unsubscribe();
                         AppendLog("Monitor: unsubscribed", LogMonitor);
+                        _monitor.Unsubscribe();
                         break;
 
                     default:
@@ -375,17 +376,17 @@ namespace ESDeckPC
                 {
                     case SUBSCRIBE:
                         _canvas.Deactivate("ESP switched to Media");   // in case its "leave" got lost
+                        AppendLog("Media: subscribed", LogMedia);
                         _nowPlayingSender.Subscribe();
                         _audioLevelSender.Subscribe();
                         _nowPlayingImageSender.Subscribe();
-                        AppendLog("Media: subscribed", LogMedia);
                         break;
 
                     case UNSUBSCRIBE:
+                        AppendLog("Media: unsubscribed", LogMedia);
                         _nowPlayingSender.Unsubscribe();
                         _audioLevelSender.Unsubscribe();
                         _nowPlayingImageSender.Unsubscribe();
-                        AppendLog("Media: unsubscribed", LogMedia);
                         break;
 
                     case PLAY_PAUSE:
@@ -431,8 +432,8 @@ namespace ESDeckPC
                         break;
 
                     case HidReceiver.EspMode.Monitor:
-                        _monitor.Subscribe();
                         AppendLog("Monitor: ESP in monitor mode, subscribed", LogMonitor);
+                        _monitor.Subscribe();
                         break;
 
                     case HidReceiver.EspMode.Media:
@@ -442,10 +443,10 @@ namespace ESDeckPC
                         // nothing was listening, so without this the PC side
                         // would never start sending and the ESP would be
                         // stuck showing its own local fake-data fallback.
+                        AppendLog("Media: ESP in media mode, subscribed", LogMedia);
                         _nowPlayingSender.Subscribe();
                         _audioLevelSender.Subscribe();
                         _nowPlayingImageSender.Subscribe();
-                        AppendLog("Media: ESP in media mode, subscribed", LogMedia);
                         break;
 
                     case HidReceiver.EspMode.Touchpad:
@@ -549,7 +550,8 @@ namespace ESDeckPC
                     {
                         // Device stays on the old firmware in whatever mode it
                         // was in -- ask for it, OnModeReport re-subscribes.
-                        _monitor.SendQuery();
+                        _receiver.SendModeQuery();
+                        AppendLog("HID: sent mode query", LogMisc);
                         MessageBox.Show("Firmware update failed -- see the log. The device keeps its current firmware.",
                             "Firmware Update", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }

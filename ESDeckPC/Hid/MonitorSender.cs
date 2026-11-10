@@ -54,17 +54,13 @@ namespace ESDeckPC
     ///     [7]  second     0-59
     ///     [8..64] reserved
     ///
-    ///   CMD_QUERY (0x05):
-    ///     [0]  Report ID  = 0x00
-    ///     [1]  CMD        = 0x05
-    ///     [2..64] unused
+    ///   (CMD 0x05, the mode query, is sent by HidReceiver.SendModeQuery.)
     /// </summary>
     public class MonitorSender : IDisposable
     {
         private const int REPORT_SIZE = 65;
         private const byte CMD_DATA = 0x03;
         private const byte CMD_TIME = 0x04;
-        private const byte CMD_QUERY = 0x05;
         private const int STORAGE_PERIOD = 10;  // Storage poll every N fast-thread ticks
 
         // ------------------------------------------------------------------
@@ -132,15 +128,6 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
         // Subscribe / Unsubscribe
         // ------------------------------------------------------------------
-
-        public void SendQuery()
-        {
-            var report = new byte[REPORT_SIZE];
-            report[0] = 0x00;
-            report[1] = CMD_QUERY;
-            _receiver.WriteReport(report);
-            Log("Monitor: sent mode query");
-        }
 
         public void Subscribe()
         {

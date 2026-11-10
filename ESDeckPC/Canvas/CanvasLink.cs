@@ -127,7 +127,7 @@ namespace ESDeckPC
                 case EV_REQUEST:
                     int page = b[3];
                     byte reason = b[4];
-                    if (!_active) Log(reason == REQ_SYNC ? "ESP is in Canvas mode, sending page" : "ESP entered Canvas mode");
+                    if (!_active) Log(reason == REQ_SYNC ? "sending current page" : "ESP entered Canvas mode");
                     if (!_active && _window != null) PcYield();
                     _active = true;
                     StartWatcher();
