@@ -111,7 +111,7 @@ namespace ESDeckPC
                 // stale (unlike progress, which has its own ~3s timeout).
                 SendClear(KIND_COVER);
                 SendClear(KIND_INFO);
-                Log("NowPlayingImg: focus lost, cleared cover/info");
+                Log("Media: nothing playing, cleared cover/info");
                 return;
             }
 
@@ -140,7 +140,7 @@ namespace ESDeckPC
             }
             catch (Exception ex)
             {
-                Log($"NowPlayingImg: info render/send failed ({ex.Message})");
+                Log($"Media: info image render/send failed ({ex.Message})");
             }
 
             try
@@ -153,7 +153,7 @@ namespace ESDeckPC
             }
             catch (Exception ex)
             {
-                Log($"NowPlayingImg: cover fetch/send failed ({ex.Message})");
+                Log($"Media: cover fetch/send failed ({ex.Message})");
             }
         }
 
@@ -298,7 +298,7 @@ namespace ESDeckPC
             byte[] encoded = format == ImageFormat.Png ? EncodePng(bmp) : EncodeJpeg(bmp, 80L);
             if (encoded.Length > MAX_JPEG_SIZE)
             {
-                Log($"NowPlayingImg: encoded image too large ({encoded.Length} bytes), skipping kind {kind}");
+                Log($"Media: image too large ({encoded.Length} bytes), skipping kind {kind}");
                 return;
             }
 
@@ -310,7 +310,7 @@ namespace ESDeckPC
             start[5] = (byte)((encoded.Length >> 8) & 0xFF);
             if (!_receiver.WriteReport(start))
             {
-                Log("NowPlayingImg: start write failed");
+                Log("Media: image start write failed");
                 return;
             }
 
@@ -325,7 +325,7 @@ namespace ESDeckPC
                 System.Buffer.BlockCopy(encoded, offset, chunk, 4, n);
                 if (!_receiver.WriteReport(chunk))
                 {
-                    Log("NowPlayingImg: chunk write failed, aborting transfer");
+                    Log("Media: image chunk write failed, aborting transfer");
                     return;
                 }
                 offset += n;
@@ -338,7 +338,7 @@ namespace ESDeckPC
             _receiver.WriteReport(end);
 
             int chunkCount = (encoded.Length + CHUNK_DATA_SIZE - 1) / CHUNK_DATA_SIZE;
-            Log($"NowPlayingImg: sent kind {kind}, {encoded.Length} bytes ({format.ToString()}) in {chunkCount} chunks");
+            Log($"Media: image sent kind {kind}, {encoded.Length} bytes ({format.ToString()}) in {chunkCount} chunks");
         }
 
         private static byte[] EncodePng(Bitmap bmp)

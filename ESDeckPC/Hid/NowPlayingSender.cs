@@ -68,7 +68,7 @@ namespace ESDeckPC
             };
             _workerThread.Start();
 
-            Log("NowPlaying: started sending");
+            Log("Media: info sending started");
         }
 
         public void Unsubscribe()
@@ -78,11 +78,11 @@ namespace ESDeckPC
 
             bool joined = _workerThread?.Join(3000) ?? true;
             if (!joined)
-                Log("NowPlaying: worker thread did not exit in time");
+                Log("Media: info worker thread did not exit in time");
 
             _workerThread = null;
 
-            Log("NowPlaying: stopped sending");
+            Log("Media: info sending stopped");
         }
 
         // ------------------------------------------------------------------
@@ -102,7 +102,7 @@ namespace ESDeckPC
                 }
                 catch (Exception ex)
                 {
-                    Log($"NowPlaying: send error: {ex.Message}");
+                    Log($"Media: info send error: {ex.Message}");
                 }
 
                 int remaining = SEND_PERIOD_MS - (int)sw.ElapsedMilliseconds;
@@ -138,7 +138,7 @@ namespace ESDeckPC
 
             bool ok = _receiver.WriteReport(report);
             if (!ok)
-                Log("NowPlaying: write failed (device disconnected?)");
+                Log("Media: info write failed (device disconnected?)");
         }
 
         private static uint ClampToUInt32(double totalMs)

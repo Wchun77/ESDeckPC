@@ -60,7 +60,7 @@ namespace ESDeckPC
             };
             _workerThread.Start();
 
-            Log("Audio: started sending");
+            Log("Media: audio level sending started");
         }
 
         public void Unsubscribe()
@@ -70,11 +70,11 @@ namespace ESDeckPC
 
             bool joined = _workerThread?.Join(3000) ?? true;
             if (!joined)
-                Log("Audio: worker thread did not exit in time");
+                Log("Media: audio level worker thread did not exit in time");
 
             _workerThread = null;
 
-            Log("Audio: stopped sending");
+            Log("Media: audio level sending stopped");
         }
 
         // ------------------------------------------------------------------
@@ -92,7 +92,7 @@ namespace ESDeckPC
                 }
                 catch (Exception ex)
                 {
-                    Log($"Audio: send error: {ex.Message}");
+                    Log($"Media: audio level send error: {ex.Message}");
                 }
 
                 int remaining = SEND_PERIOD_MS - (int)sw.ElapsedMilliseconds;
@@ -114,7 +114,7 @@ namespace ESDeckPC
 
             bool ok = _receiver.WriteReport(report);
             if (!ok)
-                Log("Audio: write failed (device disconnected?)");
+                Log("Media: audio level write failed (device disconnected?)");
         }
 
         private void Log(string msg) => OnLog?.Invoke(msg);

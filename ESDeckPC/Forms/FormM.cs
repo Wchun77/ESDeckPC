@@ -11,6 +11,20 @@ namespace ESDeckPC
 {
     public partial class FormM : Form
     {
+        // Log colours, one per category so a glance tells them apart (txtLog's
+        // background is #141414). Errors from FormM itself are LogError.
+        private static readonly Color LogHidOk     = Color.LimeGreen;       // HID connected
+        private static readonly Color LogError     = Color.OrangeRed;       // HID disconnected, failed actions
+        private static readonly Color LogDeck      = Color.Khaki;           // Deck actions, Deck mode
+        private static readonly Color LogTouchpad  = Color.WhiteSmoke;      // Touchpad mode
+        private static readonly Color LogMonitor   = Color.CornflowerBlue;  // Monitor mode (+ mode query)
+        private static readonly Color LogMedia     = Color.MediumPurple;    // the ESP's Media mode
+        private static readonly Color LogNowPlaying= Color.Plum;            // what the PC itself is playing
+        private static readonly Color LogAudio     = Color.SkyBlue;         // PC audio capture
+        private static readonly Color LogCanvas    = Color.Turquoise;       // Canvas mode / pages
+        private static readonly Color LogOta       = Color.Orange;          // firmware update
+        private static readonly Color LogDiscord   = Color.LightSlateGray;  // Discord RPC
+        private static readonly Color LogMisc      = Color.Gray;            // unknown commands / modes
 
         private HidReceiver _receiver;
         private MonitorSender _monitor;
@@ -129,14 +143,14 @@ namespace ESDeckPC
             _receiver = new HidReceiver();
             _receiver.OnActionReceived += OnActionReceived;
             _ota = new OtaUploader(_receiver);
-            _ota.OnLog += msg => AppendLog(msg, Color.Gold);
+            _ota.OnLog += msg => AppendLog(msg, LogOta);
             int lastLoggedPct = -10;
             _ota.OnProgress += pct =>
             {
                 if (pct >= lastLoggedPct + 10 || pct == 100)
                 {
                     lastLoggedPct = pct - pct % 10;
-                    AppendLog($"OTA: {pct}%", Color.Gold);
+                    AppendLog($"OTA: {pct}%", LogOta);
                 }
                 if (pct == 0) lastLoggedPct = 0;
             };
@@ -152,11 +166,11 @@ namespace ESDeckPC
 
             // Canvas mode: HTML pages rendered here, shown on the ESP.
             _canvas = new CanvasLink(_receiver, this);
-            _canvas.OnLog += msg => AppendLog(msg, Color.Turquoise);
+            _canvas.OnLog += msg => AppendLog(msg, LogCanvas);
             _receiver.OnCanvasReport += _canvas.HandleReport;
 
             _monitor = new MonitorSender(_receiver);
-            _monitor.OnLog += msg => AppendLog(msg, Color.CornflowerBlue);
+            _monitor.OnLog += msg => AppendLog(msg, LogMonitor);
 
             // Media mode Now Playing: watches Windows Media Session locally,
             // sender pushes position/duration/playing to the ESP over HID
@@ -165,12 +179,12 @@ namespace ESDeckPC
             // Title/artist are not part of this protocol yet -- see
             // doc/ESDeck_Media模式開發筆記.md 第 4 節.
             _nowPlaying = new NowPlayingWatcher();
-            _nowPlaying.OnLog += msg => AppendLog(msg, Color.MediumPurple);
+            _nowPlaying.OnLog += msg => AppendLog(msg, LogNowPlaying);   // the PC's own playback (also feeds Canvas)
             _nowPlaying.Start();
             _canvas.Bridge.Attach(_monitor, _nowPlaying);   // esdeck.stats() / esdeck.media() for Canvas pages
 
             _nowPlayingSender = new NowPlayingSender(_receiver, _nowPlaying);
-            _nowPlayingSender.OnLog += msg => AppendLog(msg, Color.MediumPurple);
+            _nowPlayingSender.OnLog += msg => AppendLog(msg, LogMedia);
 
             // Cover art + PC-rendered title/artist strip (CJK text, no
             // on-device font) -- sent on track change only, not a fixed
@@ -178,7 +192,7 @@ namespace ESDeckPC
             // Unsubscribe() gating as Now Playing (see OnMediaControl,
             // OnModeReport below).
             _nowPlayingImageSender = new NowPlayingImageSender(_receiver, _nowPlaying);
-            _nowPlayingImageSender.OnLog += msg => AppendLog(msg, Color.MediumPurple);
+            _nowPlayingImageSender.OnLog += msg => AppendLog(msg, LogMedia);
 
             // Send immediately on a real state change (play/pause/seek/
             // track change -- from the ESP's own buttons or anything else)
@@ -192,11 +206,11 @@ namespace ESDeckPC
             // Now Playing. Single-value "簡單版" only -- see
             // doc/ESDeck_Media模式開發筆記.md 第 5 節.
             _audioLevel = new AudioLevelWatcher();
-            _audioLevel.OnLog += msg => AppendLog(msg, Color.SkyBlue);
+            _audioLevel.OnLog += msg => AppendLog(msg, LogAudio);
             _audioLevel.Start();
 
             _audioLevelSender = new AudioLevelSender(_receiver, _audioLevel);
-            _audioLevelSender.OnLog += msg => AppendLog(msg, Color.SkyBlue);
+            _audioLevelSender.OnLog += msg => AppendLog(msg, LogMedia);   // part of the ESP's Media mode
 
             tsBtnClearLog.Click += tsBtnClearLog_Click;
 
@@ -221,7 +235,7 @@ namespace ESDeckPC
             DiscordRpcClient.Instance.ConnectionChanged +=
                 connected => SetDiscordStatus(connected);
             DiscordRpcClient.Instance.LogMessage +=
-                msg => AppendLog(msg, Color.Gray);
+                msg => AppendLog(msg, LogDiscord);
             _ = DiscordRpcClient.Instance.ConnectAsync();
         }
 
@@ -243,7 +257,7 @@ namespace ESDeckPC
                     ssLblHid.Text = "HID: Connected";
                     ssLblHid.ForeColor = Color.Green;
                     SetTrayConnected(true);
-                    AppendLog("HID connected", Color.LimeGreen);
+                    AppendLog("HID connected", LogHidOk);
 
                     /* Send current time immediately on connect so the ESP
                      * has a valid clock right away, then keep correcting
@@ -278,7 +292,7 @@ namespace ESDeckPC
                 ssLblHid.Text = "HID: Disconnected";
                 ssLblHid.ForeColor = Color.Red;
                 SetTrayConnected(false);
-                AppendLog("HID disconnected", Color.OrangeRed);
+                AppendLog("HID disconnected", LogError);
             }
         }
 
@@ -300,7 +314,7 @@ namespace ESDeckPC
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"Deck action: bad JSON ({ex.Message})", Color.OrangeRed);
+                    AppendLog($"Deck action: bad JSON ({ex.Message})", LogError);
                     return;
                 }
                 if (button == null) return;
@@ -308,7 +322,7 @@ namespace ESDeckPC
                 string result = ActionExecutor.Run(button);
                 string label = string.IsNullOrEmpty(button.Label) ? "?" : button.Label;
                 AppendLog($"[{label}] {result}",
-                          result.Contains("failed") ? Color.OrangeRed : Color.LimeGreen);
+                          result.Contains("failed") ? LogError : LogDeck);
             }));
         }
 
@@ -328,16 +342,16 @@ namespace ESDeckPC
                     case SUBSCRIBE:
                         _canvas.Deactivate("ESP switched to Monitor");   // in case its "leave" got lost
                         _monitor.Subscribe();
-                        AppendLog("Monitor: subscribed", Color.CornflowerBlue);
+                        AppendLog("Monitor: subscribed", LogMonitor);
                         break;
 
                     case UNSUBSCRIBE:
                         _monitor.Unsubscribe();
-                        AppendLog("Monitor: unsubscribed", Color.CornflowerBlue);
+                        AppendLog("Monitor: unsubscribed", LogMonitor);
                         break;
 
                     default:
-                        AppendLog($"Monitor: unknown cmd 0x{cmd:X2}", Color.Gray);
+                        AppendLog($"Monitor: unknown cmd 0x{cmd:X2}", LogMisc);
                         break;
                 }
             }));
@@ -364,33 +378,33 @@ namespace ESDeckPC
                         _nowPlayingSender.Subscribe();
                         _audioLevelSender.Subscribe();
                         _nowPlayingImageSender.Subscribe();
-                        AppendLog("NowPlaying: subscribed", Color.MediumPurple);
+                        AppendLog("Media: subscribed", LogMedia);
                         break;
 
                     case UNSUBSCRIBE:
                         _nowPlayingSender.Unsubscribe();
                         _audioLevelSender.Unsubscribe();
                         _nowPlayingImageSender.Unsubscribe();
-                        AppendLog("NowPlaying: unsubscribed", Color.MediumPurple);
+                        AppendLog("Media: unsubscribed", LogMedia);
                         break;
 
                     case PLAY_PAUSE:
                         _nowPlaying.TogglePlayPause();
-                        AppendLog("NowPlaying: play/pause (from ESP)", Color.MediumPurple);
+                        AppendLog("Media: play/pause (from ESP)", LogMedia);
                         break;
 
                     case NEXT:
                         _nowPlaying.Next();
-                        AppendLog("NowPlaying: next (from ESP)", Color.MediumPurple);
+                        AppendLog("Media: next (from ESP)", LogMedia);
                         break;
 
                     case PREV:
                         _nowPlaying.Previous();
-                        AppendLog("NowPlaying: prev (from ESP)", Color.MediumPurple);
+                        AppendLog("Media: prev (from ESP)", LogMedia);
                         break;
 
                     default:
-                        AppendLog($"NowPlaying: unknown cmd 0x{cmd:X2}", Color.Gray);
+                        AppendLog($"Media: unknown cmd 0x{cmd:X2}", LogMisc);
                         break;
                 }
             }));
@@ -401,7 +415,7 @@ namespace ESDeckPC
             this.BeginInvoke((Action)(() =>
             {
                 _nowPlaying.SeekTo(TimeSpan.FromMilliseconds(positionMs));
-                AppendLog($"NowPlaying: seek to {TimeSpan.FromMilliseconds(positionMs):hh\\:mm\\:ss} (from ESP)", Color.MediumPurple);
+                AppendLog($"Media: seek to {TimeSpan.FromMilliseconds(positionMs):hh\\:mm\\:ss} (from ESP)", LogMedia);
             }));
         }
 
@@ -413,12 +427,12 @@ namespace ESDeckPC
                 switch (mode)
                 {
                     case HidReceiver.EspMode.Canvas:
-                        AppendLog("Canvas: ESP in canvas mode", Color.Turquoise);
+                        AppendLog("Canvas: ESP in canvas mode", LogCanvas);
                         break;
 
                     case HidReceiver.EspMode.Monitor:
                         _monitor.Subscribe();
-                        AppendLog("Monitor: ESP in monitor mode, subscribed", Color.CornflowerBlue);
+                        AppendLog("Monitor: ESP in monitor mode, subscribed", LogMonitor);
                         break;
 
                     case HidReceiver.EspMode.Media:
@@ -431,20 +445,20 @@ namespace ESDeckPC
                         _nowPlayingSender.Subscribe();
                         _audioLevelSender.Subscribe();
                         _nowPlayingImageSender.Subscribe();
-                        AppendLog("NowPlaying: ESP in media mode, subscribed", Color.MediumPurple);
+                        AppendLog("Media: ESP in media mode, subscribed", LogMedia);
                         break;
 
                     case HidReceiver.EspMode.Touchpad:
-                        AppendLog("Touchpad: ESP in touchpad mode", Color.Gray);
+                        AppendLog("Touchpad: ESP in touchpad mode", LogTouchpad);
                         break;
 
                     case HidReceiver.EspMode.Deck:
-                        AppendLog("Deck: ESP in deck mode", Color.Gray);
+                        AppendLog("Deck: ESP in deck mode", LogDeck);
                         break;
 
                     default:
                         // a mode this build doesn't know yet (newer firmware)
-                        AppendLog($"Mode: ESP reported unknown mode {(int)mode}", Color.Gray);
+                        AppendLog($"Mode: ESP reported unknown mode {(int)mode}", LogMisc);
                         break;
                 }
             }));
@@ -551,7 +565,7 @@ namespace ESDeckPC
 
         private void tsMenuDiscordReconnect_Click(object sender, EventArgs e)
         {
-            AppendLog("Discord: reconnecting...", Color.Gray);
+            AppendLog("Discord: reconnecting...", LogDiscord);
             _ = DiscordRpcClient.Instance.ConnectAsync();
         }
 
