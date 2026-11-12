@@ -589,9 +589,20 @@ namespace ESDeckPC
             return sent.WaitOne(3000) ? result : "paste failed: timed out";
         }
 
-        /// <summary>Copy of every format currently on the clipboard that can
-        /// be read back (text, images, files, HTML, RTF...); null if empty.
-        /// Delay-rendered or app-private formats may not survive.</summary>
+        // Formats WinForms can read back safely. Others (metafiles, OLE
+        // objects from Office, app-private handles) can make GetData hit an
+        // access violation, which a catch block cannot stop, so they are
+        // left out of the backup.
+        private static readonly string[] BackupFormats =
+        {
+            DataFormats.UnicodeText, DataFormats.Text, DataFormats.Rtf, DataFormats.Html,
+            DataFormats.CommaSeparatedValue, DataFormats.FileDrop, DataFormats.Bitmap,
+            "Preferred DropEffect",   // copy / cut flag that goes with FileDrop
+        };
+
+        /// <summary>Copy of the common formats on the clipboard (text, RTF,
+        /// HTML, CSV, files, image); null if none of them is there.
+        /// Other formats are not kept.</summary>
         private static DataObject BackupClipboard()
         {
             IDataObject cur = Clipboard.GetDataObject();
@@ -599,10 +610,11 @@ namespace ESDeckPC
 
             var copy = new DataObject();
             bool any = false;
-            foreach (string fmt in cur.GetFormats(false))
+            foreach (string fmt in BackupFormats)
             {
                 try
                 {
+                    if (!cur.GetDataPresent(fmt, false)) continue;
                     object v = cur.GetData(fmt, false);
                     if (v == null) continue;
                     copy.SetData(fmt, false, v);
