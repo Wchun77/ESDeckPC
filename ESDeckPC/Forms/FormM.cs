@@ -41,6 +41,8 @@ namespace ESDeckPC
         private OtaUploader _ota;
         private ToolStripMenuItem _tsMenuFirmware;
         private ToolStripMenuItem _trayMenuFirmware;
+        private ToolStripMenuItem _tsMenuStorage;     // "Switch to Storage Mode" / "Finish & Restart",
+        private ToolStripMenuItem _trayMenuStorage;   // whichever applies -- see UpdateStorageItems()
         private Icon _trayIconOn;    // normal app icon
         private Icon _trayIconOff;   // grayed copy, shown while ESDeck isn't connected
         private bool _otaRunning = false;
@@ -85,8 +87,10 @@ namespace ESDeckPC
             _tsMenuFirmware.Click += tsMenuFirmware_Click;
             tsMenuDevice.DropDownItems.Add(_tsMenuFirmware);
             tsMenuDevice.DropDownItems.Add(new ToolStripSeparator());
-            tsMenuDevice.DropDownItems.Add("Switch to Storage Mode", null, StorageMode_Click);
-            tsMenuDevice.DropDownItems.Add("Finish && Restart", null, StorageFinish_Click);
+            _tsMenuStorage = new ToolStripMenuItem("Switch to Storage Mode");
+            _tsMenuStorage.Click += StorageToggle_Click;
+            tsMenuDevice.DropDownItems.Add(_tsMenuStorage);
+            tsMenuDevice.DropDown.Opening += (s, e) => UpdateStorageItems();
             toolStrip.Items.Insert(toolStrip.Items.IndexOf(tsSep1), tsMenuDevice);
 
             // Modes: every mode's editor in one menu (the designer's
@@ -228,14 +232,13 @@ namespace ESDeckPC
             };
             _trayMenuFirmware.Click += tsMenuFirmware_Click;
             trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuFirmware);
-            foreach (var (text, handler) in new (string, EventHandler)[] {
-                ("Switch to Storage Mode", StorageMode_Click),
-                ("Finish && Restart", StorageFinish_Click) })
+            _trayMenuStorage = new ToolStripMenuItem("Switch to Storage Mode")
             {
-                var item = new ToolStripMenuItem(text) { ForeColor = Color.FromArgb(220, 220, 220) };
-                item.Click += handler;
-                trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), item);
-            }
+                ForeColor = Color.FromArgb(220, 220, 220),
+            };
+            _trayMenuStorage.Click += StorageToggle_Click;
+            trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuStorage);
+            trayMenu.Opening += (s, e) => UpdateStorageItems();
             var trayCanvas = new ToolStripMenuItem("Canvas Window")
             {
                 ForeColor = Color.FromArgb(220, 220, 220),
@@ -499,7 +502,23 @@ namespace ESDeckPC
         // Storage Mode: the PC switches the ESP to USB Mass Storage (one-way;
         // HID goes away), and "Finish & Restart" ejects the drive, which the
         // firmware answers by restarting into HID in its boot-default mode.
+        // Only one of the two ever applies, so the menus show a single item
+        // that is relabelled each time the menu opens.
         // ------------------------------------------------------------------
+        private void UpdateStorageItems()
+        {
+            string text = EsDeckDrive.FindRoot() != null ? "Finish && Restart" : "Switch to Storage Mode";
+            _tsMenuStorage.Text = text;
+            _trayMenuStorage.Text = text;
+        }
+
+        // Decided again at click time: the drive may have come or gone since the menu opened.
+        private void StorageToggle_Click(object sender, EventArgs e)
+        {
+            if (EsDeckDrive.FindRoot() != null) StorageFinish_Click(sender, e);
+            else StorageMode_Click(sender, e);
+        }
+
         private void StorageMode_Click(object sender, EventArgs e)
         {
             if (_otaRunning) return;
