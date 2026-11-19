@@ -126,6 +126,20 @@ public class HidReceiver
         return WriteReport(report);
     }
 
+    // ------------------------------------------------------------------
+    // Switch the ESP to USB Mass Storage: CMD 0x0E (HID_SYS_CMD_STORAGE),
+    // no payload. One-way -- the HID device disappears, the SD card shows
+    // up as a drive, and the ESP restarts when that drive is ejected
+    // (EsDeckDrive.Eject).
+    // ------------------------------------------------------------------
+    public bool SendStorageMode()
+    {
+        var report = new byte[65];
+        report[0] = 0x00;
+        report[1] = 0x0E;
+        return WriteReport(report);
+    }
+
     public void Stop()
     {
         _cts?.Cancel();

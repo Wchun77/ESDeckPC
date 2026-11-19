@@ -23,6 +23,7 @@ namespace ESDeckPC
         private static readonly Color LogAudio     = Color.SkyBlue;         // PC audio capture
         private static readonly Color LogCanvas    = Color.Turquoise;       // Canvas mode / pages
         private static readonly Color LogOta       = Color.Orange;          // firmware update
+        private static readonly Color LogStorage   = Color.Tan;             // Storage Mode switch / eject
         private static readonly Color LogDiscord   = Color.LightSlateGray;  // Discord RPC
         private static readonly Color LogMisc      = Color.Gray;            // unknown commands / modes
 
@@ -83,6 +84,9 @@ namespace ESDeckPC
             _tsMenuFirmware = new ToolStripMenuItem("Firmware Update...");
             _tsMenuFirmware.Click += tsMenuFirmware_Click;
             tsMenuDevice.DropDownItems.Add(_tsMenuFirmware);
+            tsMenuDevice.DropDownItems.Add(new ToolStripSeparator());
+            tsMenuDevice.DropDownItems.Add("Switch to Storage Mode", null, StorageMode_Click);
+            tsMenuDevice.DropDownItems.Add("Finish && Restart", null, StorageFinish_Click);
             toolStrip.Items.Insert(toolStrip.Items.IndexOf(tsSep1), tsMenuDevice);
 
             // Modes: every mode's editor in one menu (the designer's
@@ -224,6 +228,14 @@ namespace ESDeckPC
             };
             _trayMenuFirmware.Click += tsMenuFirmware_Click;
             trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuFirmware);
+            foreach (var (text, handler) in new (string, EventHandler)[] {
+                ("Switch to Storage Mode", StorageMode_Click),
+                ("Finish && Restart", StorageFinish_Click) })
+            {
+                var item = new ToolStripMenuItem(text) { ForeColor = Color.FromArgb(220, 220, 220) };
+                item.Click += handler;
+                trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), item);
+            }
             var trayCanvas = new ToolStripMenuItem("Canvas Window")
             {
                 ForeColor = Color.FromArgb(220, 220, 220),
@@ -482,6 +494,67 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
         // Device menu -- firmware update over HID (no Storage Mode / SD card)
         // ------------------------------------------------------------------
+
+        // ------------------------------------------------------------------
+        // Storage Mode: the PC switches the ESP to USB Mass Storage (one-way;
+        // HID goes away), and "Finish & Restart" ejects the drive, which the
+        // firmware answers by restarting into HID in its boot-default mode.
+        // ------------------------------------------------------------------
+        private void StorageMode_Click(object sender, EventArgs e)
+        {
+            if (_otaRunning) return;
+            if (EsDeckDrive.FindRoot() != null)
+            {
+                MessageBox.Show("ESDeck is already in Storage Mode.", "Storage Mode",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            if (!_hidConnected)
+            {
+                MessageBox.Show("ESDeck is not connected.", "Storage Mode",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            var confirm = MessageBox.Show(
+                "Switch ESDeck to Storage Mode?\n\n" +
+                "The SD card shows up as a drive. Deck, Monitor, Media, Touchpad and Canvas " +
+                "stop until the device restarts.\n\n" +
+                "When done, use Device > Finish & Restart (or eject the drive in Windows).",
+                "Storage Mode", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (confirm != DialogResult.Yes) return;
+
+            if (_receiver != null && _receiver.SendStorageMode())
+                AppendLog("Storage: switch requested", LogStorage);
+            else
+                AppendLog("Storage: failed to send the switch request", LogError);
+        }
+
+        private void StorageFinish_Click(object sender, EventArgs e)
+        {
+            string root = EsDeckDrive.FindRoot();
+            if (root == null)
+            {
+                MessageBox.Show("ESDeck drive not found -- the device is not in Storage Mode.",
+                    "Finish & Restart", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            AppendLog($"Storage: ejecting {root.Substring(0, 2)}", LogStorage);
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                string err = EsDeckDrive.Eject(root);
+                BeginInvoke((Action)(() =>
+                {
+                    if (err == null)
+                    {
+                        AppendLog("Storage: ejected, device is restarting", LogStorage);
+                        return;
+                    }
+                    AppendLog($"Storage: eject failed: {err}", LogError);
+                    MessageBox.Show($"Eject failed:\n{err}", "Finish & Restart",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }));
+            });
+        }
 
         private void tsMenuFirmware_Click(object sender, EventArgs e)
         {
