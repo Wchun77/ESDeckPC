@@ -14,10 +14,11 @@ namespace ESDeckPC
         // Constants
         // ------------------------------------------------------------------
 
-        // Matches the monitor sidebar button size in firmware
-        // (main/ui/ui_monitor.c: lv_obj_set_size(btn, 64, 56)).
+        // Matches the sidebar button size in firmware: deck / monitor page
+        // buttons, the settings gear and touchpad buttons are all 64x64
+        // (main/ui/ui_deck.c, ui_monitor.c, ui.c, ui_touchpad.c).
         private const int OutputW = 64;
-        private const int OutputH = 56;
+        private const int OutputH = 64;
 
         // ------------------------------------------------------------------
         // DWM dark title bar
@@ -131,8 +132,8 @@ namespace ESDeckPC
         private void UpdateHint()
         {
             lblHint.Text = rbFill.Checked
-                ? "Drag/arrows to pan, scroll to zoom\r\nOutput: 64 x 56 PNG"
-                : "Whole image shown, letterboxed\r\nDrag/arrows/scroll  |  64 x 56 PNG";
+                ? "Drag/arrows to pan, scroll to zoom\r\nOutput: 64 x 64 PNG"
+                : "Whole image shown, letterboxed\r\nDrag/arrows/scroll  |  64 x 64 PNG";
         }
 
         /// <summary>
@@ -205,7 +206,7 @@ namespace ESDeckPC
             if (_source == null) return;
 
             // Exactly what Save writes, 1:1, centered in the canvas (the
-            // canvas border sits outside the 64x56; form scaling may add a
+            // canvas border sits outside the 64x64; form scaling may add a
             // few px, which stay as an even margin).
             using (var bmp = CropToBitmap())
             {
@@ -337,7 +338,7 @@ namespace ESDeckPC
             Math.Max(Math.Min(0, OutputH - _scaledH), Math.Min(Math.Max(0, OutputH - _scaledH), y));
 
         // ------------------------------------------------------------------
-        // Crop to 64x56 bitmap (always starts fully transparent -- covered
+        // Crop to 64x64 bitmap (always starts fully transparent -- covered
         // completely if the zoomed image fills the canvas, otherwise the
         // uncovered margin stays transparent so the firmware button's own
         // background shows through)

@@ -10,10 +10,10 @@ namespace ESDeckPC
     /// Used by both the deck editor (FormDeckEditor) and the monitor
     /// editor (FormMonitorEditor, for data pages and the Clock page alike)
     /// -- always the same dialog, so the preview and behavior can't drift
-    /// between the two. Shows a 1:1 mockup of the real 64x56 firmware
+    /// between the two. Shows a 1:1 mockup of the real 64x64 firmware
     /// sidebar button (see SidebarButtonPreview) so what you see here is
     /// what the device will actually show.
-    /// PNG only -- the firmware button is a fixed 64x56 and expects a
+    /// PNG only -- the firmware button is a fixed 64x64 and expects a
     /// pre-cropped asset (see FormSideIconImporter).
     /// </summary>
     public partial class FormSideIconPicker : Form

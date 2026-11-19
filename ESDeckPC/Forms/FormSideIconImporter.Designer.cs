@@ -98,7 +98,7 @@ namespace ESDeckPC
             this.canvas.Cursor = System.Windows.Forms.Cursors.Hand;
             this.canvas.Location = new System.Drawing.Point(123, 73);
             this.canvas.Name = "canvas";
-            this.canvas.Size = new System.Drawing.Size(66, 58);
+            this.canvas.Size = new System.Drawing.Size(66, 66);
             this.canvas.TabIndex = 5;
             this.canvas.TabStop = false;
             this.canvas.Paint += new System.Windows.Forms.PaintEventHandler(this.Canvas_Paint);
@@ -114,7 +114,7 @@ namespace ESDeckPC
             this.lblHint.Name = "lblHint";
             this.lblHint.Size = new System.Drawing.Size(186, 32);
             this.lblHint.TabIndex = 6;
-            this.lblHint.Text = "Drag to pan (Fill mode)\r\nOutput: 64 x 56 PNG";
+            this.lblHint.Text = "Drag to pan (Fill mode)\r\nOutput: 64 x 64 PNG";
             this.lblHint.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // FormSideIconImporter
