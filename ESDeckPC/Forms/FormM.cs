@@ -41,8 +41,11 @@ namespace ESDeckPC
         private OtaUploader _ota;
         private ToolStripMenuItem _tsMenuFirmware;
         private ToolStripMenuItem _trayMenuFirmware;
-        private ToolStripMenuItem _tsMenuStorage;     // "Switch to Storage Mode" / "Finish & Restart",
-        private ToolStripMenuItem _trayMenuStorage;   // whichever applies -- see UpdateStorageItems()
+        private ToolStripMenuItem _tsMenuMode;        // Mode > Deck ... Canvas, Storage -- or, in Storage
+        private ToolStripMenuItem _trayMenuMode;      // Mode, "Finish & Restart" instead (UpdateModeItems)
+        private ToolStripMenuItem _tsMenuStorage;
+        private ToolStripMenuItem _trayMenuStorage;
+        private HidReceiver.EspMode? _espMode;        // last mode the ESP reported; null = unknown / not connected
         private Icon _trayIconOn;    // normal app icon
         private Icon _trayIconOff;   // grayed copy, shown while ESDeck isn't connected
         private bool _otaRunning = false;
@@ -87,10 +90,12 @@ namespace ESDeckPC
             _tsMenuFirmware.Click += tsMenuFirmware_Click;
             tsMenuDevice.DropDownItems.Add(_tsMenuFirmware);
             tsMenuDevice.DropDownItems.Add(new ToolStripSeparator());
-            _tsMenuStorage = new ToolStripMenuItem("Switch to Storage Mode");
-            _tsMenuStorage.Click += StorageToggle_Click;
+            _tsMenuMode = BuildModeMenu();
+            tsMenuDevice.DropDownItems.Add(_tsMenuMode);
+            _tsMenuStorage = new ToolStripMenuItem("Finish && Restart");
+            _tsMenuStorage.Click += StorageFinish_Click;
             tsMenuDevice.DropDownItems.Add(_tsMenuStorage);
-            tsMenuDevice.DropDown.Opening += (s, e) => UpdateStorageItems();
+            tsMenuDevice.DropDown.Opening += (s, e) => UpdateModeItems();
             toolStrip.Items.Insert(toolStrip.Items.IndexOf(tsSep1), tsMenuDevice);
 
             // Modes: every mode's editor in one menu (the designer's
@@ -232,13 +237,15 @@ namespace ESDeckPC
             };
             _trayMenuFirmware.Click += tsMenuFirmware_Click;
             trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuFirmware);
-            _trayMenuStorage = new ToolStripMenuItem("Switch to Storage Mode")
+            _trayMenuMode = BuildModeMenu();
+            trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuMode);
+            _trayMenuStorage = new ToolStripMenuItem("Finish && Restart")
             {
                 ForeColor = Color.FromArgb(220, 220, 220),
             };
-            _trayMenuStorage.Click += StorageToggle_Click;
+            _trayMenuStorage.Click += StorageFinish_Click;
             trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuStorage);
-            trayMenu.Opening += (s, e) => UpdateStorageItems();
+            trayMenu.Opening += (s, e) => UpdateModeItems();
             var trayCanvas = new ToolStripMenuItem("Canvas Window")
             {
                 ForeColor = Color.FromArgb(220, 220, 220),
@@ -305,6 +312,7 @@ namespace ESDeckPC
                 _touchpad.ReleaseAll();   // unplugged mid-drag: don't leave a button held
                 _keyboard.ReleaseAll();   // ...or a key / modifier
                 _hidConnected = false;
+                _espMode = null;
                 ssLblHid.Text = "HID: Disconnected";
                 ssLblHid.ForeColor = Color.Red;
                 SetTrayConnected(false);
@@ -439,6 +447,7 @@ namespace ESDeckPC
         {
             this.BeginInvoke((Action)(() =>
             {
+                _espMode = mode;   // ticks the current mode in Device > Mode
                 _canvas.OnModeReport(mode);
                 switch (mode)
                 {
@@ -499,24 +508,59 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
 
         // ------------------------------------------------------------------
-        // Storage Mode: the PC switches the ESP to USB Mass Storage (one-way;
-        // HID goes away), and "Finish & Restart" ejects the drive, which the
-        // firmware answers by restarting into HID in its boot-default mode.
-        // Only one of the two ever applies, so the menus show a single item
-        // that is relabelled each time the menu opens.
+        // Device > Mode: switch the ESP's UI mode from the PC (HID command
+        // 0x0F, same switch as Settings > Mode on the device), or to Storage
+        // Mode (its own command 0x0E -- USB becomes a drive, one-way). In
+        // Storage Mode there's no HID to switch with, so the Mode item is
+        // swapped for "Finish & Restart", which ejects the drive; the
+        // firmware then restarts into HID in its boot-default mode.
         // ------------------------------------------------------------------
-        private void UpdateStorageItems()
+        private static readonly HidReceiver.EspMode[] ModeOrder =
         {
-            string text = EsDeckDrive.FindRoot() != null ? "Finish && Restart" : "Switch to Storage Mode";
-            _tsMenuStorage.Text = text;
-            _trayMenuStorage.Text = text;
+            HidReceiver.EspMode.Deck, HidReceiver.EspMode.Monitor, HidReceiver.EspMode.Media,
+            HidReceiver.EspMode.Touchpad, HidReceiver.EspMode.Canvas,
+        };
+
+        private ToolStripMenuItem BuildModeMenu()
+        {
+            var fore = Color.FromArgb(220, 220, 220);
+            var menu = new ToolStripMenuItem("Mode") { ForeColor = fore };
+            foreach (var m in ModeOrder)
+            {
+                var mode = m;
+                var item = new ToolStripMenuItem(m.ToString()) { ForeColor = fore, Tag = mode };
+                item.Click += (s, e) => SwitchMode(mode);
+                menu.DropDownItems.Add(item);
+            }
+            menu.DropDownItems.Add(new ToolStripSeparator());
+            var storage = new ToolStripMenuItem("Storage") { ForeColor = fore };
+            storage.Click += StorageMode_Click;
+            menu.DropDownItems.Add(storage);
+            return menu;
         }
 
-        // Decided again at click time: the drive may have come or gone since the menu opened.
-        private void StorageToggle_Click(object sender, EventArgs e)
+        private void UpdateModeItems()
         {
-            if (EsDeckDrive.FindRoot() != null) StorageFinish_Click(sender, e);
-            else StorageMode_Click(sender, e);
+            bool inStorage = EsDeckDrive.FindRoot() != null;
+            foreach (var mode in new[] { _tsMenuMode, _trayMenuMode })
+            {
+                mode.Visible = !inStorage;
+                mode.Enabled = _hidConnected && !_otaRunning;
+                foreach (ToolStripItem it in mode.DropDownItems)
+                    if (it is ToolStripMenuItem mi && mi.Tag is HidReceiver.EspMode m)
+                        mi.Checked = _espMode == m;
+            }
+            _tsMenuStorage.Visible = inStorage;
+            _trayMenuStorage.Visible = inStorage;
+        }
+
+        private void SwitchMode(HidReceiver.EspMode mode)
+        {
+            if (!_hidConnected || _otaRunning || _espMode == mode) return;
+            if (_receiver != null && _receiver.SendMode(mode))
+                AppendLog($"Mode: switch to {mode} requested", LogMisc);
+            else
+                AppendLog($"Mode: failed to send the switch to {mode}", LogError);
         }
 
         private void StorageMode_Click(object sender, EventArgs e)

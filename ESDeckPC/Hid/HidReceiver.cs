@@ -132,6 +132,16 @@ public class HidReceiver
     // up as a drive, and the ESP restarts when that drive is ejected
     // (EsDeckDrive.Eject).
     // ------------------------------------------------------------------
+    public bool SendMode(EspMode mode)
+    {
+        // CMD 0x0F (HID_SYS_CMD_MODE), [2] = mode -- same numbers as the mode reply.
+        var report = new byte[65];
+        report[0] = 0x00;
+        report[1] = 0x0F;
+        report[2] = (byte)mode;
+        return WriteReport(report);
+    }
+
     public bool SendStorageMode()
     {
         var report = new byte[65];
