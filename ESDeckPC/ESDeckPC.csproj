@@ -234,6 +234,15 @@
     <Compile Include="Controls\UC_MonitorSettingsPanel.Designer.cs">
       <DependentUpon>UC_MonitorSettingsPanel.cs</DependentUpon>
     </Compile>
+    <Compile Include="Controls\EspSidebarView.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Controls\UC_SideIconField.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\UC_SideIconField.Designer.cs">
+      <DependentUpon>UC_SideIconField.cs</DependentUpon>
+    </Compile>
     <Compile Include="Controls\UC_MediaBgPanel.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -306,6 +315,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\UC_MonitorSettingsPanel.resx">
       <DependentUpon>UC_MonitorSettingsPanel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\UC_SideIconField.resx">
+      <DependentUpon>UC_SideIconField.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\UC_MediaBgPanel.resx">
       <DependentUpon>UC_MediaBgPanel.cs</DependentUpon>

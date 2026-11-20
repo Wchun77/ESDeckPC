@@ -30,23 +30,19 @@ namespace ESDeckPC
         private UC_MonitorSettingsPanel _ucSettings = null;
         private Bitmap _previewBmp = null;
 
-        // The data page currently selected in flpPages, or null when Clock
+        // The data page currently selected in the sidebar, or null when Clock
         // or Settings is selected (_settingsSelected distinguishes the two).
         private MonitorPageCfg _selectedPage = null;
 
-        // True when the fixed Settings entry is selected. bg_image is edited
-        // via _ucSettings (hosted in pnlSettingsHost, same as Clock/Page);
-        // side_icon is set directly from btnSettingsPage's right-click menu,
-        // same as Clock's side_icon, since it doesn't need a staged field.
+        // True when the fixed Settings entry (the gear) is selected.
         private bool _settingsSelected = false;
 
-        private static readonly Color ColPageSelected = Color.FromArgb(140, 30, 30); // dark red
-        private static readonly Color ColPageNormal = Color.FromArgb(55, 55, 58);
+        // "Side Icon" field shown above whichever entry's settings panel is
+        // up -- writes the selected entry's side_icon (Clock / page / gear).
+        private UC_SideIconField _ucSideIcon = null;
+
         private static readonly Color ColMenuBack = Color.FromArgb(45, 45, 48);
         private static readonly Color ColMenuFore = Color.FromArgb(220, 220, 220);
-
-        // Drag-reorder state
-        private Button _dragButton = null;
 
         [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
@@ -83,165 +79,96 @@ namespace ESDeckPC
             btnJsonOpen.Click += BtnJsonOpen_Click;
             btnJsonSave.Click += BtnJsonSave_Click;
             btnJsonSaveAs.Click += BtnJsonSaveAs_Click;
-            btnClockPage.Click += BtnClockPage_Click;
-            btnClockPage.MouseUp += BtnClockPage_MouseUp;
-            btnSettingsPage.Click += (s, e) => ShowSettingsPage();
-            btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
-            picSide.MouseUp += PicSide_MouseUp;
 
-            flpPages.AllowDrop = true;
-            flpPages.MouseUp += FlpPages_MouseUp;
-            flpPages.DragOver += FlpPages_DragOver;
-            flpPages.DragDrop += FlpPages_DragDrop;
+            // The sidebar is the page list: Clock first (fixed), then the data
+            // pages, then the gear for Settings.
+            sideView.FixedLeading = 1;
+            sideView.ItemClick += SideView_ItemClick;
+            sideView.ItemMenu += SideView_ItemMenu;
+            sideView.ItemMoved += SideView_ItemMoved;
+            sideView.AddClick += (s, e) => AddNewPage();
 
-            RebuildPageButtons();
+            _ucSideIcon = new UC_SideIconField { Dock = DockStyle.Top };
+            _ucSideIcon.Changed += SideIcon_Changed;
+
             ShowClockSettings();
-            RefreshPreview();
         }
 
         // ------------------------------------------------------------------
-        // Page button list (flpPages) management
+        // Sidebar (sideView): the ESP's sidebar as the page list.
+        //   click        Clock / page / gear -> its settings (the page name
+        //                is edited there)
+        //   drag         reorder pages (Clock stays first)
+        //   "+"          add a page (until MonitorPageLimits.MaxPages)
+        //   right click  Delete / Add Page
         // ------------------------------------------------------------------
 
-        private void RebuildPageButtons()
+        private void RefreshSidebar()
         {
-            foreach (var c in flpPages.Controls.OfType<Button>().ToList())
+            var items = new List<SidebarItem>
             {
-                c.MouseDown -= PageButton_MouseDown;
-                c.MouseMove -= PageButton_MouseMove;
-                c.MouseUp -= PageButton_MouseUp;
-                c.Click -= PageButton_Click;
-            }
-            flpPages.Controls.Clear();
-
-            foreach (var page in _cfg.Pages)
-                flpPages.Controls.Add(CreatePageButton(page));
-            RefreshSidebar();
-        }
-
-        private Button CreatePageButton(MonitorPageCfg page)
-        {
-            var btn = new Button
-            {
-                Text = page.Name,
-                Tag = page,
-                Size = new Size(79, 55),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = ColPageNormal,
-                ForeColor = Color.FromArgb(220, 220, 220),
-                Font = new Font("Consolas", 8.5f),
+                new SidebarItem(EspSidebarRenderer.Resolve(_assetsSideIconsDir, _cfg.Clock.SideIcon), "Clock"),
             };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(80, 80, 80);
-            btn.MouseDown += PageButton_MouseDown;
-            btn.MouseMove += PageButton_MouseMove;
-            btn.MouseUp += PageButton_MouseUp;
-            btn.Click += PageButton_Click;
-            return btn;
+            foreach (var p in _cfg.Pages)
+                items.Add(new SidebarItem(EspSidebarRenderer.Resolve(_assetsSideIconsDir, p.SideIcon), p.Name));
+            int sel = _settingsSelected ? -1 : _selectedPage == null ? 0 : _cfg.Pages.IndexOf(_selectedPage) + 1;
+            sideView.AllowAdd = _cfg.Pages.Count < MonitorPageLimits.MaxPages;
+            sideView.SetItems(items, EspSidebarRenderer.Resolve(_assetsSideIconsDir, _cfg.Settings.SideIcon),
+                              sel, _settingsSelected);
         }
 
-        private void PageButton_Click(object sender, EventArgs e)
+        private void SideView_ItemClick(object sender, int idx)
         {
-            var btn = (Button)sender;
-            var page = (MonitorPageCfg)btn.Tag;
-            ShowPageSettings(page);
+            if (idx == EspSidebarRenderer.HitGear) ShowSettingsPage();
+            else if (idx == 0) ShowClockSettings();
+            else ShowPageSettings(_cfg.Pages[idx - 1]);
         }
 
-        // ------------------------------------------------------------------
-        // Drag-to-reorder (data pages only; Clock button is not in flpPages)
-        // ------------------------------------------------------------------
-
-        private void PageButton_MouseDown(object sender, MouseEventArgs e)
+        private void SideView_ItemMenu(object sender, SidebarMenuEventArgs e)
         {
-            if (e.Button != MouseButtons.Left) return;
-            _dragButton = (Button)sender;
-        }
-
-        private void PageButton_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Left) return;
-            var btn = (Button)sender;
-            if (_dragButton != btn) return;
-
-            bool dragging = Math.Abs(e.X - btn.Width / 2) > SystemInformation.DragSize.Width
-                         || Math.Abs(e.Y - btn.Height / 2) > SystemInformation.DragSize.Height;
-            if (!dragging) return;
-
-            btn.DoDragDrop(btn, DragDropEffects.Move);
-            _dragButton = null;
-        }
-
-        private void PageButton_MouseUp(object sender, MouseEventArgs e)
-        {
-            _dragButton = null;
-            if (e.Button != MouseButtons.Right) return;
-            ShowPageButtonContextMenu((Button)sender, Cursor.Position);
-        }
-
-        private void FlpPages_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-            // Right-click landed on empty flpPages area (not on a button,
-            // since button clicks are handled by PageButton_MouseUp and
-            // would have already shown their own menu).
-            if (flpPages.GetChildAtPoint(e.Location) != null) return;
-            ShowEmptyAreaContextMenu(Cursor.Position);
-        }
-
-        private void FlpPages_DragOver(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(typeof(Button)))
-                e.Effect = DragDropEffects.Move;
-        }
-
-        private void FlpPages_DragDrop(object sender, DragEventArgs e)
-        {
-            if (!e.Data.GetDataPresent(typeof(Button))) return;
-            var dragged = (Button)e.Data.GetData(typeof(Button));
-
-            var p = flpPages.PointToClient(new Point(e.X, e.Y));
-            int newIndex = FindDropIndex(dragged, p);
-
-            flpPages.Controls.SetChildIndex(dragged, newIndex);
-            ReorderPagesFromButtons();
-        }
-
-        /// <summary>
-        /// Finds the index to drop "dragged" at, based on proximity to the
-        /// midpoint of each other button. More forgiving than relying on
-        /// GetChildAtPoint, which often returns the dragged button itself
-        /// or nothing at all if the cursor lands between buttons.
-        /// </summary>
-        private int FindDropIndex(Button dragged, Point dropPointClient)
-        {
-            var others = flpPages.Controls.OfType<Button>().Where(b => b != dragged).ToList();
-            if (others.Count == 0) return 0;
-
-            for (int i = 0; i < others.Count; i++)
+            var cms = BuildDarkMenu();
+            if (e.Index >= 1)
             {
-                var b = others[i];
-                int midX = b.Left + b.Width / 2;
-                if (dropPointClient.X < midX)
-                    return flpPages.Controls.GetChildIndex(b, false);
+                var page = _cfg.Pages[e.Index - 1];
+                var miDelete = new ToolStripMenuItem("Delete");
+                miDelete.Click += (s, ev) => DeletePage(page);
+                cms.Items.Add(miDelete);
+                cms.Items.Add(new ToolStripSeparator());
             }
-
-            // Dropped past the last button: insert after it.
-            var last = others[others.Count - 1];
-            return flpPages.Controls.GetChildIndex(last, false) + 1;
+            var miAdd = new ToolStripMenuItem("Add Page") { Enabled = _cfg.Pages.Count < MonitorPageLimits.MaxPages };
+            miAdd.Click += (s, ev) => AddNewPage();
+            cms.Items.Add(miAdd);
+            cms.Show(e.ScreenPoint);
         }
 
-        private void ReorderPagesFromButtons()
+        // sidebar indices: 0 = Clock, page i = i + 1
+        private void SideView_ItemMoved(object sender, SidebarMoveEventArgs e)
         {
-            var ordered = flpPages.Controls.OfType<Button>()
-                                            .Select(b => (MonitorPageCfg)b.Tag)
-                                            .ToList();
-            _cfg.Pages.Clear();
-            _cfg.Pages.AddRange(ordered);
+            var page = _cfg.Pages[e.From - 1];
+            _cfg.Pages.RemoveAt(e.From - 1);
+            _cfg.Pages.Insert(e.To - 1, page);
             RefreshSidebar();
         }
 
-        // ------------------------------------------------------------------
-        // Context menus (built dynamically; dark theme)
-        // ------------------------------------------------------------------
+        private void SideIcon_Changed(object sender, EventArgs e)
+        {
+            string name = _ucSideIcon.FileName;
+            if (_settingsSelected) _cfg.Settings.SideIcon = name;
+            else if (_selectedPage != null) _selectedPage.SideIcon = name;
+            else _cfg.Clock.SideIcon = name;
+            RefreshSidebar();
+        }
+
+        /// <summary>Show uc in the properties panel with the Side Icon field above it.</summary>
+        private void HostPanel(Control uc, string sideIcon, string fallbackText)
+        {
+            pnlSettingsHost.SuspendLayout();
+            pnlSettingsHost.Controls.Clear();
+            pnlSettingsHost.Controls.Add(uc);
+            pnlSettingsHost.Controls.Add(_ucSideIcon);   // added last = docked first = on top
+            pnlSettingsHost.ResumeLayout();
+            _ucSideIcon.Bind(sideIcon, _assetsSideIconsDir, fallbackText);
+        }
 
         private ContextMenuStrip BuildDarkMenu()
         {
@@ -251,39 +178,6 @@ namespace ESDeckPC
                 ForeColor = ColMenuFore,
                 Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()),
             };
-        }
-
-        private void ShowEmptyAreaContextMenu(Point screenPos)
-        {
-            var cms = BuildDarkMenu();
-            var miAdd = new ToolStripMenuItem("Add")
-            {
-                Enabled = _cfg.Pages.Count < MonitorPageLimits.MaxPages,
-            };
-            miAdd.Click += (s, e) => AddNewPage();
-            cms.Items.Add(miAdd);
-
-            cms.Show(screenPos);
-        }
-
-        private void ShowPageButtonContextMenu(Button btn, Point screenPos)
-        {
-            var page = (MonitorPageCfg)btn.Tag;
-            var cms = BuildDarkMenu();
-
-            var miEdit = new ToolStripMenuItem("Edit");
-            miEdit.Click += (s, e) => EditPageName(btn, page);
-            cms.Items.Add(miEdit);
-
-            var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, e) => SetPageSideIcon(page);
-            cms.Items.Add(miSideIcon);
-
-            var miDelete = new ToolStripMenuItem("Delete");
-            miDelete.Click += (s, e) => DeletePage(btn, page);
-            cms.Items.Add(miDelete);
-
-            cms.Show(screenPos);
         }
 
         private sealed class DarkMenuColors : ProfessionalColorTable
@@ -300,7 +194,7 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // Add / Edit / Delete page
+        // Add / Delete page
         // ------------------------------------------------------------------
 
         private void AddNewPage()
@@ -317,65 +211,29 @@ namespace ESDeckPC
 
             var page = new MonitorPageCfg { Name = name };
             _cfg.Pages.Add(page);
-
-            var btn = CreatePageButton(page);
-            flpPages.Controls.Add(btn);
-
             ShowPageSettings(page);
         }
 
-        private void EditPageName(Button btn, MonitorPageCfg page)
-        {
-            string name = FormPageNamePrompt.Show(this, "Rename page", page.Name);
-            if (name == null) return; // cancelled
-
-            page.Name = name;
-            btn.Text = name;
-            if (_ucPage != null && _ucPage.BoundPage == page)
-                _ucPage.ApplyConfig(page, _assetsBackgroundsDir); // refresh name textbox if currently shown
-            RefreshSidebar();   // name shows on a button without a side icon
-        }
-
-        private void DeletePage(Button btn, MonitorPageCfg page)
+        private void DeletePage(MonitorPageCfg page)
         {
             var result = MessageBox.Show(this, $"Delete page \"{page.Name}\"?", "Confirm delete",
                                          MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (result != DialogResult.Yes) return;
 
             _cfg.Pages.Remove(page);
-            flpPages.Controls.Remove(btn);
-            btn.MouseDown -= PageButton_MouseDown;
-            btn.MouseMove -= PageButton_MouseMove;
-            btn.MouseUp -= PageButton_MouseUp;
-            btn.Click -= PageButton_Click;
-            btn.Dispose();
-
             if (_selectedPage == page)
-                ShowClockSettings(); // fall back to Clock if the deleted page was selected
+            {
+                _selectedPage = null;   // don't let ReadUiIntoConfig write the panel into the deleted page
+                ShowClockSettings();    // fall back to Clock if the deleted page was selected
+            }
             else
                 RefreshSidebar();
         }
 
         // ------------------------------------------------------------------
-        // Page tab switching
+        // Entry switching -- Clock / data page / Settings, each with its own
+        // settings panel and the Side Icon field above it.
         // ------------------------------------------------------------------
-
-        private void BtnClockPage_Click(object sender, EventArgs e)
-        {
-            ShowClockSettings();
-        }
-
-        private void BtnClockPage_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-
-            var cms = BuildDarkMenu();
-            var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, ev) => SetClockSideIcon();
-            cms.Items.Add(miSideIcon);
-
-            cms.Show(Cursor.Position);
-        }
 
         private void ShowClockSettings()
         {
@@ -388,14 +246,10 @@ namespace ESDeckPC
                 _ucClock.PreviewInvalidated += (s, e) => RefreshPreview();
             }
 
-            pnlSettingsHost.SuspendLayout();
-            pnlSettingsHost.Controls.Clear();
-            pnlSettingsHost.Controls.Add(_ucClock);
-            pnlSettingsHost.ResumeLayout();
+            HostPanel(_ucClock, _cfg.Clock.SideIcon, "Clock");
 
             _ucClock.ApplyConfig(_cfg.Clock, _assetsBackgroundsDir, _assetsFontsDir);
 
-            SetSelectedButton(btnClockPage);
             SetStatus("");
             RefreshPreview();
         }
@@ -411,26 +265,13 @@ namespace ESDeckPC
                 _ucPage.PreviewInvalidated += (s, e) => RefreshPreview();
             }
 
-            pnlSettingsHost.SuspendLayout();
-            pnlSettingsHost.Controls.Clear();
-            pnlSettingsHost.Controls.Add(_ucPage);
-            pnlSettingsHost.ResumeLayout();
+            HostPanel(_ucPage, page.SideIcon, page.Name);
 
             _ucPage.ApplyConfig(page, _assetsBackgroundsDir);
 
-            var btn = flpPages.Controls.OfType<Button>().FirstOrDefault(b => ReferenceEquals(b.Tag, page));
-            SetSelectedButton(btn);
             SetStatus("");
             RefreshPreview();
         }
-
-        // ------------------------------------------------------------------
-        // Settings entry (fixed, outside flpPages -- same idea as
-        // btnClockPage). bg_image is edited via _ucSettings hosted in
-        // pnlSettingsHost (same shape as Clock/Page); side_icon is written
-        // straight into _cfg.Settings from the right-click menu below, same
-        // as Clock's side_icon -- it doesn't need a staged UI field.
-        // ------------------------------------------------------------------
 
         private void ShowSettingsPage()
         {
@@ -443,37 +284,12 @@ namespace ESDeckPC
                 _ucSettings.PreviewInvalidated += (s, e) => RefreshPreview();
             }
 
-            pnlSettingsHost.SuspendLayout();
-            pnlSettingsHost.Controls.Clear();
-            pnlSettingsHost.Controls.Add(_ucSettings);
-            pnlSettingsHost.ResumeLayout();
+            HostPanel(_ucSettings, _cfg.Settings.SideIcon, "Settings");
 
             _ucSettings.ApplyConfig(_cfg.Settings, _assetsBackgroundsDir);
 
-            SetSelectedButton(btnSettingsPage);
             SetStatus("Settings");
             RefreshPreview();
-        }
-
-        private void BtnSettingsPage_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-
-            var cms = BuildDarkMenu();
-
-            var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, ev) => SetSettingsSideIcon();
-            cms.Items.Add(miSideIcon);
-
-            cms.Show(Cursor.Position);
-        }
-
-        private void SetSelectedButton(Button selected)
-        {
-            btnClockPage.BackColor = (selected == btnClockPage) ? ColPageSelected : ColPageNormal;
-            btnSettingsPage.BackColor = (selected == btnSettingsPage) ? ColPageSelected : ColPageNormal;
-            foreach (var btn in flpPages.Controls.OfType<Button>())
-                btn.BackColor = (btn == selected) ? ColPageSelected : ColPageNormal;
         }
 
         // ------------------------------------------------------------------
@@ -500,7 +316,6 @@ namespace ESDeckPC
                 _assetsBackgroundsDir = null;
                 _assetsFontsDir = null;
                 _assetsSideIconsDir = null;
-                RebuildPageButtons();
                 ShowClockSettings();
                 UpdateJsonPathLabel();
                 RefreshPreview();
@@ -522,8 +337,7 @@ namespace ESDeckPC
                     _cfg = cfg;
                     _jsonPath = dlg.FileName;
                     ResolveAssetDirsFromJsonPath();
-                    RebuildPageButtons();
-                    ShowClockSettings();
+                        ShowClockSettings();
                     UpdateJsonPathLabel();
                     RefreshPreview();
                 }
@@ -642,76 +456,6 @@ namespace ESDeckPC
         private void SetStatus(string msg) => lblStatus.Text = msg;
 
         // ------------------------------------------------------------------
-        // Sidebar preview (picSide): the ESP's sidebar (Clock + data pages,
-        // gear) next to the content preview, so side icons can be compared
-        // in place. Left click shows that entry, right click sets its icon.
-        // ------------------------------------------------------------------
-
-        private void RefreshSidebar()
-        {
-            var items = new List<SidebarItem>
-            {
-                new SidebarItem(EspSidebarRenderer.Resolve(_assetsSideIconsDir, _cfg.Clock.SideIcon), "Clock"),
-            };
-            foreach (var p in _cfg.Pages)
-                items.Add(new SidebarItem(EspSidebarRenderer.Resolve(_assetsSideIconsDir, p.SideIcon), p.Name));
-            int sel = _settingsSelected ? -1 : _selectedPage == null ? 0 : _cfg.Pages.IndexOf(_selectedPage) + 1;
-            var bmp = EspSidebarRenderer.RenderPages(items,
-                EspSidebarRenderer.Resolve(_assetsSideIconsDir, _cfg.Settings.SideIcon),
-                sel, _settingsSelected, 0);
-            var old = picSide.Image;
-            picSide.Image = bmp;
-            old?.Dispose();
-        }
-
-        private void PicSide_MouseUp(object sender, MouseEventArgs e)
-        {
-            int hit = EspSidebarRenderer.HitPages(e.Location, _cfg.Pages.Count + 1, 0);
-            if (hit == EspSidebarRenderer.HitNone) return;
-            bool left = e.Button == MouseButtons.Left, right = e.Button == MouseButtons.Right;
-            if (hit == EspSidebarRenderer.HitGear)
-            {
-                if (left) ShowSettingsPage(); else if (right) SetSettingsSideIcon();
-            }
-            else if (hit == 0)
-            {
-                if (left) ShowClockSettings(); else if (right) SetClockSideIcon();
-            }
-            else
-            {
-                var page = _cfg.Pages[hit - 1];
-                if (left) ShowPageSettings(page); else if (right) SetPageSideIcon(page);
-            }
-        }
-
-        private void SetClockSideIcon()
-        {
-            string name = FormSideIconPicker.Show(this, "Set Side Icon - Clock",
-                _cfg.Clock.SideIcon ?? "", "Clock", _assetsSideIconsDir);
-            if (name == null) return;
-            _cfg.Clock.SideIcon = name;
-            RefreshSidebar();
-        }
-
-        private void SetPageSideIcon(MonitorPageCfg page)
-        {
-            string name = FormSideIconPicker.Show(this, "Set Side Icon",
-                page.SideIcon ?? "", page.Name, _assetsSideIconsDir);
-            if (name == null) return;
-            page.SideIcon = name;
-            RefreshSidebar();
-        }
-
-        private void SetSettingsSideIcon()
-        {
-            string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
-                _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
-            if (name == null) return;
-            _cfg.Settings.SideIcon = name;
-            RefreshSidebar();
-        }
-
-        // ------------------------------------------------------------------
         // Config <-> UI sync
         // ------------------------------------------------------------------
 
@@ -742,7 +486,7 @@ namespace ESDeckPC
             var lightFg = Color.FromArgb(220, 220, 220);
             var font = new Font("Consolas", 8.5f);
 
-            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs, btnClockPage, btnSettingsPage })
+            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs })
             {
                 btn.BackColor = darkBg;
                 btn.ForeColor = lightFg;

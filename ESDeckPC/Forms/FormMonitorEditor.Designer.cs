@@ -15,12 +15,9 @@
 
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.TLPanel_FULL = new System.Windows.Forms.TableLayoutPanel();
             this.paneltop = new System.Windows.Forms.Panel();
-            this.btnClockPage = new System.Windows.Forms.Button();
-            this.flpPages = new System.Windows.Forms.FlowLayoutPanel();
-            this.button1 = new System.Windows.Forms.Button();
-            this.btnSettingsPage = new System.Windows.Forms.Button();
             this.grpJson = new System.Windows.Forms.GroupBox();
             this.btnJsonSaveAs = new System.Windows.Forms.Button();
             this.lblJsonPath = new System.Windows.Forms.Label();
@@ -31,16 +28,15 @@
             this.pnlSettingsHost = new System.Windows.Forms.Panel();
             this.pnlPreview = new System.Windows.Forms.Panel();
             this.picPreview = new System.Windows.Forms.PictureBox();
-            this.picSide = new System.Windows.Forms.PictureBox();
+            this.sideView = new ESDeckPC.EspSidebarView();
             this.lblStatus = new System.Windows.Forms.Label();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.TLPanel_FULL.SuspendLayout();
             this.paneltop.SuspendLayout();
-            this.flpPages.SuspendLayout();
             this.grpJson.SuspendLayout();
             this.TLPanel_BOTTOM.SuspendLayout();
             this.pnlPreview.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picPreview)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.picSide)).BeginInit();
             this.SuspendLayout();
             // 
             // TLPanel_FULL
@@ -61,48 +57,12 @@
             // 
             // paneltop
             // 
-            this.paneltop.Controls.Add(this.btnClockPage);
-            this.paneltop.Controls.Add(this.flpPages);
-            this.paneltop.Controls.Add(this.btnSettingsPage);
             this.paneltop.Controls.Add(this.grpJson);
             this.paneltop.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneltop.Location = new System.Drawing.Point(3, 3);
             this.paneltop.Name = "paneltop";
             this.paneltop.Size = new System.Drawing.Size(1040, 92);
             this.paneltop.TabIndex = 0;
-            // 
-            // btnClockPage
-            // 
-            this.btnClockPage.Location = new System.Drawing.Point(357, 25);
-            this.btnClockPage.Name = "btnClockPage";
-            this.btnClockPage.Size = new System.Drawing.Size(79, 55);
-            this.btnClockPage.TabIndex = 4;
-            this.btnClockPage.Text = "Clock";
-            // 
-            // flpPages
-            // 
-            this.flpPages.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.flpPages.Controls.Add(this.button1);
-            this.flpPages.Location = new System.Drawing.Point(446, 21);
-            this.flpPages.Name = "flpPages";
-            this.flpPages.Size = new System.Drawing.Size(332, 64);
-            this.flpPages.TabIndex = 5;
-            // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(3, 3);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(79, 55);
-            this.button1.TabIndex = 5;
-            this.button1.Text = "TestUse";
-            // 
-            // btnSettingsPage
-            // 
-            this.btnSettingsPage.Location = new System.Drawing.Point(788, 25);
-            this.btnSettingsPage.Name = "btnSettingsPage";
-            this.btnSettingsPage.Size = new System.Drawing.Size(79, 55);
-            this.btnSettingsPage.TabIndex = 6;
-            this.btnSettingsPage.Text = "Settings";
             // 
             // grpJson
             // 
@@ -190,7 +150,7 @@
             // pnlPreview
             // 
             this.pnlPreview.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
-            this.pnlPreview.Controls.Add(this.picSide);
+            this.pnlPreview.Controls.Add(this.sideView);
             this.pnlPreview.Controls.Add(this.picPreview);
             this.pnlPreview.Controls.Add(this.lblStatus);
             this.pnlPreview.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -209,14 +169,16 @@
             this.picPreview.TabIndex = 0;
             this.picPreview.TabStop = false;
             // 
-            // picSide
+            // sideView
             // 
-            this.picSide.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(17)))), ((int)(((byte)(17)))), ((int)(((byte)(17)))));
-            this.picSide.Location = new System.Drawing.Point(13, 11);
-            this.picSide.Name = "picSide";
-            this.picSide.Size = new System.Drawing.Size(80, 480);
-            this.picSide.TabIndex = 4;
-            this.picSide.TabStop = false;
+            this.sideView.AllowAdd = false;
+            this.sideView.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(17)))), ((int)(((byte)(17)))), ((int)(((byte)(17)))));
+            this.sideView.FixedLeading = 0;
+            this.sideView.Location = new System.Drawing.Point(13, 11);
+            this.sideView.Name = "sideView";
+            this.sideView.Size = new System.Drawing.Size(80, 480);
+            this.sideView.TabIndex = 4;
+            this.toolTip.SetToolTip(this.sideView, "Click: select    Drag: reorder pages\r\n+: add a page    Right-click: delete");
             // 
             // lblStatus
             // 
@@ -248,12 +210,10 @@
             this.Text = "Monitor Editor";
             this.TLPanel_FULL.ResumeLayout(false);
             this.paneltop.ResumeLayout(false);
-            this.flpPages.ResumeLayout(false);
             this.grpJson.ResumeLayout(false);
             this.TLPanel_BOTTOM.ResumeLayout(false);
             this.pnlPreview.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.picPreview)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.picSide)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -271,12 +231,9 @@
         private System.Windows.Forms.Panel pnlSettingsHost;
         private System.Windows.Forms.Panel pnlPreview;
         private System.Windows.Forms.PictureBox picPreview;
-        private System.Windows.Forms.PictureBox picSide;
+        private ESDeckPC.EspSidebarView sideView;
+        private System.Windows.Forms.ToolTip toolTip;
         private System.Windows.Forms.Label lblStatus;
-        private System.Windows.Forms.Button btnClockPage;
-        private System.Windows.Forms.FlowLayoutPanel flpPages;
-        private System.Windows.Forms.Button btnSettingsPage;
-        private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button btnJsonSaveAs;
     }
 }
