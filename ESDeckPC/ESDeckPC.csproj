@@ -109,6 +109,7 @@
     <Compile Include="Tools\FontBinLoader.cs" />
     <Compile Include="Tools\EsDeckDrive.cs" />
     <Compile Include="Tools\EditorDirtyTracker.cs" />
+    <Compile Include="Tools\SourceDirs.cs" />
     <Compile Include="Forms\FormBgImporter.cs">
       <SubType>Form</SubType>
     </Compile>

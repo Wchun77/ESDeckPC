@@ -319,7 +319,9 @@ namespace ESDeckPC
             {
                 dlg.Title = "Select Video File";
                 dlg.Filter = "Video files (*.mp4;*.mov;*.avi;*.mkv;*.webm)|*.mp4;*.mov;*.avi;*.mkv;*.webm|All files (*.*)|*.*";
+                dlg.InitialDirectory = SourceDirs.Video;   // where the last source video came from
                 if (dlg.ShowDialog() != DialogResult.OK) return;
+                SourceDirs.RememberVideo(dlg.FileName);
 
                 LoadVideo(dlg.FileName);
             }

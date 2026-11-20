@@ -72,7 +72,9 @@ namespace ESDeckPC
             {
                 dlg.Title = "Select image";
                 dlg.Filter = "Image files (*.jpg;*.jpeg;*.png;*.bmp)|*.jpg;*.jpeg;*.png;*.bmp";
+                dlg.InitialDirectory = SourceDirs.Image;   // the originals' folder, not the SD card the last Save went to
                 if (dlg.ShowDialog() != DialogResult.OK) return;
+                SourceDirs.RememberImage(dlg.FileName);
 
                 try
                 {

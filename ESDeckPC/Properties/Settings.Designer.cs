@@ -22,5 +22,29 @@ namespace ESDeckPC.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastImageSourceDir {
+            get {
+                return ((string)(this["LastImageSourceDir"]));
+            }
+            set {
+                this["LastImageSourceDir"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastVideoSourceDir {
+            get {
+                return ((string)(this["LastVideoSourceDir"]));
+            }
+            set {
+                this["LastVideoSourceDir"] = value;
+            }
+        }
     }
 }
