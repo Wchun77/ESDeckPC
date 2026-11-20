@@ -15,11 +15,9 @@ namespace ESDeckPC
 
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.TLPanel_FULL = new System.Windows.Forms.TableLayoutPanel();
             this.paneltop = new System.Windows.Forms.Panel();
-            this.btnTouchpadPage = new System.Windows.Forms.Button();
-            this.btnSettingsPage = new System.Windows.Forms.Button();
-            this.btnSidebarPage = new System.Windows.Forms.Button();
             this.grpJson = new System.Windows.Forms.GroupBox();
             this.btnJsonSaveAs = new System.Windows.Forms.Button();
             this.lblJsonPath = new System.Windows.Forms.Label();
@@ -32,6 +30,7 @@ namespace ESDeckPC
             this.picPreview = new System.Windows.Forms.PictureBox();
             this.picSide = new System.Windows.Forms.PictureBox();
             this.lblStatus = new System.Windows.Forms.Label();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.TLPanel_FULL.SuspendLayout();
             this.paneltop.SuspendLayout();
             this.grpJson.SuspendLayout();
@@ -58,39 +57,12 @@ namespace ESDeckPC
             // 
             // paneltop
             // 
-            this.paneltop.Controls.Add(this.btnTouchpadPage);
-            this.paneltop.Controls.Add(this.btnSettingsPage);
-            this.paneltop.Controls.Add(this.btnSidebarPage);
             this.paneltop.Controls.Add(this.grpJson);
             this.paneltop.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneltop.Location = new System.Drawing.Point(3, 3);
             this.paneltop.Name = "paneltop";
             this.paneltop.Size = new System.Drawing.Size(1040, 92);
             this.paneltop.TabIndex = 0;
-            // 
-            // btnTouchpadPage
-            // 
-            this.btnTouchpadPage.Location = new System.Drawing.Point(325, 25);
-            this.btnTouchpadPage.Name = "btnTouchpadPage";
-            this.btnTouchpadPage.Size = new System.Drawing.Size(79, 55);
-            this.btnTouchpadPage.TabIndex = 4;
-            this.btnTouchpadPage.Text = "Touchpad";
-            // 
-            // btnSettingsPage
-            // 
-            this.btnSettingsPage.Location = new System.Drawing.Point(414, 25);
-            this.btnSettingsPage.Name = "btnSettingsPage";
-            this.btnSettingsPage.Size = new System.Drawing.Size(79, 55);
-            this.btnSettingsPage.TabIndex = 5;
-            this.btnSettingsPage.Text = "Settings";
-            // 
-            // btnSidebarPage
-            // 
-            this.btnSidebarPage.Location = new System.Drawing.Point(503, 25);
-            this.btnSidebarPage.Name = "btnSidebarPage";
-            this.btnSidebarPage.Size = new System.Drawing.Size(79, 55);
-            this.btnSidebarPage.TabIndex = 6;
-            this.btnSidebarPage.Text = "Sidebar";
             // 
             // grpJson
             // 
@@ -204,6 +176,7 @@ namespace ESDeckPC
             this.picSide.Size = new System.Drawing.Size(80, 480);
             this.picSide.TabIndex = 4;
             this.picSide.TabStop = false;
+            this.toolTip.SetToolTip(this.picSide, "Keyboard button: Touchpad    Hotkeys: Sidebar hotkeys\r\nGear: Settings");
             // 
             // lblStatus
             // 
@@ -257,10 +230,8 @@ namespace ESDeckPC
         private System.Windows.Forms.Panel pnlPreview;
         private System.Windows.Forms.PictureBox picPreview;
         private System.Windows.Forms.PictureBox picSide;
+        private System.Windows.Forms.ToolTip toolTip;
         private System.Windows.Forms.Label lblStatus;
-        private System.Windows.Forms.Button btnTouchpadPage;
-        private System.Windows.Forms.Button btnSettingsPage;
-        private System.Windows.Forms.Button btnSidebarPage;
         private System.Windows.Forms.Button btnJsonSaveAs;
     }
 }

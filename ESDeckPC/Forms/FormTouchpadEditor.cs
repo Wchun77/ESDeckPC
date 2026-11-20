@@ -40,10 +40,10 @@ namespace ESDeckPC
         private bool _settingsSelected = false;
         private bool _sidebarSelected = false;
 
-        private static readonly Color ColSelected = Color.FromArgb(140, 30, 30); // dark red
-        private static readonly Color ColNormal = Color.FromArgb(55, 55, 58);
-        private static readonly Color ColMenuBack = Color.FromArgb(45, 45, 48);
-        private static readonly Color ColMenuFore = Color.FromArgb(220, 220, 220);
+        // Icon field shown above the Touchpad (keyboard_icon) or Settings
+        // (side_icon) panel; _iconForSettings says which one it writes.
+        private UC_SideIconField _ucIcon = null;
+        private bool _iconForSettings = false;
 
         [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
@@ -80,73 +80,17 @@ namespace ESDeckPC
             btnJsonOpen.Click += BtnJsonOpen_Click;
             btnJsonSave.Click += BtnJsonSave_Click;
             btnJsonSaveAs.Click += BtnJsonSaveAs_Click;
-            btnTouchpadPage.Click += (s, e) => ShowTouchpadSettings();
-            btnSettingsPage.Click += (s, e) => ShowSettingsPage();
-            btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
-            btnTouchpadPage.MouseUp += BtnTouchpadPage_MouseUp;
-            btnSidebarPage.Click += (s, e) => ShowSidebarPage();
             picSide.MouseUp += PicSide_MouseUp;
 
-            ShowTouchpadSettings();
-        }
-
-        // ------------------------------------------------------------------
-        // Context menu (dark theme, same style as FormMonitorEditor's)
-        // ------------------------------------------------------------------
-
-        private ContextMenuStrip BuildDarkMenu()
-        {
-            return new ContextMenuStrip
+            _ucIcon = new UC_SideIconField { Dock = DockStyle.Top };
+            _ucIcon.Changed += (s, e) =>
             {
-                BackColor = ColMenuBack,
-                ForeColor = ColMenuFore,
-                Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()),
+                if (_iconForSettings) _cfg.Settings.SideIcon = _ucIcon.FileName;
+                else _cfg.KeyboardIcon = _ucIcon.FileName;
+                RefreshPreview();   // status line / sidebar preview
             };
-        }
 
-        private sealed class DarkMenuColors : ProfessionalColorTable
-        {
-            public override Color MenuItemSelected => Color.FromArgb(80, 30, 30);
-            public override Color MenuItemSelectedGradientBegin => Color.FromArgb(80, 30, 30);
-            public override Color MenuItemSelectedGradientEnd => Color.FromArgb(80, 30, 30);
-            public override Color MenuItemBorder => Color.FromArgb(100, 100, 100);
-            public override Color MenuBorder => Color.FromArgb(80, 80, 80);
-            public override Color ToolStripDropDownBackground => Color.FromArgb(45, 45, 48);
-            public override Color ImageMarginGradientBegin => Color.FromArgb(45, 45, 48);
-            public override Color ImageMarginGradientMiddle => Color.FromArgb(45, 45, 48);
-            public override Color ImageMarginGradientEnd => Color.FromArgb(45, 45, 48);
-        }
-
-        // ------------------------------------------------------------------
-        // Settings entry -- side_icon has no staged UI field (same convention
-        // as Monitor's Clock/Settings side_icon), set directly from the
-        // right-click menu. Touchpad has no side_icon at all in the schema.
-        // ------------------------------------------------------------------
-
-        // Touchpad entry -- the sidebar keyboard button's icon, set from the
-        // right-click menu the same way Settings' side_icon is.
-        private void BtnTouchpadPage_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-
-            var cms = BuildDarkMenu();
-            var miKbIcon = new ToolStripMenuItem("Set Keyboard Icon");
-            miKbIcon.Click += (s, ev) => SetKeyboardIcon();
-            cms.Items.Add(miKbIcon);
-
-            cms.Show(Cursor.Position);
-        }
-
-        private void BtnSettingsPage_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-
-            var cms = BuildDarkMenu();
-            var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, ev) => SetSettingsSideIcon();
-            cms.Items.Add(miSideIcon);
-
-            cms.Show(Cursor.Position);
+            ShowTouchpadSettings();
         }
 
         // ------------------------------------------------------------------
@@ -167,11 +111,13 @@ namespace ESDeckPC
             pnlSettingsHost.SuspendLayout();
             pnlSettingsHost.Controls.Clear();
             pnlSettingsHost.Controls.Add(_ucTouchpadBg);
+            pnlSettingsHost.Controls.Add(_ucIcon);   // added last = docked first = on top
             pnlSettingsHost.ResumeLayout();
+            _iconForSettings = false;
+            _ucIcon.Bind(_cfg.KeyboardIcon, _assetsSideIconsDir, "KB", "Keyboard Icon");
 
             _ucTouchpadBg.ApplyConfig(_cfg.BgImage, _assetsBackgroundsDir, "Touchpad Background");
 
-            SetSelectedButton(btnTouchpadPage);
             RefreshPreview();
         }
 
@@ -189,11 +135,13 @@ namespace ESDeckPC
             pnlSettingsHost.SuspendLayout();
             pnlSettingsHost.Controls.Clear();
             pnlSettingsHost.Controls.Add(_ucSettingsBg);
+            pnlSettingsHost.Controls.Add(_ucIcon);   // added last = docked first = on top
             pnlSettingsHost.ResumeLayout();
+            _iconForSettings = true;
+            _ucIcon.Bind(_cfg.Settings.SideIcon, _assetsSideIconsDir, "Settings");
 
             _ucSettingsBg.ApplyConfig(_cfg.Settings.BgImage, _assetsBackgroundsDir, "Settings Background");
 
-            SetSelectedButton(btnSettingsPage);
             RefreshPreview();
         }
 
@@ -215,7 +163,6 @@ namespace ESDeckPC
 
             _ucSidebar.ApplyConfig(_cfg, _assetsSideIconsDir);
 
-            SetSelectedButton(btnSidebarPage);
             RefreshPreview();
         }
 
@@ -231,13 +178,6 @@ namespace ESDeckPC
             _ucTouchpadBg?.Dispose(); _ucTouchpadBg = null;
             _ucSettingsBg?.Dispose(); _ucSettingsBg = null;
             _ucSidebar?.Dispose();    _ucSidebar = null;
-        }
-
-        private void SetSelectedButton(Button selected)
-        {
-            btnTouchpadPage.BackColor = (selected == btnTouchpadPage) ? ColSelected : ColNormal;
-            btnSettingsPage.BackColor = (selected == btnSettingsPage) ? ColSelected : ColNormal;
-            btnSidebarPage.BackColor = (selected == btnSidebarPage) ? ColSelected : ColNormal;
         }
 
         // ------------------------------------------------------------------
@@ -425,9 +365,9 @@ namespace ESDeckPC
         // ------------------------------------------------------------------
         // Sidebar preview (picSide): the ESP's Touchpad sidebar as it looks
         // with the device's Sidebar setting on Hotkeys -- keyboard button,
-        // hotkeys, gear. Left click: keyboard -> Touchpad, hotkey -> Sidebar,
-        // gear -> Settings. Right click on the keyboard / gear sets its icon;
-        // hotkey icons are edited on the Sidebar entry.
+        // hotkeys, gear -- also the entry switcher: keyboard -> Touchpad
+        // (keyboard icon), hotkey area -> Sidebar (hotkeys and their icons),
+        // gear -> Settings (side icon).
         // ------------------------------------------------------------------
 
         private void RefreshSidebar()
@@ -446,36 +386,13 @@ namespace ESDeckPC
 
         private void PicSide_MouseUp(object sender, MouseEventArgs e)
         {
+            if (e.Button != MouseButtons.Left) return;
             int hit = EspSidebarRenderer.HitTouchpad(e.Location, _cfg.Hotkeys.Count);
-            bool left = e.Button == MouseButtons.Left, right = e.Button == MouseButtons.Right;
-            if (hit == EspSidebarRenderer.HitKeyboard)
-            {
-                if (left) ShowTouchpadSettings(); else if (right) SetKeyboardIcon();
-            }
-            else if (hit == EspSidebarRenderer.HitGear)
-            {
-                if (left) ShowSettingsPage(); else if (right) SetSettingsSideIcon();
-            }
-            else if (hit >= 0 && (left || right))
-                ShowSidebarPage();
-        }
-
-        private void SetKeyboardIcon()
-        {
-            string name = FormSideIconPicker.Show(this, "Set Keyboard Icon",
-                _cfg.KeyboardIcon ?? "", "KB", _assetsSideIconsDir);
-            if (name == null) return;
-            _cfg.KeyboardIcon = name;
-            RefreshPreview();   // status line / sidebar preview
-        }
-
-        private void SetSettingsSideIcon()
-        {
-            string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
-                _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
-            if (name == null) return;
-            _cfg.Settings.SideIcon = name;
-            RefreshPreview();   // status line / sidebar preview
+            if (hit == EspSidebarRenderer.HitKeyboard) ShowTouchpadSettings();
+            else if (hit == EspSidebarRenderer.HitGear) ShowSettingsPage();
+            // anywhere between the keyboard and gear cells, so the Sidebar
+            // entry is reachable even with no hotkeys yet
+            else if (e.Y >= EspSidebarRenderer.Cell && e.Y < EspSidebarRenderer.ColumnH) ShowSidebarPage();
         }
 
         // ------------------------------------------------------------------
@@ -500,7 +417,7 @@ namespace ESDeckPC
             var lightFg = Color.FromArgb(220, 220, 220);
             var font = new Font("Consolas", 8.5f);
 
-            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs, btnTouchpadPage, btnSettingsPage, btnSidebarPage })
+            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs })
             {
                 btn.BackColor = darkBg;
                 btn.ForeColor = lightFg;

@@ -38,10 +38,9 @@ namespace ESDeckPC
         // True when the Settings entry is selected; false = Player.
         private bool _settingsSelected = false;
 
-        private static readonly Color ColSelected = Color.FromArgb(140, 30, 30); // dark red
-        private static readonly Color ColNormal = Color.FromArgb(55, 55, 58);
-        private static readonly Color ColMenuBack = Color.FromArgb(45, 45, 48);
-        private static readonly Color ColMenuFore = Color.FromArgb(220, 220, 220);
+        // Settings' side_icon field, shown above its background panel.
+        private UC_SideIconField _ucSideIcon = null;
+
 
         [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr,
@@ -78,57 +77,12 @@ namespace ESDeckPC
             btnJsonOpen.Click += BtnJsonOpen_Click;
             btnJsonSave.Click += BtnJsonSave_Click;
             btnJsonSaveAs.Click += BtnJsonSaveAs_Click;
-            btnPlayerPage.Click += (s, e) => ShowPlayerSettings();
-            btnSettingsPage.Click += (s, e) => ShowSettingsPage();
-            btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
             picSide.MouseUp += PicSide_MouseUp;
 
+            _ucSideIcon = new UC_SideIconField { Dock = DockStyle.Top };
+            _ucSideIcon.Changed += (s, e) => { _cfg.Settings.SideIcon = _ucSideIcon.FileName; RefreshPreview(); };
+
             ShowPlayerSettings();
-        }
-
-        // ------------------------------------------------------------------
-        // Context menu (dark theme, same style as FormMonitorEditor's)
-        // ------------------------------------------------------------------
-
-        private ContextMenuStrip BuildDarkMenu()
-        {
-            return new ContextMenuStrip
-            {
-                BackColor = ColMenuBack,
-                ForeColor = ColMenuFore,
-                Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()),
-            };
-        }
-
-        private sealed class DarkMenuColors : ProfessionalColorTable
-        {
-            public override Color MenuItemSelected => Color.FromArgb(80, 30, 30);
-            public override Color MenuItemSelectedGradientBegin => Color.FromArgb(80, 30, 30);
-            public override Color MenuItemSelectedGradientEnd => Color.FromArgb(80, 30, 30);
-            public override Color MenuItemBorder => Color.FromArgb(100, 100, 100);
-            public override Color MenuBorder => Color.FromArgb(80, 80, 80);
-            public override Color ToolStripDropDownBackground => Color.FromArgb(45, 45, 48);
-            public override Color ImageMarginGradientBegin => Color.FromArgb(45, 45, 48);
-            public override Color ImageMarginGradientMiddle => Color.FromArgb(45, 45, 48);
-            public override Color ImageMarginGradientEnd => Color.FromArgb(45, 45, 48);
-        }
-
-        // ------------------------------------------------------------------
-        // Settings entry -- side_icon has no staged UI field (same convention
-        // as Monitor's Clock/Settings side_icon), set directly from the
-        // right-click menu. Player has no side_icon at all in the schema.
-        // ------------------------------------------------------------------
-
-        private void BtnSettingsPage_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-
-            var cms = BuildDarkMenu();
-            var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, ev) => SetSettingsSideIcon();
-            cms.Items.Add(miSideIcon);
-
-            cms.Show(Cursor.Position);
         }
 
         // ------------------------------------------------------------------
@@ -152,7 +106,6 @@ namespace ESDeckPC
 
             _ucPlayerBg.ApplyConfig(_cfg.BgImage, _assetsBackgroundsDir, "Player Background");
 
-            SetSelectedButton(btnPlayerPage);
             RefreshPreview();
         }
 
@@ -169,11 +122,12 @@ namespace ESDeckPC
             pnlSettingsHost.SuspendLayout();
             pnlSettingsHost.Controls.Clear();
             pnlSettingsHost.Controls.Add(_ucSettingsBg);
+            pnlSettingsHost.Controls.Add(_ucSideIcon);   // added last = docked first = on top
             pnlSettingsHost.ResumeLayout();
+            _ucSideIcon.Bind(_cfg.Settings.SideIcon, _assetsSideIconsDir, "Settings");
 
             _ucSettingsBg.ApplyConfig(_cfg.Settings.BgImage, _assetsBackgroundsDir, "Settings Background");
 
-            SetSelectedButton(btnSettingsPage);
             RefreshPreview();
         }
 
@@ -187,12 +141,6 @@ namespace ESDeckPC
             pnlSettingsHost.Controls.Clear();
             _ucPlayerBg?.Dispose();   _ucPlayerBg = null;
             _ucSettingsBg?.Dispose(); _ucSettingsBg = null;
-        }
-
-        private void SetSelectedButton(Button selected)
-        {
-            btnPlayerPage.BackColor = (selected == btnPlayerPage) ? ColSelected : ColNormal;
-            btnSettingsPage.BackColor = (selected == btnSettingsPage) ? ColSelected : ColNormal;
         }
 
         // ------------------------------------------------------------------
@@ -356,9 +304,9 @@ namespace ESDeckPC
 
         // ------------------------------------------------------------------
         // Sidebar preview (picSide): the ESP's Media sidebar -- level bar
-        // (shown at a fixed level) and the gear. Left click on the bar shows
-        // the Player, on the gear Settings; right click on the gear sets its
-        // side icon.
+        // (shown at a fixed level) and the gear -- also the entry switcher:
+        // click the bar for the Player, the gear for Settings (its side icon
+        // is set in the Side Icon field on the left).
         // ------------------------------------------------------------------
 
         private void RefreshSidebar()
@@ -373,22 +321,9 @@ namespace ESDeckPC
         private void PicSide_MouseUp(object sender, MouseEventArgs e)
         {
             int hit = EspSidebarRenderer.HitMedia(e.Location);
-            if (hit == EspSidebarRenderer.HitGear)
-            {
-                if (e.Button == MouseButtons.Left) ShowSettingsPage();
-                else if (e.Button == MouseButtons.Right) SetSettingsSideIcon();
-            }
-            else if (hit == EspSidebarRenderer.HitContent && e.Button == MouseButtons.Left)
-                ShowPlayerSettings();
-        }
-
-        private void SetSettingsSideIcon()
-        {
-            string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
-                _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
-            if (name == null) return;
-            _cfg.Settings.SideIcon = name;
-            RefreshPreview();   // status line shows the side_icon too
+            if (e.Button != MouseButtons.Left) return;
+            if (hit == EspSidebarRenderer.HitGear) ShowSettingsPage();
+            else if (hit == EspSidebarRenderer.HitContent) ShowPlayerSettings();
         }
 
         // ------------------------------------------------------------------
@@ -412,7 +347,7 @@ namespace ESDeckPC
             var lightFg = Color.FromArgb(220, 220, 220);
             var font = new Font("Consolas", 8.5f);
 
-            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs, btnPlayerPage, btnSettingsPage })
+            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs })
             {
                 btn.BackColor = darkBg;
                 btn.ForeColor = lightFg;
