@@ -1,6 +1,7 @@
 using ESDeckPC.Properties;
 using HidSharp;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -46,6 +47,11 @@ namespace ESDeckPC
         private ToolStripMenuItem _tsMenuStorage;
         private ToolStripMenuItem _trayMenuStorage;
         private HidReceiver.EspMode? _espMode;        // last mode the ESP reported; null = unknown / not connected
+        private ToolStripMenuItem _tsMenuConfig;      // Config > the current mode's configs (FillConfigMenu)
+        private ToolStripMenuItem _trayMenuConfig;
+        private byte _cfgSeq;                         // last config list request sent to the ESP
+        private ToolStripMenuItem _cfgPendingMenu;    // Config menu waiting for that list; null = none
+        private readonly System.Windows.Forms.Timer _cfgTimeout = new System.Windows.Forms.Timer { Interval = 1500 };
         private Icon _trayIconOn;    // normal app icon
         private Icon _trayIconOff;   // grayed copy, shown while ESDeck isn't connected
         private bool _otaRunning = false;
@@ -92,6 +98,8 @@ namespace ESDeckPC
             tsMenuDevice.DropDownItems.Add(new ToolStripSeparator());
             _tsMenuMode = BuildModeMenu();
             tsMenuDevice.DropDownItems.Add(_tsMenuMode);
+            _tsMenuConfig = BuildConfigMenu();
+            tsMenuDevice.DropDownItems.Add(_tsMenuConfig);
             _tsMenuStorage = new ToolStripMenuItem("Finish && Restart");
             _tsMenuStorage.Click += StorageFinish_Click;
             tsMenuDevice.DropDownItems.Add(_tsMenuStorage);
@@ -172,6 +180,8 @@ namespace ESDeckPC
             _receiver.OnMediaControl += OnMediaControl;
             _receiver.OnMediaSeek += OnMediaSeek;
             _receiver.OnModeReport += OnModeReport;
+            _receiver.OnConfigList += OnConfigList;
+            _cfgTimeout.Tick += ConfigTimeout_Tick;
             // Touchpad mode: handled on the HID read thread, no UI hop.
             _receiver.OnTouchpadReport += _touchpad.Process;
             // Mini keyboard: same, VK-based SendInput so the IME works.
@@ -239,6 +249,8 @@ namespace ESDeckPC
             trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuFirmware);
             _trayMenuMode = BuildModeMenu();
             trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuMode);
+            _trayMenuConfig = BuildConfigMenu();
+            trayMenu.Items.Insert(trayMenu.Items.IndexOf(trayMenuSep), _trayMenuConfig);
             _trayMenuStorage = new ToolStripMenuItem("Finish && Restart")
             {
                 ForeColor = Color.FromArgb(220, 220, 220),
@@ -550,6 +562,11 @@ namespace ESDeckPC
                     if (it is ToolStripMenuItem mi && mi.Tag is HidReceiver.EspMode m)
                         mi.Checked = _espMode == m;
             }
+            foreach (var cfg in new[] { _tsMenuConfig, _trayMenuConfig })
+            {
+                cfg.Visible = !inStorage;
+                cfg.Enabled = _hidConnected && !_otaRunning && _espMode != null;
+            }
             _tsMenuStorage.Visible = inStorage;
             _trayMenuStorage.Visible = inStorage;
         }
@@ -561,6 +578,128 @@ namespace ESDeckPC
                 AppendLog($"Mode: switch to {mode} requested", LogMisc);
             else
                 AppendLog($"Mode: failed to send the switch to {mode}", LogError);
+        }
+
+        // ------------------------------------------------------------------
+        // Device > Config: the current mode's configs, picked the same as
+        // Select Config on the device. Deck / Monitor / Media / Touchpad: the
+        // ESP sends the json files on its SD card each time the menu opens.
+        // Canvas: its configs live here, so it's the Canvas folder's list.
+        // ------------------------------------------------------------------
+        private static readonly Color ConfigMenuFore = Color.FromArgb(220, 220, 220);
+
+        private ToolStripMenuItem BuildConfigMenu()
+        {
+            var menu = new ToolStripMenuItem("Config") { ForeColor = ConfigMenuFore };
+            menu.DropDownItems.Add(ConfigInfoItem("Loading..."));   // keeps the submenu arrow
+            menu.DropDownOpening += (s, e) => FillConfigMenu(menu);
+            return menu;
+        }
+
+        private static ToolStripMenuItem ConfigInfoItem(string text) =>
+            new ToolStripMenuItem(text) { Enabled = false, ForeColor = ConfigMenuFore };
+
+        private static void ShowConfigInfo(ToolStripMenuItem menu, string text)
+        {
+            menu.DropDownItems.Clear();
+            menu.DropDownItems.Add(ConfigInfoItem(text));
+        }
+
+        private static ToolStripMenuItem ConfigItem(string name, bool active, Action click)
+        {
+            var item = new ToolStripMenuItem(name.Replace("&", "&&")) { ForeColor = ConfigMenuFore, Checked = active };
+            item.Click += (s, e) => click();
+            return item;
+        }
+
+        private void FillConfigMenu(ToolStripMenuItem menu)
+        {
+            if (_espMode == HidReceiver.EspMode.Canvas)
+            {
+                List<string> names;
+                try { names = CanvasPaths.ListConfigs(); }
+                catch { names = new List<string>(); }
+                if (names.Count == 0) { ShowConfigInfo(menu, "(no configs)"); return; }
+
+                string active = CanvasPaths.ActiveConfigName;
+                menu.DropDownItems.Clear();
+                foreach (var n in names)
+                {
+                    string name = n;
+                    bool isActive = string.Equals(name, active, StringComparison.OrdinalIgnoreCase);
+                    menu.DropDownItems.Add(ConfigItem(name, isActive, () => SelectCanvasConfig(name, isActive)));
+                }
+                return;
+            }
+
+            ShowConfigInfo(menu, "Loading...");
+            _cfgTimeout.Stop();
+            _cfgSeq++;
+            if (_receiver == null || !_receiver.SendConfigListRequest(_cfgSeq))
+            {
+                _cfgPendingMenu = null;
+                ShowConfigInfo(menu, "(no answer)");
+                return;
+            }
+            _cfgPendingMenu = menu;
+            _cfgTimeout.Start();
+        }
+
+        private void OnConfigList(HidReceiver.EspConfigList list)
+        {
+            this.BeginInvoke((Action)(() =>
+            {
+                if (_cfgPendingMenu == null || list.Seq != _cfgSeq) return;   // answer to an older request
+                var menu = _cfgPendingMenu;
+                _cfgPendingMenu = null;
+                _cfgTimeout.Stop();
+
+                if (list.Names.Count == 0) { ShowConfigInfo(menu, "(no configs)"); return; }
+                menu.DropDownItems.Clear();
+                for (int i = 0; i < list.Names.Count; i++)
+                {
+                    string name = list.Names[i];
+                    bool isActive = i == list.Active;
+                    var mode = list.Mode;
+                    menu.DropDownItems.Add(ConfigItem(name, isActive, () => SelectEspConfig(mode, name, isActive)));
+                }
+            }));
+        }
+
+        private void ConfigTimeout_Tick(object sender, EventArgs e)
+        {
+            _cfgTimeout.Stop();
+            if (_cfgPendingMenu == null) return;
+            ShowConfigInfo(_cfgPendingMenu, "(no answer)");   // not connected, or firmware without this command
+            _cfgPendingMenu = null;
+        }
+
+        private void SelectEspConfig(HidReceiver.EspMode mode, string name, bool isActive)
+        {
+            if (isActive || !_hidConnected || _otaRunning) return;
+            if (_espMode != mode)
+            {
+                AppendLog($"Config: ESP left {mode}, {name} not applied", LogError);
+                return;
+            }
+            if (_receiver != null && _receiver.SendConfigSelect(mode, name))
+                AppendLog($"Config: switch {mode} to {name} requested", LogMisc);
+            else
+                AppendLog($"Config: failed to send {name}", LogError);
+        }
+
+        private void SelectCanvasConfig(string name, bool isActive)
+        {
+            if (isActive) return;
+            try
+            {
+                CanvasPaths.ActiveConfigName = name;   // CanvasLink's folder watcher reloads and resends
+                AppendLog($"Canvas: switched to config {name}", LogCanvas);
+            }
+            catch (Exception ex)
+            {
+                AppendLog("Canvas: cannot write active.txt: " + ex.Message, LogError);
+            }
         }
 
         private void StorageMode_Click(object sender, EventArgs e)

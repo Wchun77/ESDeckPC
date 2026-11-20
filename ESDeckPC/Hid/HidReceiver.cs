@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using HidSharp;
 using System.Threading;
@@ -8,6 +9,16 @@ public class HidReceiver
 {
     // Mirrors ui_mode_t in ESDeck's ui_settings.h (0=deck, 1=monitor, 2=media, 3=touchpad, 4=canvas)
     public enum EspMode { Deck = 0, Monitor = 1, Media = 2, Touchpad = 3, Canvas = 4 }
+
+    // The current mode's config files on the ESP's SD card (page=0xF8, one
+    // report per file), see HID_SYS_CMD_CFG_* in ESDeck's usb_hid.h.
+    public sealed class EspConfigList
+    {
+        public byte Seq;
+        public EspMode Mode;
+        public List<string> Names = new List<string>();
+        public int Active = -1;   // index into Names of the config in use, -1 = none
+    }
 
     private const int VendorId = 0x303A;
     // 0x4005: composite firmware (vendor HID + USB keyboard/mouse);
@@ -80,6 +91,11 @@ public class HidReceiver
     // OnTouchpadReport (read thread, buffer reused after return).
     public event Action<byte[], int> OnKeyboardReport;
 
+    // Fires when a whole config list (SendConfigListRequest) has arrived.
+    // A list with a lost entry is dropped (the caller times out). Invoked on
+    // the read thread.
+    public event Action<EspConfigList> OnConfigList;
+
     // Fires for Canvas mode events (page=0xF9: page request, touch, leave,
     // config list / select),
     // same contract as OnTouchpadReport. See CanvasLink.
@@ -127,14 +143,11 @@ public class HidReceiver
     }
 
     // ------------------------------------------------------------------
-    // Switch the ESP to USB Mass Storage: CMD 0x0E (HID_SYS_CMD_STORAGE),
-    // no payload. One-way -- the HID device disappears, the SD card shows
-    // up as a drive, and the ESP restarts when that drive is ejected
-    // (EsDeckDrive.Eject).
+    // Switch the ESP's UI mode: CMD 0x0F (HID_SYS_CMD_MODE), [2] = mode --
+    // same numbers as the mode reply. The ESP reports its mode afterwards.
     // ------------------------------------------------------------------
     public bool SendMode(EspMode mode)
     {
-        // CMD 0x0F (HID_SYS_CMD_MODE), [2] = mode -- same numbers as the mode reply.
         var report = new byte[65];
         report[0] = 0x00;
         report[1] = 0x0F;
@@ -142,6 +155,45 @@ public class HidReceiver
         return WriteReport(report);
     }
 
+    // ------------------------------------------------------------------
+    // Ask for the current mode's config list: CMD 0x10 (HID_SYS_CMD_CFG_LIST),
+    // [2] = seq. Answered with page=0xF8 reports -> OnConfigList.
+    // ------------------------------------------------------------------
+    public bool SendConfigListRequest(byte seq)
+    {
+        var report = new byte[65];
+        report[0] = 0x00;
+        report[1] = 0x10;
+        report[2] = seq;
+        return WriteReport(report);
+    }
+
+    // Longest config name SendConfigSelect can carry (UTF-8 bytes, NUL not counted).
+    public const int ConfigNameMaxBytes = 61;
+
+    // ------------------------------------------------------------------
+    // Make a config the mode's active one: CMD 0x11 (HID_SYS_CMD_CFG_SELECT),
+    // [2] = mode, [3..] = file name, NUL-terminated. The ESP ignores it unless
+    // it's still in that mode and the file is in its list.
+    // ------------------------------------------------------------------
+    public bool SendConfigSelect(EspMode mode, string name)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(name ?? "");
+        if (bytes.Length == 0 || bytes.Length > ConfigNameMaxBytes) return false;
+        var report = new byte[65];
+        report[0] = 0x00;
+        report[1] = 0x11;
+        report[2] = (byte)mode;
+        Buffer.BlockCopy(bytes, 0, report, 3, bytes.Length);
+        return WriteReport(report);
+    }
+
+    // ------------------------------------------------------------------
+    // Switch the ESP to USB Mass Storage: CMD 0x0E (HID_SYS_CMD_STORAGE),
+    // no payload. One-way -- the HID device disappears, the SD card shows
+    // up as a drive, and the ESP restarts when that drive is ejected
+    // (EsDeckDrive.Eject).
+    // ------------------------------------------------------------------
     public bool SendStorageMode()
     {
         var report = new byte[65];
@@ -251,6 +303,47 @@ public class HidReceiver
     }
 
     // ------------------------------------------------------------------
+    // Config list entry (page=0xF8): [2] seq, [3] mode, [4] index,
+    // [5] total, [6] flags (0x01 = in use), [7..] name, NUL-terminated.
+    // total = 0: no configs (one entry, empty name). Read thread only.
+    // ------------------------------------------------------------------
+    private const byte ConfigPage = 0xF8;
+    private EspConfigList _cfgRx;
+    private int _cfgTotal;
+
+    private void HandleConfigEntry(byte[] buf, int len)
+    {
+        if (len < 8) return;
+        byte seq = buf[2], index = buf[4], total = buf[5], flags = buf[6];
+
+        if (index == 0)
+        {
+            _cfgRx = new EspConfigList { Seq = seq, Mode = (EspMode)buf[3] };
+            _cfgTotal = total;
+        }
+        else if (_cfgRx == null || _cfgRx.Seq != seq || _cfgRx.Names.Count != index)
+        {
+            _cfgRx = null;   // an entry got lost: drop this list
+            return;
+        }
+
+        if (_cfgTotal > 0)
+        {
+            int end = 7;
+            while (end < len && buf[end] != 0) end++;
+            if ((flags & 0x01) != 0) _cfgRx.Active = _cfgRx.Names.Count;
+            _cfgRx.Names.Add(Encoding.UTF8.GetString(buf, 7, end - 7));
+        }
+
+        if (_cfgTotal == 0 || _cfgRx.Names.Count >= _cfgTotal)
+        {
+            var done = _cfgRx;
+            _cfgRx = null;
+            OnConfigList?.Invoke(done);
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Read loop
     // ------------------------------------------------------------------
 
@@ -301,6 +394,10 @@ public class HidReceiver
                 else if (page == 0xF9)
                 {
                     OnCanvasReport?.Invoke(buf, len);
+                }
+                else if (page == ConfigPage)
+                {
+                    HandleConfigEntry(buf, len);
                 }
                 else if (page == 0xFE)
                 {
