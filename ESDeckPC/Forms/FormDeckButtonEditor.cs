@@ -85,16 +85,10 @@ namespace ESDeckPC
 
         private void BtnIconBrowse_Click(object sender, EventArgs e)
         {
-            using (var ofd = new OpenFileDialog())
-            {
-                ofd.Title = "Select icon";
-                ofd.Filter = "PNG image (*.png)|*.png";
-                if (!string.IsNullOrEmpty(_iconsDir) && System.IO.Directory.Exists(_iconsDir))
-                    ofd.InitialDirectory = _iconsDir;
-
-                if (ofd.ShowDialog() == DialogResult.OK)
-                    txtIcon.Text = System.IO.Path.GetFileName(ofd.FileName);
-            }
+            string picked = FormAssetPicker.Pick(this, "Select icon", _iconsDir, "*.png",
+                                                 FormAssetPicker.IconThumb, txtIcon.Text);
+            if (picked != null)
+                txtIcon.Text = System.IO.Path.GetFileName(picked);
         }
 
         // ------------------------------------------------------------------

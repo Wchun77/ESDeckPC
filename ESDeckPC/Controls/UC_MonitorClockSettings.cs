@@ -16,6 +16,7 @@ namespace ESDeckPC
         private FontBinLoader _fontSec = null;
         private FontBinLoader _fontDate = null;
         private Bitmap _bgBitmap = null;
+        private string _bgDir;   // assets\backgrounds, for the picker
 
         public FontBinLoader FontTime => _fontTime;
         public FontBinLoader FontSec => _fontSec;
@@ -84,6 +85,7 @@ namespace ESDeckPC
         /// </summary>
         public void ApplyConfig(MonitorClockCfg c, string backgroundsDir, string fontsDir)
         {
+            if (!string.IsNullOrEmpty(backgroundsDir)) _bgDir = backgroundsDir;   // the picker opens here
             _isApplying = true;
             try
             {
@@ -247,23 +249,20 @@ namespace ESDeckPC
 
         private void BtnClockBgBrowse_Click(object sender, EventArgs e)
         {
-            using (var dlg = new OpenFileDialog())
+            string picked = FormAssetPicker.Pick(this, "Select background image", _bgDir, "*.jpg;*.jpeg",
+                                                 FormAssetPicker.BackgroundThumb, txtClockBgImage.Text);
+            if (picked == null) return;
+            try
             {
-                dlg.Title = "Select background image";
-                dlg.Filter = "JPEG image (*.jpg;*.jpeg)|*.jpg;*.jpeg";
-                if (dlg.ShowDialog() != DialogResult.OK) return;
-                try
-                {
-                    _bgBitmap?.Dispose();
-                    _bgBitmap = new Bitmap(dlg.FileName);
-                    txtClockBgImage.Text = Path.GetFileName(dlg.FileName);
-                    RaisePreviewInvalidated();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Failed to load image:\n{ex.Message}",
-                                   "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                _bgBitmap?.Dispose();
+                _bgBitmap = new Bitmap(picked);
+                txtClockBgImage.Text = Path.GetFileName(picked);
+                RaisePreviewInvalidated();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load image:\n{ex.Message}",
+                               "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

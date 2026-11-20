@@ -70,29 +70,23 @@ namespace ESDeckPC
 
         private void BtnBrowse_Click(object sender, EventArgs e)
         {
-            using (var ofd = new OpenFileDialog())
+            string picked = FormAssetPicker.Pick(this, "Select side icon", _initialDir, "*.png",
+                                                 FormAssetPicker.SideIconThumb, txtFile.Text);
+            if (picked == null) return;
+
+            try
             {
-                ofd.Title = "Select side icon";
-                ofd.Filter = "PNG image (*.png)|*.png";
-                if (!string.IsNullOrEmpty(_initialDir) && Directory.Exists(_initialDir))
-                    ofd.InitialDirectory = _initialDir;
-
-                if (ofd.ShowDialog() != DialogResult.OK) return;
-
-                try
-                {
-                    var loaded = new Bitmap(ofd.FileName);
-                    _iconBitmap?.Dispose();
-                    _iconBitmap = loaded;
-                    txtFile.Text = Path.GetFileName(ofd.FileName);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Failed to load image:\n{ex.Message}",
-                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                canvas.Invalidate();
+                var loaded = new Bitmap(picked);
+                _iconBitmap?.Dispose();
+                _iconBitmap = loaded;
+                txtFile.Text = Path.GetFileName(picked);
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load image:\n{ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            canvas.Invalidate();
         }
 
         private void BtnClear_Click(object sender, EventArgs e)

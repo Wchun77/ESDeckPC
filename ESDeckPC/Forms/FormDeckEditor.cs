@@ -24,6 +24,7 @@ namespace ESDeckPC
         private string _assetsSideIconsDir = null;
 
         private DeckPreviewPanel _preview;
+        private EditorDirtyTracker _dirty;   // unsaved changes: " *" in the title, prompt before losing them
 
         // Selected sidebar entry: a page (_pageIdx) or the gear (Settings,
         // not part of _deckConfig.Pages; _pageIdx is -1 then).
@@ -90,6 +91,9 @@ namespace ESDeckPC
             LoadPages();
             UpdateJsonPathLabel();
             ActiveControl = sideView;   // don't start with the caret in a text box
+
+            _dirty = new EditorDirtyTracker(this, () => _deckConfig, TitleText);
+            _dirty.MarkSaved();
         }
 
         private void StyleDarkButtons()
@@ -537,6 +541,7 @@ namespace ESDeckPC
 
         private void BtnJsonNew_Click(object sender, EventArgs e)
         {
+            if (!_dirty.ConfirmDiscard(SaveInteractive)) return;
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Title = "New deck JSON";
@@ -550,11 +555,13 @@ namespace ESDeckPC
                 ResolveAssetDirs();
                 LoadPages();
                 UpdateJsonPathLabel();
+                _dirty.MarkSaved();
             }
         }
 
         private void BtnJsonOpen_Click(object sender, EventArgs e)
         {
+            if (!_dirty.ConfirmDiscard(SaveInteractive)) return;
             using (var dlg = new OpenFileDialog())
             {
                 dlg.Title = "Open deck JSON";
@@ -574,6 +581,7 @@ namespace ESDeckPC
                     LoadPages();
                     UpdateJsonPathLabel();
                     WarnOverfullPages();
+                    _dirty.MarkSaved();
                 }
                 catch (Exception ex)
                 {
@@ -583,11 +591,7 @@ namespace ESDeckPC
             }
         }
 
-        private void BtnSave_Click(object sender, EventArgs e)
-        {
-            if (string.IsNullOrEmpty(_jsonPath) && !PromptForSavePath()) return;
-            SaveToCurrentPath();
-        }
+        private void BtnSave_Click(object sender, EventArgs e) => SaveInteractive();
 
         private void BtnSaveAs_Click(object sender, EventArgs e)
         {
@@ -614,15 +618,8 @@ namespace ESDeckPC
             }
         }
 
-        private void SaveToCurrentPath()
+        private bool SaveToCurrentPath()
         {
-            var confirm = MessageBox.Show(
-                $"Save changes to {Path.GetFileName(_jsonPath)}?",
-                "Deck Editor",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
-            if (confirm != DialogResult.Yes) return;
-
             try
             {
                 // File.WriteAllText's default is UTF-8 without BOM, same as
@@ -631,20 +628,47 @@ namespace ESDeckPC
                 File.WriteAllText(_jsonPath,
                     JsonConvert.SerializeObject(_deckConfig, Formatting.Indented));
                 SetStatus($"Saved: {Path.GetFileName(_jsonPath)}");
+                _dirty.MarkSaved();
+                return true;
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Save failed: {ex.Message}", "Deck Editor",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
         }
+
+        /// <summary>Save (asking for a path the first time). Button, Ctrl+S, and the unsaved-changes prompt.</summary>
+        private bool SaveInteractive()
+        {
+            if (string.IsNullOrEmpty(_jsonPath) && !PromptForSavePath()) return false;
+            return SaveToCurrentPath();
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == (Keys.Control | Keys.S))
+            {
+                SaveInteractive();
+                return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (!e.Cancel && !_dirty.ConfirmDiscard(SaveInteractive)) e.Cancel = true;
+            base.OnFormClosing(e);
+        }
+
+        private string TitleText() =>
+            _jsonPath != null ? $"Deck Editor - {Path.GetFileName(_jsonPath)}" : "Deck Editor";
 
         private void UpdateJsonPathLabel()
         {
             lblJsonPath.Text = _jsonPath != null ? Path.GetFileName(_jsonPath) : "(no file)";
-            this.Text = _jsonPath != null
-                ? $"Deck Editor - {Path.GetFileName(_jsonPath)}"
-                : "Deck Editor";
+            _dirty?.RefreshTitle();
         }
 
         // ------------------------------------------------------------------

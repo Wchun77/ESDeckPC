@@ -108,6 +108,7 @@
     <Compile Include="Tools\FfmpegRunner.cs" />
     <Compile Include="Tools\FontBinLoader.cs" />
     <Compile Include="Tools\EsDeckDrive.cs" />
+    <Compile Include="Tools\EditorDirtyTracker.cs" />
     <Compile Include="Forms\FormBgImporter.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -185,6 +186,12 @@
     </Compile>
     <Compile Include="Forms\FormSideIconImporter.Designer.cs">
       <DependentUpon>FormSideIconImporter.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\FormAssetPicker.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormAssetPicker.Designer.cs">
+      <DependentUpon>FormAssetPicker.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\FormSideIconPicker.cs">
       <SubType>Form</SubType>
@@ -293,6 +300,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormSideIconImporter.resx">
       <DependentUpon>FormSideIconImporter.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FormAssetPicker.resx">
+      <DependentUpon>FormAssetPicker.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormSideIconPicker.resx">
       <DependentUpon>FormSideIconPicker.cs</DependentUpon>

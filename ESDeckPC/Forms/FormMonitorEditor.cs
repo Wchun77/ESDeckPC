@@ -29,6 +29,7 @@ namespace ESDeckPC
         private UC_MonitorPageSettings _ucPage = null;
         private UC_MonitorSettingsPanel _ucSettings = null;
         private Bitmap _previewBmp = null;
+        private EditorDirtyTracker _dirty;   // unsaved changes: " *" in the title, prompt before losing them
 
         // The data page currently selected in the sidebar, or null when Clock
         // or Settings is selected (_settingsSelected distinguishes the two).
@@ -92,6 +93,9 @@ namespace ESDeckPC
             _ucSideIcon.Changed += SideIcon_Changed;
 
             ShowClockSettings();
+
+            _dirty = new EditorDirtyTracker(this, () => _cfg, TitleText, ReadUiIntoConfig);
+            _dirty.MarkSaved();
         }
 
         // ------------------------------------------------------------------
@@ -304,6 +308,7 @@ namespace ESDeckPC
 
         private void BtnJsonNew_Click(object sender, EventArgs e)
         {
+            if (!_dirty.ConfirmDiscard(SaveInteractive)) return;
             using (var dlg = new SaveFileDialog())
             {
                 dlg.Title = "New monitor JSON";
@@ -319,11 +324,13 @@ namespace ESDeckPC
                 ShowClockSettings();
                 UpdateJsonPathLabel();
                 RefreshPreview();
+                _dirty.MarkSaved();
             }
         }
 
         private void BtnJsonOpen_Click(object sender, EventArgs e)
         {
+            if (!_dirty.ConfirmDiscard(SaveInteractive)) return;
             using (var dlg = new OpenFileDialog())
             {
                 dlg.Title = "Open monitor JSON";
@@ -340,6 +347,7 @@ namespace ESDeckPC
                         ShowClockSettings();
                     UpdateJsonPathLabel();
                     RefreshPreview();
+                    _dirty.MarkSaved();
                 }
                 catch (Exception ex)
                 {
@@ -349,14 +357,7 @@ namespace ESDeckPC
             }
         }
 
-        private void BtnJsonSave_Click(object sender, EventArgs e)
-        {
-            if (string.IsNullOrEmpty(_jsonPath))
-            {
-                if (!PromptForSavePath()) return;
-            }
-            SaveToCurrentPath();
-        }
+        private void BtnJsonSave_Click(object sender, EventArgs e) => SaveInteractive();
 
         private void BtnJsonSaveAs_Click(object sender, EventArgs e)
         {
@@ -386,27 +387,46 @@ namespace ESDeckPC
             }
         }
 
-        private void SaveToCurrentPath()
+        private bool SaveToCurrentPath()
         {
-            var confirm = MessageBox.Show(
-                $"Save changes to {Path.GetFileName(_jsonPath)}?",
-                "Monitor Editor",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
-            if (confirm != DialogResult.Yes) return;
-
             try
             {
                 ReadUiIntoConfig();
                 File.WriteAllText(_jsonPath,
                     JsonConvert.SerializeObject(_cfg, Formatting.Indented));
                 SetStatus($"Saved: {Path.GetFileName(_jsonPath)}");
+                _dirty.MarkSaved();
+                return true;
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Save failed:\n{ex.Message}",
                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
+        }
+
+        /// <summary>Save (asking for a path the first time). Button, Ctrl+S, and the unsaved-changes prompt.</summary>
+        private bool SaveInteractive()
+        {
+            if (string.IsNullOrEmpty(_jsonPath) && !PromptForSavePath()) return false;
+            return SaveToCurrentPath();
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == (Keys.Control | Keys.S))
+            {
+                SaveInteractive();
+                return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (!e.Cancel && !_dirty.ConfirmDiscard(SaveInteractive)) e.Cancel = true;
+            base.OnFormClosing(e);
         }
 
         // ------------------------------------------------------------------
@@ -500,12 +520,13 @@ namespace ESDeckPC
         // Helpers
         // ------------------------------------------------------------------
 
+        private string TitleText() =>
+            _jsonPath != null ? $"Monitor Editor - {Path.GetFileName(_jsonPath)}" : "Monitor Editor";
+
         private void UpdateJsonPathLabel()
         {
             lblJsonPath.Text = _jsonPath != null ? Path.GetFileName(_jsonPath) : "(no file)";
-            this.Text = _jsonPath != null
-                ? $"Monitor Editor - {Path.GetFileName(_jsonPath)}"
-                : "Monitor Editor";
+            _dirty?.RefreshTitle();
         }
 
         /// <summary>

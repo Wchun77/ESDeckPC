@@ -74,16 +74,9 @@ namespace ESDeckPC
 
         private void BtnBrowse_Click(object sender, EventArgs e)
         {
-            string picked;
-            using (var dlg = new OpenFileDialog())
-            {
-                dlg.Title = "Select side icon";
-                dlg.Filter = "PNG image (*.png)|*.png";
-                if (!string.IsNullOrEmpty(_sideIconsDir) && Directory.Exists(_sideIconsDir))
-                    dlg.InitialDirectory = _sideIconsDir;
-                if (dlg.ShowDialog(this) != DialogResult.OK) return;
-                picked = dlg.FileName;
-            }
+            string picked = FormAssetPicker.Pick(this, "Select side icon", _sideIconsDir, "*.png",
+                                                 FormAssetPicker.SideIconThumb, _fileName);
+            if (picked == null) return;
 
             string name = Path.GetFileName(picked);
             if (!string.IsNullOrEmpty(_sideIconsDir) && Directory.Exists(_sideIconsDir) &&

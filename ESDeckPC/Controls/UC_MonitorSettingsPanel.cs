@@ -16,6 +16,7 @@ namespace ESDeckPC
     public partial class UC_MonitorSettingsPanel : UserControl
     {
         private Bitmap _bgBitmap = null;
+        private string _bgDir;   // assets\backgrounds, for the picker
         public Bitmap BgBitmap => _bgBitmap;
 
         /// <summary>
@@ -48,6 +49,7 @@ namespace ESDeckPC
         /// </summary>
         public void ApplyConfig(MonitorSettingsCfg cfg, string backgroundsDir)
         {
+            if (!string.IsNullOrEmpty(backgroundsDir)) _bgDir = backgroundsDir;   // the picker opens here
             _isApplying = true;
             try
             {
@@ -82,23 +84,20 @@ namespace ESDeckPC
 
         private void BtnSettingsBgBrowse_Click(object sender, EventArgs e)
         {
-            using (var dlg = new OpenFileDialog())
+            string picked = FormAssetPicker.Pick(this, "Select background image", _bgDir, "*.jpg;*.jpeg",
+                                                 FormAssetPicker.BackgroundThumb, txtSettingsBgImage.Text);
+            if (picked == null) return;
+            try
             {
-                dlg.Title = "Select background image";
-                dlg.Filter = "JPEG image (*.jpg;*.jpeg)|*.jpg;*.jpeg";
-                if (dlg.ShowDialog() != DialogResult.OK) return;
-                try
-                {
-                    _bgBitmap?.Dispose();
-                    _bgBitmap = new Bitmap(dlg.FileName);
-                    txtSettingsBgImage.Text = Path.GetFileName(dlg.FileName);
-                    RaisePreviewInvalidated();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Failed to load image:\n{ex.Message}",
-                                   "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                _bgBitmap?.Dispose();
+                _bgBitmap = new Bitmap(picked);
+                txtSettingsBgImage.Text = Path.GetFileName(picked);
+                RaisePreviewInvalidated();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load image:\n{ex.Message}",
+                               "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
