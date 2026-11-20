@@ -109,7 +109,7 @@
             this.flowTop.Location = new System.Drawing.Point(0, 0);
             this.flowTop.Name = "flowTop";
             this.flowTop.Padding = new System.Windows.Forms.Padding(10, 8, 10, 0);
-            this.flowTop.Size = new System.Drawing.Size(864, 44);
+            this.flowTop.Size = new System.Drawing.Size(820, 44);
             this.flowTop.TabIndex = 0;
             this.flowTop.WrapContents = false;
             // 
@@ -193,9 +193,9 @@
             // tableTop
             // 
             this.tableTop.ColumnCount = 3;
-            this.tableTop.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 45F));
+            this.tableTop.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 40F));
             this.tableTop.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 110F));
-            this.tableTop.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 55F));
+            this.tableTop.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 60F));
             this.tableTop.Controls.Add(this.panelLeft, 0, 0);
             this.tableTop.Controls.Add(this.flowMid, 1, 0);
             this.tableTop.Controls.Add(this.panelRight, 2, 0);
@@ -205,7 +205,7 @@
             this.tableTop.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
             this.tableTop.RowCount = 1;
             this.tableTop.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableTop.Size = new System.Drawing.Size(864, 220);
+            this.tableTop.Size = new System.Drawing.Size(820, 220);
             this.tableTop.TabIndex = 7;
             // 
             // panelLeft
@@ -216,7 +216,7 @@
             this.panelLeft.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelLeft.Location = new System.Drawing.Point(13, 7);
             this.panelLeft.Name = "panelLeft";
-            this.panelLeft.Size = new System.Drawing.Size(324, 206);
+            this.panelLeft.Size = new System.Drawing.Size(270, 206);
             this.panelLeft.TabIndex = 8;
             // 
             // lstLibrary
@@ -230,7 +230,7 @@
             this.lstLibrary.ItemHeight = 15;
             this.lstLibrary.Location = new System.Drawing.Point(0, 45);
             this.lstLibrary.Name = "lstLibrary";
-            this.lstLibrary.Size = new System.Drawing.Size(324, 161);
+            this.lstLibrary.Size = new System.Drawing.Size(270, 161);
             this.lstLibrary.TabIndex = 9;
             this.lstLibrary.SelectedIndexChanged += new System.EventHandler(this.lstLibrary_SelectedIndexChanged);
             this.lstLibrary.Format += new System.Windows.Forms.ListControlConvertEventHandler(this.lstLibrary_Format);
@@ -243,7 +243,7 @@
             this.panelSearch.Location = new System.Drawing.Point(0, 15);
             this.panelSearch.Name = "panelSearch";
             this.panelSearch.Padding = new System.Windows.Forms.Padding(0, 2, 0, 4);
-            this.panelSearch.Size = new System.Drawing.Size(324, 30);
+            this.panelSearch.Size = new System.Drawing.Size(270, 30);
             this.panelSearch.TabIndex = 10;
             // 
             // txtSearch
@@ -254,7 +254,7 @@
             this.txtSearch.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.txtSearch.Location = new System.Drawing.Point(0, 2);
             this.txtSearch.Name = "txtSearch";
-            this.txtSearch.Size = new System.Drawing.Size(324, 23);
+            this.txtSearch.Size = new System.Drawing.Size(270, 23);
             this.txtSearch.TabIndex = 11;
             this.txtSearch.TextChanged += new System.EventHandler(this.txtSearch_TextChanged);
             this.txtSearch.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtSearch_KeyDown);
@@ -278,7 +278,7 @@
             this.flowMid.Controls.Add(this.btnDown);
             this.flowMid.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowMid.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
-            this.flowMid.Location = new System.Drawing.Point(343, 7);
+            this.flowMid.Location = new System.Drawing.Point(289, 7);
             this.flowMid.Name = "flowMid";
             this.flowMid.Padding = new System.Windows.Forms.Padding(8, 24, 0, 0);
             this.flowMid.Size = new System.Drawing.Size(104, 206);
@@ -347,9 +347,9 @@
             this.panelRight.Controls.Add(this.lstPages);
             this.panelRight.Controls.Add(this.lblPages);
             this.panelRight.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelRight.Location = new System.Drawing.Point(453, 7);
+            this.panelRight.Location = new System.Drawing.Point(399, 7);
             this.panelRight.Name = "panelRight";
-            this.panelRight.Size = new System.Drawing.Size(398, 206);
+            this.panelRight.Size = new System.Drawing.Size(408, 206);
             this.panelRight.TabIndex = 18;
             // 
             // tableDetails
@@ -372,7 +372,7 @@
             this.tableDetails.RowCount = 2;
             this.tableDetails.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableDetails.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.tableDetails.Size = new System.Drawing.Size(398, 76);
+            this.tableDetails.Size = new System.Drawing.Size(408, 76);
             this.tableDetails.TabIndex = 19;
             // 
             // lblName
@@ -458,7 +458,7 @@
             this.lstPages.ItemHeight = 15;
             this.lstPages.Location = new System.Drawing.Point(0, 15);
             this.lstPages.Name = "lstPages";
-            this.lstPages.Size = new System.Drawing.Size(398, 68);
+            this.lstPages.Size = new System.Drawing.Size(408, 68);
             this.lstPages.TabIndex = 25;
             this.lstPages.SelectedIndexChanged += new System.EventHandler(this.lstPages_SelectedIndexChanged);
             // 
@@ -481,7 +481,7 @@
             this.panelPreview.Location = new System.Drawing.Point(0, 264);
             this.panelPreview.Name = "panelPreview";
             this.panelPreview.Padding = new System.Windows.Forms.Padding(10, 0, 10, 4);
-            this.panelPreview.Size = new System.Drawing.Size(864, 540);
+            this.panelPreview.Size = new System.Drawing.Size(820, 540);
             this.panelPreview.TabIndex = 27;
             // 
             // panelPrevArea
@@ -491,7 +491,7 @@
             this.panelPrevArea.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelPrevArea.Location = new System.Drawing.Point(10, 52);
             this.panelPrevArea.Name = "panelPrevArea";
-            this.panelPrevArea.Size = new System.Drawing.Size(844, 484);
+            this.panelPrevArea.Size = new System.Drawing.Size(800, 484);
             this.panelPrevArea.TabIndex = 28;
             // 
             // picSide
@@ -537,7 +537,7 @@
             this.flowPrevHead.Location = new System.Drawing.Point(10, 0);
             this.flowPrevHead.Name = "flowPrevHead";
             this.flowPrevHead.Padding = new System.Windows.Forms.Padding(0, 8, 0, 0);
-            this.flowPrevHead.Size = new System.Drawing.Size(844, 52);
+            this.flowPrevHead.Size = new System.Drawing.Size(800, 52);
             this.flowPrevHead.TabIndex = 30;
             this.flowPrevHead.WrapContents = false;
             // 
@@ -606,7 +606,7 @@
             this.flowLook.Location = new System.Drawing.Point(0, 804);
             this.flowLook.Name = "flowLook";
             this.flowLook.Padding = new System.Windows.Forms.Padding(10, 6, 10, 0);
-            this.flowLook.Size = new System.Drawing.Size(864, 40);
+            this.flowLook.Size = new System.Drawing.Size(820, 40);
             this.flowLook.TabIndex = 35;
             this.flowLook.WrapContents = false;
             // 
@@ -692,7 +692,7 @@
             this.flowBottom.Location = new System.Drawing.Point(0, 844);
             this.flowBottom.Name = "flowBottom";
             this.flowBottom.Padding = new System.Windows.Forms.Padding(10, 6, 10, 0);
-            this.flowBottom.Size = new System.Drawing.Size(864, 42);
+            this.flowBottom.Size = new System.Drawing.Size(820, 42);
             this.flowBottom.TabIndex = 42;
             this.flowBottom.WrapContents = false;
             // 
@@ -758,7 +758,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
-            this.ClientSize = new System.Drawing.Size(864, 886);
+            this.ClientSize = new System.Drawing.Size(820, 886);
             this.Controls.Add(this.panelPreview);
             this.Controls.Add(this.tableTop);
             this.Controls.Add(this.flowLook);
@@ -768,7 +768,7 @@
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(880, 640);
+            this.MinimumSize = new System.Drawing.Size(836, 640);
             this.Name = "FormCanvasEditor";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Canvas Editor";
