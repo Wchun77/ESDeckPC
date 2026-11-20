@@ -171,6 +171,9 @@ namespace ESDeckPC
             Scroll(-e.Delta / 120 * EspSidebarRenderer.Step);
         }
 
+        /// <summary>Page index at a client point, EspSidebarRenderer.HitGear, or HitNone (the "+" slot counts as none).</summary>
+        public int HitTest(Point p) => EspSidebarRenderer.HitPages(p, _items.Count, _scroll);
+
         private bool CanDrag(int idx) => idx >= FixedLeading && idx < _items.Count && _items.Count - FixedLeading > 1;
 
         private void Scroll(int dy)

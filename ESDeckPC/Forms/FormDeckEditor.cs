@@ -25,14 +25,17 @@ namespace ESDeckPC
 
         private DeckPreviewPanel _preview;
 
-        // Settings entry (btnSettingsPage) -- not part of _deckConfig.Pages,
-        // shown/hidden the same way FormMonitorEditor's fixed Clock button
-        // works. Tracked separately since lstPages' own SelectedIndex can't
-        // represent "Settings selected".
+        // Selected sidebar entry: a page (_pageIdx) or the gear (Settings,
+        // not part of _deckConfig.Pages; _pageIdx is -1 then).
+        private int _pageIdx = -1;
         private bool _settingsSelected = false;
-        private int _sideScroll = 0;   // picSide: page column scroll, follows the selected page
-        private static readonly Color ColSettingsNormal = Color.FromArgb(45, 45, 48);
-        private static readonly Color ColSettingsSelected = Color.FromArgb(0, 85, 204);
+        private bool _binding = false;   // BindProps() filling the panel: don't write back
+
+        // UI_DECK_CONFIG_MAX_PAGES in ui_deck_config.h
+        private const int MaxPages = 255;
+
+        private DeckPage CurrentPage =>
+            !_settingsSelected && _pageIdx >= 0 && _pageIdx < _deckConfig.Pages.Count ? _deckConfig.Pages[_pageIdx] : null;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
@@ -49,14 +52,16 @@ namespace ESDeckPC
         {
             InitializeComponent();
 
-            // Create DeckPreviewPanel and attach to picDeckPreview's location/size
+            StyleDarkButtons();
+
+            // Create DeckPreviewPanel and attach to picPreview's location/size
             _preview = new DeckPreviewPanel
             {
-                Location = picDeckPreview.Location,
-                Size = picDeckPreview.Size,
+                Location = picPreview.Location,
+                Size = picPreview.Size,
             };
-            picDeckPreview.Visible = false; // keep in Designer, hidden at runtime
-            grpPreview.Controls.Add(_preview);
+            picPreview.Visible = false; // keep in Designer, hidden at runtime
+            pnlPreview.Controls.Add(_preview);
             _preview.BringToFront();
 
             _preview.EditButtonRequested += Preview_EditButtonRequested;
@@ -64,26 +69,61 @@ namespace ESDeckPC
             _preview.ClearButtonRequested += Preview_ClearButtonRequested;
             _preview.ReorderCompleted += (s, e) => UpdatePageList();
             _preview.ButtonClicked += Preview_ButtonClicked;
-            _preview.MoveButtonRequested += (s, e) => MoveButton(lstPages.SelectedIndex, e.ButtonIndex, e.TargetPage);
+            _preview.MoveButtonRequested += (s, e) => MoveButton(_pageIdx, e.ButtonIndex, e.TargetPage);
             _preview.DragOutside += Preview_DragOutside;
-            _preview.MoveHiddenRequested += (s, target) => MoveHiddenButtons(lstPages.SelectedIndex, target);
+            _preview.MoveHiddenRequested += (s, target) => MoveHiddenButtons(_pageIdx, target);
 
-            lstPages.SelectedIndexChanged += lstPages_SelectedIndexChanged;
-            lstPages.MouseUp += lstPages_MouseUp;
-            lstPages.KeyDown += lstPages_KeyDown;
             btnJsonNew.Click += BtnJsonNew_Click;
             btnJsonOpen.Click += BtnJsonOpen_Click;
-            btnSave.Click += BtnSave_Click;
-            btnSaveAs.Click += BtnSaveAs_Click;
+            btnJsonSave.Click += BtnSave_Click;
+            btnJsonSaveAs.Click += BtnSaveAs_Click;
 
-            btnSettingsPage.BackColor = ColSettingsNormal;
-            btnSettingsPage.Click += (s, e) => ShowSettingsPreview();
-            btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
-            picSide.MouseUp += PicSide_MouseUp;
+            // The sidebar is the page list, the left panel the selected entry's properties.
+            sideView.ItemClick += SideView_ItemClick;
+            sideView.ItemMenu += SideView_ItemMenu;
+            sideView.ItemMoved += (s, e) => MovePage(e.From, e.To);
+            sideView.AddClick += (s, e) => AddPage();
+            txtPageName.TextChanged += TxtPageName_TextChanged;
+            ucSideIcon.Changed += UcSideIcon_Changed;
+            ucBg.PreviewInvalidated += UcBg_PreviewInvalidated;
 
             LoadPages();
             UpdateJsonPathLabel();
+            ActiveControl = sideView;   // don't start with the caret in a text box
         }
+
+        private void StyleDarkButtons()
+        {
+            var darkBg = Color.FromArgb(55, 55, 58);
+            var darkBorder = Color.FromArgb(80, 80, 80);
+            var lightFg = Color.FromArgb(220, 220, 220);
+            var font = new Font("Consolas", 8.5f);
+
+            foreach (var btn in new[] { btnJsonNew, btnJsonOpen, btnJsonSave, btnJsonSaveAs })
+            {
+                btn.BackColor = darkBg;
+                btn.ForeColor = lightFg;
+                btn.FlatStyle = FlatStyle.Flat;
+                btn.FlatAppearance.BorderColor = darkBorder;
+                btn.Font = font;
+            }
+        }
+
+        private void SetStatus(string msg) => lblStatus.Text = msg;
+
+        /// <summary>Status line: what's shown, its button count, and a missing background.</summary>
+        private void UpdateStatus()
+        {
+            var page = CurrentPage;
+            string bg = page != null ? page.BgImage : _deckConfig.Settings.BgImage;
+            string bgNote = !string.IsNullOrEmpty(bg) && !string.IsNullOrEmpty(_assetsBackgroundsDir) &&
+                            !File.Exists(Path.Combine(_assetsBackgroundsDir, bg))
+                ? "  [bg image not found on disk]" : "";
+            SetStatus(page != null
+                ? $"Page: {page.Name}  |  {page.Buttons.Count}/{DeckPreviewPanel.MaxButtons} buttons{bgNote}"
+                : $"Settings{bgNote}");
+        }
+
 
         // ------------------------------------------------------------------
         // Asset path resolution (same rule as MonitorEditor)
@@ -123,31 +163,28 @@ namespace ESDeckPC
 
         private void LoadPages()
         {
-            lstPages.Items.Clear();
-            foreach (var pg in _deckConfig.Pages)
-                lstPages.Items.Add($"{pg.Name} ({pg.Buttons.Count})");
-
-            if (lstPages.Items.Count > 0)
-                lstPages.SelectedIndex = 0;
+            if (_deckConfig.Pages.Count > 0)
+                SelectPage(0);
             else
                 ShowSettingsPreview();   // nothing else to show; also clears a stale page
         }
 
-        private void lstPages_SelectedIndexChanged(object sender, EventArgs e)
+        private void SelectPage(int idx)
         {
-            int idx = lstPages.SelectedIndex;
             if (idx < 0 || idx >= _deckConfig.Pages.Count) return;
+            _settingsSelected = false;
+            _pageIdx = idx;
 
-            SetSettingsButtonSelected(false);
             _preview.AllowButtons = true;
             SyncMoveTargets();
             _preview.SetPage(_deckConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
+            BindProps();
             RefreshSidebar();
         }
 
         // ------------------------------------------------------------------
         // Moving a button to another page: right-click > Move to Page, or
-        // drag it from the preview onto a page in the page list. It goes to
+        // drag it from the preview onto a page in the sidebar. It goes to
         // the end of that page; the current page stays shown.
         // ------------------------------------------------------------------
 
@@ -162,15 +199,15 @@ namespace ESDeckPC
             }
             _preview.MoveTargetNames = names;
             _preview.MoveTargetFull = full;
-            _preview.CurrentPageIndex = lstPages.SelectedIndex;
+            _preview.CurrentPageIndex = _pageIdx;
         }
 
         private void Preview_DragOutside(object sender, DeckDragOutsideEventArgs e)
         {
-            int from = lstPages.SelectedIndex;
-            Point pt = lstPages.PointToClient(e.ScreenPoint);
-            int to = lstPages.ClientRectangle.Contains(pt) ? lstPages.IndexFromPoint(pt) : ListBox.NoMatches;
-            e.Accept = to != ListBox.NoMatches && to != from && to < _deckConfig.Pages.Count &&
+            int from = _pageIdx;
+            Point pt = sideView.PointToClient(e.ScreenPoint);
+            int to = sideView.ClientRectangle.Contains(pt) ? sideView.HitTest(pt) : EspSidebarRenderer.HitNone;
+            e.Accept = to >= 0 && to != from && to < _deckConfig.Pages.Count &&
                        _deckConfig.Pages[to].Buttons.Count < DeckPreviewPanel.MaxButtons;
             if (e.Accept && e.Released) MoveButton(from, e.ButtonIndex, to);
         }
@@ -229,23 +266,16 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // Settings entry (fixed, not part of _deckConfig.Pages -- same idea as
-        // FormMonitorEditor's btnClockPage). Preview is background-only:
-        // Settings has no buttons in the schema, so AllowButtons is turned
-        // off and the wrapper DeckPage we build here always has an empty
-        // Buttons list.
+        // Settings entry (the gear; fixed, not part of _deckConfig.Pages).
+        // Preview is background-only: Settings has no buttons in the schema,
+        // so AllowButtons is turned off and the wrapper DeckPage we build
+        // here always has an empty Buttons list.
         // ------------------------------------------------------------------
-
-        private void SetSettingsButtonSelected(bool selected)
-        {
-            _settingsSelected = selected;
-            btnSettingsPage.BackColor = selected ? ColSettingsSelected : ColSettingsNormal;
-        }
 
         private void ShowSettingsPreview()
         {
-            lstPages.SelectedIndex = -1;   // harmless no-op via the idx<0 guard above
-            SetSettingsButtonSelected(true);
+            _settingsSelected = true;
+            _pageIdx = -1;
 
             _preview.AllowButtons = false;
             var settingsPage = new DeckPage
@@ -255,13 +285,80 @@ namespace ESDeckPC
                 Buttons = new List<DeckButton>(),
             };
             _preview.SetPage(settingsPage, _assetsBackgroundsDir, _assetsIconsDir);
+            BindProps();
             RefreshSidebar();
         }
 
         // ------------------------------------------------------------------
-        // Sidebar preview (picSide): the ESP's page column and gear next to
-        // the content preview, so side icons can be compared in place.
-        // Left click shows that page / Settings, right click sets its icon.
+        // Properties panel (left): page name, side icon and background of
+        // the selected page, or side icon and background of Settings.
+        // ------------------------------------------------------------------
+
+        private void BindProps()
+        {
+            _binding = true;
+            try
+            {
+                var page = CurrentPage;
+                pnlName.Visible = page != null;
+                if (page != null)
+                {
+                    txtPageName.Text = page.Name ?? "";
+                    ucSideIcon.Bind(page.SideIcon, _assetsSideIconsDir, page.Name);
+                    ucBg.ApplyConfig(page.BgImage, _assetsBackgroundsDir, "Page background");
+                }
+                else
+                {
+                    ucSideIcon.Bind(_deckConfig.Settings.SideIcon, _assetsSideIconsDir, "Settings");
+                    ucBg.ApplyConfig(_deckConfig.Settings.BgImage, _assetsBackgroundsDir, "Settings background");
+                }
+            }
+            finally { _binding = false; }
+        }
+
+        private void TxtPageName_TextChanged(object sender, EventArgs e)
+        {
+            var page = CurrentPage;
+            if (_binding || page == null) return;
+            page.Name = txtPageName.Text;
+            SyncMoveTargets();   // names in the preview's Move to Page menu
+            RefreshSidebar();    // a button without a side icon shows the name
+        }
+
+        private void UcSideIcon_Changed(object sender, EventArgs e)
+        {
+            if (_binding) return;
+            var page = CurrentPage;
+            if (page != null) page.SideIcon = ucSideIcon.FileName;
+            else _deckConfig.Settings.SideIcon = ucSideIcon.FileName;
+            RefreshSidebar();
+        }
+
+        private void UcBg_PreviewInvalidated(object sender, EventArgs e)
+        {
+            if (_binding) return;
+            var page = CurrentPage;
+            if (page != null)
+            {
+                page.BgImage = ucBg.ReadBgImage();
+                _preview.SetPage(page, _assetsBackgroundsDir, _assetsIconsDir);
+                UpdateStatus();
+            }
+            else
+            {
+                _deckConfig.Settings.BgImage = ucBg.ReadBgImage();
+                ShowSettingsPreview();
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Sidebar (sideView): the ESP's page column and gear as the page list.
+        //   click        page / gear -> its preview and properties
+        //   drag         reorder pages
+        //   "+"          add a page
+        //   right click  Delete Page / Add Page
+        //   wheel        scroll when there are more pages than fit
+        // A button dragged out of the preview onto a sidebar page moves there.
         // ------------------------------------------------------------------
 
         private void RefreshSidebar()
@@ -269,76 +366,43 @@ namespace ESDeckPC
             var items = _deckConfig.Pages
                 .Select(p => new SidebarItem(EspSidebarRenderer.Resolve(_assetsSideIconsDir, p.SideIcon), p.Name))
                 .ToList();
-            int sel = _settingsSelected ? -1 : lstPages.SelectedIndex;
-            _sideScroll = EspSidebarRenderer.ScrollToShow(_sideScroll, sel, items.Count);
-            var bmp = EspSidebarRenderer.RenderPages(items,
-                EspSidebarRenderer.Resolve(_assetsSideIconsDir, _deckConfig.Settings.SideIcon),
-                sel, _settingsSelected, _sideScroll);
-            var old = picSide.Image;
-            picSide.Image = bmp;
-            old?.Dispose();
+            sideView.AllowAdd = _deckConfig.Pages.Count < MaxPages;
+            sideView.SetItems(items, EspSidebarRenderer.Resolve(_assetsSideIconsDir, _deckConfig.Settings.SideIcon),
+                              _settingsSelected ? -1 : _pageIdx, _settingsSelected);
+            UpdateStatus();
         }
 
-        private void PicSide_MouseUp(object sender, MouseEventArgs e)
+        private void SideView_ItemClick(object sender, int idx)
         {
-            int hit = EspSidebarRenderer.HitPages(e.Location, _deckConfig.Pages.Count, _sideScroll);
-            if (hit == EspSidebarRenderer.HitNone) return;
-            if (e.Button == MouseButtons.Left)
-            {
-                if (hit == EspSidebarRenderer.HitGear) ShowSettingsPreview();
-                else lstPages.SelectedIndex = hit;
-            }
-            else if (e.Button == MouseButtons.Right)
-            {
-                if (hit == EspSidebarRenderer.HitGear) SetSettingsSideIcon();
-                else SetPageSideIcon(hit);
-            }
+            if (idx == EspSidebarRenderer.HitGear) ShowSettingsPreview();
+            else SelectPage(idx);
         }
 
-        private void SetPageSideIcon(int idx)
+        private void SideView_ItemMenu(object sender, SidebarMenuEventArgs e)
         {
-            string name = FormSideIconPicker.Show(this, "Set Side Icon",
-                _deckConfig.Pages[idx].SideIcon ?? "", _deckConfig.Pages[idx].Name, _assetsSideIconsDir);
-            if (name == null) return;
-            _deckConfig.Pages[idx].SideIcon = name;
-            RefreshSidebar();
-        }
-
-        private void SetSettingsSideIcon()
-        {
-            string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
-                _deckConfig.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
-            if (name == null) return;
-            _deckConfig.Settings.SideIcon = name;
-            RefreshSidebar();
-        }
-
-        private void BtnSettingsPage_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-
             var menu = new ContextMenuStrip();
             menu.BackColor = Color.FromArgb(45, 45, 48);
             menu.ForeColor = Color.FromArgb(220, 220, 220);
             menu.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
             menu.ShowImageMargin = false;
 
-            var itemBg = new ToolStripMenuItem("Set Background") { ForeColor = Color.FromArgb(220, 220, 220) };
-            itemBg.Click += (s, ev) =>
+            var itemAdd = new ToolStripMenuItem("Add Page")
             {
-                string name = PromptBackground(_deckConfig.Settings.BgImage ?? "");
-                if (name == null) return;
-                _deckConfig.Settings.BgImage = name;
-                if (_settingsSelected)
-                    ShowSettingsPreview();
+                ForeColor = Color.FromArgb(220, 220, 220),
+                Enabled = _deckConfig.Pages.Count < MaxPages,
             };
-            menu.Items.Add(itemBg);
+            itemAdd.Click += (s, ev) => AddPage();
+            menu.Items.Add(itemAdd);
 
-            var itemSideIcon = new ToolStripMenuItem("Set Side Icon") { ForeColor = Color.FromArgb(220, 220, 220) };
-            itemSideIcon.Click += (s, ev) => SetSettingsSideIcon();
-            menu.Items.Add(itemSideIcon);
-
-            menu.Show(btnSettingsPage, e.Location);
+            if (e.Index >= 0)
+            {
+                int idx = e.Index;
+                var itemDel = new ToolStripMenuItem("Delete Page") { ForeColor = Color.FromArgb(220, 80, 80) };
+                itemDel.Click += (s, ev) => DeletePage(idx);
+                menu.Items.Add(new ToolStripSeparator());
+                menu.Items.Add(itemDel);
+            }
+            menu.Show(e.ScreenPoint);
         }
 
         // ------------------------------------------------------------------
@@ -347,14 +411,14 @@ namespace ESDeckPC
 
         private void Preview_EditButtonRequested(object sender, int btnIdx)
         {
-            int pageIdx = lstPages.SelectedIndex;
+            int pageIdx = _pageIdx;
             if (pageIdx < 0 || pageIdx >= _deckConfig.Pages.Count) return;
             OpenButtonEditor(_deckConfig.Pages[pageIdx], btnIdx);
         }
 
         private void Preview_AddButtonRequested(object sender, EventArgs e)
         {
-            int pageIdx = lstPages.SelectedIndex;
+            int pageIdx = _pageIdx;
             if (pageIdx < 0 || pageIdx >= _deckConfig.Pages.Count) return;
 
             var page = _deckConfig.Pages[pageIdx];
@@ -380,7 +444,7 @@ namespace ESDeckPC
 
         private void Preview_ClearButtonRequested(object sender, int btnIdx)
         {
-            int pageIdx = lstPages.SelectedIndex;
+            int pageIdx = _pageIdx;
             if (pageIdx < 0 || pageIdx >= _deckConfig.Pages.Count) return;
             var page = _deckConfig.Pages[pageIdx];
             if (btnIdx < 0 || btnIdx >= page.Buttons.Count) return;
@@ -397,7 +461,7 @@ namespace ESDeckPC
 
         private void Preview_ButtonClicked(object sender, int btnIdx)
         {
-            int pageIdx = lstPages.SelectedIndex;
+            int pageIdx = _pageIdx;
             if (pageIdx < 0 || pageIdx >= _deckConfig.Pages.Count) return;
             var page = _deckConfig.Pages[pageIdx];
             if (btnIdx < 0 || btnIdx >= page.Buttons.Count) return;
@@ -566,7 +630,7 @@ namespace ESDeckPC
                 // and the ESP reads the bytes as is.
                 File.WriteAllText(_jsonPath,
                     JsonConvert.SerializeObject(_deckConfig, Formatting.Indented));
-                lblJsonPath.Text = $"Saved: {Path.GetFileName(_jsonPath)}";
+                SetStatus($"Saved: {Path.GetFileName(_jsonPath)}");
             }
             catch (Exception ex)
             {
@@ -584,101 +648,23 @@ namespace ESDeckPC
         }
 
         // ------------------------------------------------------------------
-        // Page list management (preserved from original)
+        // Page list management
         // ------------------------------------------------------------------
 
+        /// <summary>Pages or their buttons changed: refresh the move targets and the sidebar.</summary>
         private void UpdatePageList()
         {
-            int sel = lstPages.SelectedIndex;
-            lstPages.Items.Clear();
-            foreach (var pg in _deckConfig.Pages)
-                lstPages.Items.Add($"{pg.Name} ({pg.Buttons.Count})");
-            if (sel >= 0 && sel < lstPages.Items.Count)
-                lstPages.SelectedIndex = sel;
-            SyncMoveTargets();   // page added / renamed / removed
+            SyncMoveTargets();
             RefreshSidebar();
-        }
-
-        private void lstPages_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right) return;
-
-            int idx = lstPages.IndexFromPoint(e.Location);
-
-            var menu = new ContextMenuStrip();
-            menu.BackColor = Color.FromArgb(45, 45, 48);
-            menu.ForeColor = Color.FromArgb(220, 220, 220);
-            menu.Renderer = new ToolStripProfessionalRenderer(new DarkColorTable());
-            menu.ShowImageMargin = false;
-
-            var itemAdd = new ToolStripMenuItem("Add Page") { ForeColor = Color.FromArgb(220, 220, 220) };
-            itemAdd.Click += (s, ev) => AddPage();
-            menu.Items.Add(itemAdd);
-
-            if (idx >= 0)
-            {
-                var itemRename = new ToolStripMenuItem("Rename") { ForeColor = Color.FromArgb(220, 220, 220) };
-                itemRename.Click += (s, ev) => RenamePage(idx);
-
-                var itemBg = new ToolStripMenuItem("Set Background") { ForeColor = Color.FromArgb(220, 220, 220) };
-                itemBg.Click += (s, ev) =>
-                {
-                    string name = PromptBackground(_deckConfig.Pages[idx].BgImage ?? "");
-                    if (name == null) return;
-                    _deckConfig.Pages[idx].BgImage = name;
-                    int sel = lstPages.SelectedIndex;
-                    if (sel == idx)
-                        _preview.SetPage(_deckConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
-                };
-                menu.Items.Add(itemBg);
-
-                var itemSideIcon = new ToolStripMenuItem("Set Side Icon") { ForeColor = Color.FromArgb(220, 220, 220) };
-                itemSideIcon.Click += (s, ev) => SetPageSideIcon(idx);
-                menu.Items.Add(itemSideIcon);
-
-                var itemDel = new ToolStripMenuItem("Delete Page") { ForeColor = Color.FromArgb(220, 80, 80) };
-                itemDel.Click += (s, ev) => DeletePage(idx);
-
-                menu.Items.Add(new ToolStripSeparator());
-                menu.Items.Add(itemRename);
-
-                if (idx > 0)
-                {
-                    var itemUp = new ToolStripMenuItem("Move Up") { ForeColor = Color.FromArgb(220, 220, 220) };
-                    itemUp.Click += (s, ev) => MovePage(idx, idx - 1);
-                    menu.Items.Add(itemUp);
-                }
-
-                if (idx < _deckConfig.Pages.Count - 1)
-                {
-                    var itemDown = new ToolStripMenuItem("Move Down") { ForeColor = Color.FromArgb(220, 220, 220) };
-                    itemDown.Click += (s, ev) => MovePage(idx, idx + 1);
-                    menu.Items.Add(itemDown);
-                }
-
-                menu.Items.Add(new ToolStripSeparator());
-                menu.Items.Add(itemDel);
-            }
-
-            menu.Show(lstPages, e.Location);
         }
 
         private void AddPage()
         {
-            string name = PromptInput("Add Page", "Page name:");
+            if (_deckConfig.Pages.Count >= MaxPages) return;
+            string name = FormPageNamePrompt.Show(this, "New page", $"Page {_deckConfig.Pages.Count + 1}");
             if (string.IsNullOrWhiteSpace(name)) return;
             _deckConfig.Pages.Add(new DeckPage { Name = name });
-            UpdatePageList();
-            lstPages.SelectedIndex = lstPages.Items.Count - 1;
-        }
-
-        private void RenamePage(int idx)
-        {
-            string name = PromptInput("Rename Page", "New name:", _deckConfig.Pages[idx].Name);
-            if (string.IsNullOrWhiteSpace(name)) return;
-            _deckConfig.Pages[idx].Name = name;
-            UpdatePageList();
-            lstPages.SelectedIndex = idx;
+            SelectPage(_deckConfig.Pages.Count - 1);
         }
 
         private void DeletePage(int idx)
@@ -695,183 +681,23 @@ namespace ESDeckPC
                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (result != DialogResult.Yes) return;
 
+            var shown = CurrentPage;
             _deckConfig.Pages.RemoveAt(idx);
-            UpdatePageList();
-            lstPages.SelectedIndex = Math.Min(idx, lstPages.Items.Count - 1);
+            if (_settingsSelected) UpdatePageList();
+            else if (shown != null && _deckConfig.Pages.Contains(shown)) SelectPage(_deckConfig.Pages.IndexOf(shown));
+            else SelectPage(Math.Min(idx, _deckConfig.Pages.Count - 1));
         }
 
-        private void lstPages_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (!e.Control) return;
-            int idx = lstPages.SelectedIndex;
-            if (idx < 0) return;
-
-            if (e.KeyCode == Keys.Up && idx > 0)
-            {
-                MovePage(idx, idx - 1);
-                e.SuppressKeyPress = true;
-            }
-            else if (e.KeyCode == Keys.Down && idx < lstPages.Items.Count - 1)
-            {
-                MovePage(idx, idx + 1);
-                e.SuppressKeyPress = true;
-            }
-        }
-
+        /// <summary>Sidebar drag: page oldIdx goes to newIdx; the shown page stays shown.</summary>
         private void MovePage(int oldIdx, int newIdx)
         {
+            var shown = CurrentPage;
             var page = _deckConfig.Pages[oldIdx];
             _deckConfig.Pages.RemoveAt(oldIdx);
             _deckConfig.Pages.Insert(newIdx, page);
+            if (shown != null) _pageIdx = _deckConfig.Pages.IndexOf(shown);
+            _preview.CurrentPageIndex = _pageIdx;
             UpdatePageList();
-            lstPages.SelectedIndex = newIdx;
-        }
-
-        // ------------------------------------------------------------------
-        // Helpers
-        // ------------------------------------------------------------------
-
-        /// <summary>
-        /// Shows a small dialog for picking a background image.
-        /// Returns the short filename on OK, empty string on Clear+OK, or null on Cancel.
-        /// </summary>
-        private string PromptBackground(string currentFileName)
-        {
-            var dlgForm = new Form
-            {
-                Text = "Set Background",
-                ClientSize = new Size(360, 90),
-                FormBorderStyle = FormBorderStyle.FixedDialog,
-                StartPosition = FormStartPosition.CenterParent,
-                MaximizeBox = false,
-                MinimizeBox = false,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(220, 220, 220),
-                Font = this.Font,
-            };
-
-            int v = 1;
-            DwmSetWindowAttribute(dlgForm.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref v, sizeof(int));
-
-            var darkBg = Color.FromArgb(45, 45, 48);
-            var darkBorder = Color.FromArgb(80, 80, 80);
-            var lightFg = Color.FromArgb(220, 220, 220);
-
-            var txt = new TextBox
-            {
-                Text = currentFileName,
-                Location = new Point(12, 12),
-                Size = new Size(336, 22),
-                BackColor = darkBg,
-                ForeColor = lightFg,
-                BorderStyle = BorderStyle.FixedSingle,
-                ReadOnly = true,
-            };
-
-            var btnBrowse = new Button
-            {
-                Text = "Browse",
-                Location = new Point(12, 46),
-                Size = new Size(90, 26),
-                BackColor = darkBg,
-                ForeColor = lightFg,
-                FlatStyle = FlatStyle.Flat,
-            };
-            btnBrowse.FlatAppearance.BorderColor = darkBorder;
-
-            var btnClear = new Button
-            {
-                Text = "Clear",
-                Location = new Point(108, 46),
-                Size = new Size(90, 26),
-                BackColor = darkBg,
-                ForeColor = lightFg,
-                FlatStyle = FlatStyle.Flat,
-            };
-            btnClear.FlatAppearance.BorderColor = darkBorder;
-
-            var btnOk = new Button
-            {
-                Text = "OK",
-                Location = new Point(258, 46),
-                Size = new Size(90, 26),
-                BackColor = Color.FromArgb(0, 122, 204),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                DialogResult = DialogResult.OK,
-            };
-            btnOk.FlatAppearance.BorderColor = Color.FromArgb(0, 100, 180);
-
-            btnBrowse.Click += (s, e) =>
-            {
-                using (var ofd = new OpenFileDialog())
-                {
-                    ofd.Title = "Select background image";
-                    ofd.Filter = "JPEG image (*.jpg;*.jpeg)|*.jpg;*.jpeg";
-                    if (!string.IsNullOrEmpty(_assetsBackgroundsDir) &&
-                        Directory.Exists(_assetsBackgroundsDir))
-                        ofd.InitialDirectory = _assetsBackgroundsDir;
-                    if (ofd.ShowDialog() == DialogResult.OK)
-                        txt.Text = Path.GetFileName(ofd.FileName);
-                }
-            };
-
-            btnClear.Click += (s, e) => txt.Text = "";
-
-            dlgForm.Controls.AddRange(new Control[] { txt, btnBrowse, btnClear, btnOk });
-            dlgForm.AcceptButton = btnOk;
-
-            if (dlgForm.ShowDialog(this) == DialogResult.OK)
-                return txt.Text.Trim();
-
-            return null;
-        }
-
-        private string PromptInput(string title, string label, string defaultValue = "")
-        {
-            Form prompt = new Form
-            {
-                Text = title,
-                ClientSize = new Size(300, 100),
-                FormBorderStyle = FormBorderStyle.FixedDialog,
-                StartPosition = FormStartPosition.CenterParent,
-                MaximizeBox = false,
-                MinimizeBox = false,
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.FromArgb(220, 220, 220),
-                Font = this.Font,
-            };
-
-            int value = 1;
-            DwmSetWindowAttribute(prompt.Handle, 20, ref value, sizeof(int));
-
-            var lbl = new Label { Text = label, Location = new Point(12, 12), AutoSize = true, ForeColor = Color.Gray };
-            var txt = new TextBox
-            {
-                Text = defaultValue,
-                Location = new Point(12, 28),
-                Width = 270,
-                BackColor = Color.FromArgb(45, 45, 48),
-                ForeColor = Color.FromArgb(220, 220, 220),
-                BorderStyle = BorderStyle.FixedSingle
-            };
-            var btn = new Button
-            {
-                Text = "OK",
-                Location = new Point(207, 58),
-                Width = 75,
-                Height = 26,
-                BackColor = Color.FromArgb(0, 122, 204),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                DialogResult = DialogResult.OK
-            };
-            btn.FlatAppearance.BorderColor = Color.FromArgb(0, 100, 180);
-
-            prompt.Controls.AddRange(new Control[] { lbl, txt, btn });
-            prompt.AcceptButton = btn;
-
-            return prompt.ShowDialog() == DialogResult.OK ? txt.Text.Trim() : null;
         }
     }
 }
