@@ -30,6 +30,7 @@ namespace ESDeckPC
             this.pnlSettingsHost = new System.Windows.Forms.Panel();
             this.pnlPreview = new System.Windows.Forms.Panel();
             this.picPreview = new System.Windows.Forms.PictureBox();
+            this.picSide = new System.Windows.Forms.PictureBox();
             this.lblStatus = new System.Windows.Forms.Label();
             this.TLPanel_FULL.SuspendLayout();
             this.paneltop.SuspendLayout();
@@ -37,6 +38,7 @@ namespace ESDeckPC
             this.TLPanel_BOTTOM.SuspendLayout();
             this.pnlPreview.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picPreview)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picSide)).BeginInit();
             this.SuspendLayout();
             // 
             // TLPanel_FULL
@@ -51,7 +53,7 @@ namespace ESDeckPC
             this.TLPanel_FULL.RowCount = 2;
             this.TLPanel_FULL.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.TLPanel_FULL.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 550F));
-            this.TLPanel_FULL.Size = new System.Drawing.Size(1046, 648);
+            this.TLPanel_FULL.Size = new System.Drawing.Size(1126, 648);
             this.TLPanel_FULL.TabIndex = 0;
             // 
             // paneltop
@@ -150,8 +152,8 @@ namespace ESDeckPC
             // TLPanel_BOTTOM
             // 
             this.TLPanel_BOTTOM.ColumnCount = 2;
-            this.TLPanel_BOTTOM.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 27.21154F));
-            this.TLPanel_BOTTOM.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 72.78846F));
+            this.TLPanel_BOTTOM.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25.26786F));
+            this.TLPanel_BOTTOM.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 74.73214F));
             this.TLPanel_BOTTOM.Controls.Add(this.pnlSettingsHost, 0, 0);
             this.TLPanel_BOTTOM.Controls.Add(this.pnlPreview, 1, 0);
             this.TLPanel_BOTTOM.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -159,7 +161,7 @@ namespace ESDeckPC
             this.TLPanel_BOTTOM.Name = "TLPanel_BOTTOM";
             this.TLPanel_BOTTOM.RowCount = 1;
             this.TLPanel_BOTTOM.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.TLPanel_BOTTOM.Size = new System.Drawing.Size(1040, 544);
+            this.TLPanel_BOTTOM.Size = new System.Drawing.Size(1120, 544);
             this.TLPanel_BOTTOM.TabIndex = 2;
             // 
             // pnlSettingsHost
@@ -175,23 +177,33 @@ namespace ESDeckPC
             // pnlPreview
             // 
             this.pnlPreview.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
+            this.pnlPreview.Controls.Add(this.picSide);
             this.pnlPreview.Controls.Add(this.picPreview);
             this.pnlPreview.Controls.Add(this.lblStatus);
             this.pnlPreview.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlPreview.Location = new System.Drawing.Point(286, 3);
             this.pnlPreview.Name = "pnlPreview";
-            this.pnlPreview.Size = new System.Drawing.Size(751, 538);
+            this.pnlPreview.Size = new System.Drawing.Size(831, 538);
             this.pnlPreview.TabIndex = 2;
             // 
             // picPreview
             // 
             this.picPreview.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
             this.picPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.picPreview.Location = new System.Drawing.Point(13, 11);
+            this.picPreview.Location = new System.Drawing.Point(93, 11);
             this.picPreview.Name = "picPreview";
             this.picPreview.Size = new System.Drawing.Size(720, 480);
             this.picPreview.TabIndex = 0;
             this.picPreview.TabStop = false;
+            // 
+            // picSide
+            // 
+            this.picSide.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(17)))), ((int)(((byte)(17)))), ((int)(((byte)(17)))));
+            this.picSide.Location = new System.Drawing.Point(13, 11);
+            this.picSide.Name = "picSide";
+            this.picSide.Size = new System.Drawing.Size(80, 480);
+            this.picSide.TabIndex = 4;
+            this.picSide.TabStop = false;
             // 
             // lblStatus
             // 
@@ -201,7 +213,7 @@ namespace ESDeckPC
             this.lblStatus.Location = new System.Drawing.Point(0, 518);
             this.lblStatus.Name = "lblStatus";
             this.lblStatus.Padding = new System.Windows.Forms.Padding(4, 0, 0, 0);
-            this.lblStatus.Size = new System.Drawing.Size(751, 20);
+            this.lblStatus.Size = new System.Drawing.Size(831, 20);
             this.lblStatus.TabIndex = 1;
             this.lblStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
@@ -210,13 +222,13 @@ namespace ESDeckPC
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(28)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
-            this.ClientSize = new System.Drawing.Size(1046, 648);
+            this.ClientSize = new System.Drawing.Size(1126, 648);
             this.Controls.Add(this.TLPanel_FULL);
             this.Font = new System.Drawing.Font("Consolas", 9F);
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(820, 580);
+            this.MinimumSize = new System.Drawing.Size(900, 580);
             this.Name = "FormTouchpadEditor";
             this.ShowIcon = false;
             this.Text = "Touchpad Editor";
@@ -226,6 +238,7 @@ namespace ESDeckPC
             this.TLPanel_BOTTOM.ResumeLayout(false);
             this.pnlPreview.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.picPreview)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picSide)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -243,6 +256,7 @@ namespace ESDeckPC
         private System.Windows.Forms.Panel pnlSettingsHost;
         private System.Windows.Forms.Panel pnlPreview;
         private System.Windows.Forms.PictureBox picPreview;
+        private System.Windows.Forms.PictureBox picSide;
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Button btnTouchpadPage;
         private System.Windows.Forms.Button btnSettingsPage;

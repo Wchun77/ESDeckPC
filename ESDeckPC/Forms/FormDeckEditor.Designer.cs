@@ -21,6 +21,7 @@
             this.btnSettingsPage = new System.Windows.Forms.Button();
             this.grpPreview = new System.Windows.Forms.GroupBox();
             this.picDeckPreview = new System.Windows.Forms.PictureBox();
+            this.picSide = new System.Windows.Forms.PictureBox();
             this.pnlBottom = new System.Windows.Forms.Panel();
             this.btnSaveAs = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
@@ -34,6 +35,7 @@
             this.grpPages.SuspendLayout();
             this.grpPreview.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picDeckPreview)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picSide)).BeginInit();
             this.pnlBottom.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -54,7 +56,7 @@
             // 
             this.splitMain.Panel2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.splitMain.Panel2.Controls.Add(this.grpPreview);
-            this.splitMain.Size = new System.Drawing.Size(871, 512);
+            this.splitMain.Size = new System.Drawing.Size(951, 512);
             this.splitMain.SplitterDistance = 121;
             this.splitMain.TabIndex = 0;
             // 
@@ -102,13 +104,14 @@
             // 
             // grpPreview
             // 
+            this.grpPreview.Controls.Add(this.picSide);
             this.grpPreview.Controls.Add(this.picDeckPreview);
             this.grpPreview.Dock = System.Windows.Forms.DockStyle.Fill;
             this.grpPreview.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.grpPreview.Location = new System.Drawing.Point(0, 0);
             this.grpPreview.Name = "grpPreview";
             this.grpPreview.Padding = new System.Windows.Forms.Padding(8, 4, 8, 8);
-            this.grpPreview.Size = new System.Drawing.Size(746, 512);
+            this.grpPreview.Size = new System.Drawing.Size(826, 512);
             this.grpPreview.TabIndex = 0;
             this.grpPreview.TabStop = false;
             this.grpPreview.Text = "Preview";
@@ -117,11 +120,20 @@
             // 
             this.picDeckPreview.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(18)))), ((int)(((byte)(18)))), ((int)(((byte)(18)))));
             this.picDeckPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.picDeckPreview.Location = new System.Drawing.Point(11, 19);
+            this.picDeckPreview.Location = new System.Drawing.Point(91, 19);
             this.picDeckPreview.Name = "picDeckPreview";
             this.picDeckPreview.Size = new System.Drawing.Size(720, 480);
             this.picDeckPreview.TabIndex = 1;
             this.picDeckPreview.TabStop = false;
+            // 
+            // picSide
+            // 
+            this.picSide.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(17)))), ((int)(((byte)(17)))), ((int)(((byte)(17)))));
+            this.picSide.Location = new System.Drawing.Point(11, 19);
+            this.picSide.Name = "picSide";
+            this.picSide.Size = new System.Drawing.Size(80, 480);
+            this.picSide.TabIndex = 2;
+            this.picSide.TabStop = false;
             // 
             // pnlBottom
             // 
@@ -135,7 +147,7 @@
             this.pnlBottom.Location = new System.Drawing.Point(0, 512);
             this.pnlBottom.Name = "pnlBottom";
             this.pnlBottom.Padding = new System.Windows.Forms.Padding(8, 6, 8, 6);
-            this.pnlBottom.Size = new System.Drawing.Size(871, 40);
+            this.pnlBottom.Size = new System.Drawing.Size(951, 40);
             this.pnlBottom.TabIndex = 1;
             // 
             // btnSaveAs
@@ -146,7 +158,7 @@
             this.btnSaveAs.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSaveAs.Font = new System.Drawing.Font("Consolas", 9F);
             this.btnSaveAs.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.btnSaveAs.Location = new System.Drawing.Point(779, 6);
+            this.btnSaveAs.Location = new System.Drawing.Point(859, 6);
             this.btnSaveAs.Name = "btnSaveAs";
             this.btnSaveAs.Size = new System.Drawing.Size(80, 26);
             this.btnSaveAs.TabIndex = 4;
@@ -161,7 +173,7 @@
             this.btnSave.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSave.Font = new System.Drawing.Font("Consolas", 9F);
             this.btnSave.ForeColor = System.Drawing.Color.White;
-            this.btnSave.Location = new System.Drawing.Point(693, 6);
+            this.btnSave.Location = new System.Drawing.Point(773, 6);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(80, 26);
             this.btnSave.TabIndex = 3;
@@ -177,7 +189,7 @@
             this.lblJsonPath.ForeColor = System.Drawing.Color.Gray;
             this.lblJsonPath.Location = new System.Drawing.Point(144, 12);
             this.lblJsonPath.Name = "lblJsonPath";
-            this.lblJsonPath.Size = new System.Drawing.Size(540, 16);
+            this.lblJsonPath.Size = new System.Drawing.Size(620, 16);
             this.lblJsonPath.TabIndex = 2;
             this.lblJsonPath.Text = "(no file)";
             // 
@@ -214,7 +226,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
-            this.ClientSize = new System.Drawing.Size(871, 552);
+            this.ClientSize = new System.Drawing.Size(951, 552);
             this.Controls.Add(this.splitMain);
             this.Controls.Add(this.pnlBottom);
             this.Font = new System.Drawing.Font("Consolas", 9F);
@@ -233,6 +245,7 @@
             this.grpPages.ResumeLayout(false);
             this.grpPreview.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.picDeckPreview)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picSide)).EndInit();
             this.pnlBottom.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -252,5 +265,6 @@
         private System.Windows.Forms.Button btnJsonOpen;
         private System.Windows.Forms.Label lblJsonPath;
         private System.Windows.Forms.PictureBox picDeckPreview;
+        private System.Windows.Forms.PictureBox picSide;
     }
 }

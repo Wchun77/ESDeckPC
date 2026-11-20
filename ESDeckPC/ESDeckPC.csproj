@@ -198,6 +198,7 @@
     <Compile Include="Config\MonitorConfig.cs" />
     <Compile Include="Renderers\MonitorPageRenderer.cs" />
     <Compile Include="Config\MediaConfig.cs" />
+    <Compile Include="Renderers\EspSidebarRenderer.cs" />
     <Compile Include="Renderers\MediaPreviewRenderer.cs" />
     <Compile Include="Config\TouchpadConfig.cs" />
     <Compile Include="Renderers\TouchpadPreviewRenderer.cs" />

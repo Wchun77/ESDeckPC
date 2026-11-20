@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -84,6 +85,7 @@ namespace ESDeckPC
             btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
             btnTouchpadPage.MouseUp += BtnTouchpadPage_MouseUp;
             btnSidebarPage.Click += (s, e) => ShowSidebarPage();
+            picSide.MouseUp += PicSide_MouseUp;
 
             ShowTouchpadSettings();
         }
@@ -129,14 +131,7 @@ namespace ESDeckPC
 
             var cms = BuildDarkMenu();
             var miKbIcon = new ToolStripMenuItem("Set Keyboard Icon");
-            miKbIcon.Click += (s, ev) =>
-            {
-                string name = FormSideIconPicker.Show(this, "Set Keyboard Icon",
-                    _cfg.KeyboardIcon ?? "", "KB", _assetsSideIconsDir);
-                if (name == null) return;
-                _cfg.KeyboardIcon = name;
-                RefreshPreview();   // status line / sidebar preview
-            };
+            miKbIcon.Click += (s, ev) => SetKeyboardIcon();
             cms.Items.Add(miKbIcon);
 
             cms.Show(Cursor.Position);
@@ -148,13 +143,7 @@ namespace ESDeckPC
 
             var cms = BuildDarkMenu();
             var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, ev) =>
-            {
-                string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
-                    _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
-                if (name == null) return;
-                _cfg.Settings.SideIcon = name;
-            };
+            miSideIcon.Click += (s, ev) => SetSettingsSideIcon();
             cms.Items.Add(miSideIcon);
 
             cms.Show(Cursor.Position);
@@ -381,13 +370,14 @@ namespace ESDeckPC
         private void RefreshPreview()
         {
             ReadUiIntoConfig();
+            RefreshSidebar();
 
             Bitmap newBmp;
             if (_sidebarSelected)
             {
-                // The preview box is the 720x480 content area only -- the
-                // sidebar isn't part of it, so there's nothing to show here.
-                newBmp = TouchpadPreviewRenderer.RenderNoPreview();
+                // The hotkeys show in picSide; keep the touchpad page in the
+                // content area so the whole screen reads as on the device.
+                newBmp = TouchpadPreviewRenderer.Render(_ucTouchpadBg?.BgBitmap);
 
                 string err = _ucSidebar?.Validate();
                 SetStatus(err != null
@@ -431,6 +421,62 @@ namespace ESDeckPC
         }
 
         private void SetStatus(string msg) => lblStatus.Text = msg;
+
+        // ------------------------------------------------------------------
+        // Sidebar preview (picSide): the ESP's Touchpad sidebar as it looks
+        // with the device's Sidebar setting on Hotkeys -- keyboard button,
+        // hotkeys, gear. Left click: keyboard -> Touchpad, hotkey -> Sidebar,
+        // gear -> Settings. Right click on the keyboard / gear sets its icon;
+        // hotkey icons are edited on the Sidebar entry.
+        // ------------------------------------------------------------------
+
+        private void RefreshSidebar()
+        {
+            var hotkeys = new List<SidebarItem>();
+            foreach (var hk in _cfg.Hotkeys)
+                hotkeys.Add(new SidebarItem(EspSidebarRenderer.Resolve(_assetsSideIconsDir, hk.Icon),
+                    !string.IsNullOrEmpty(hk.Label) ? hk.Label : string.Join("+", hk.Keys)));
+            var bmp = EspSidebarRenderer.RenderTouchpad(
+                EspSidebarRenderer.Resolve(_assetsSideIconsDir, _cfg.KeyboardIcon), hotkeys,
+                EspSidebarRenderer.Resolve(_assetsSideIconsDir, _cfg.Settings.SideIcon), _settingsSelected);
+            var old = picSide.Image;
+            picSide.Image = bmp;
+            old?.Dispose();
+        }
+
+        private void PicSide_MouseUp(object sender, MouseEventArgs e)
+        {
+            int hit = EspSidebarRenderer.HitTouchpad(e.Location, _cfg.Hotkeys.Count);
+            bool left = e.Button == MouseButtons.Left, right = e.Button == MouseButtons.Right;
+            if (hit == EspSidebarRenderer.HitKeyboard)
+            {
+                if (left) ShowTouchpadSettings(); else if (right) SetKeyboardIcon();
+            }
+            else if (hit == EspSidebarRenderer.HitGear)
+            {
+                if (left) ShowSettingsPage(); else if (right) SetSettingsSideIcon();
+            }
+            else if (hit >= 0 && (left || right))
+                ShowSidebarPage();
+        }
+
+        private void SetKeyboardIcon()
+        {
+            string name = FormSideIconPicker.Show(this, "Set Keyboard Icon",
+                _cfg.KeyboardIcon ?? "", "KB", _assetsSideIconsDir);
+            if (name == null) return;
+            _cfg.KeyboardIcon = name;
+            RefreshPreview();   // status line / sidebar preview
+        }
+
+        private void SetSettingsSideIcon()
+        {
+            string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
+                _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
+            if (name == null) return;
+            _cfg.Settings.SideIcon = name;
+            RefreshPreview();   // status line / sidebar preview
+        }
 
         // ------------------------------------------------------------------
         // Config <-> UI sync

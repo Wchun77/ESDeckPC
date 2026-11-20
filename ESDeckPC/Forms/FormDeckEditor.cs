@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -29,6 +30,7 @@ namespace ESDeckPC
         // works. Tracked separately since lstPages' own SelectedIndex can't
         // represent "Settings selected".
         private bool _settingsSelected = false;
+        private int _sideScroll = 0;   // picSide: page column scroll, follows the selected page
         private static readonly Color ColSettingsNormal = Color.FromArgb(45, 45, 48);
         private static readonly Color ColSettingsSelected = Color.FromArgb(0, 85, 204);
 
@@ -77,6 +79,7 @@ namespace ESDeckPC
             btnSettingsPage.BackColor = ColSettingsNormal;
             btnSettingsPage.Click += (s, e) => ShowSettingsPreview();
             btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
+            picSide.MouseUp += PicSide_MouseUp;
 
             LoadPages();
             UpdateJsonPathLabel();
@@ -139,6 +142,7 @@ namespace ESDeckPC
             _preview.AllowButtons = true;
             SyncMoveTargets();
             _preview.SetPage(_deckConfig.Pages[idx], _assetsBackgroundsDir, _assetsIconsDir);
+            RefreshSidebar();
         }
 
         // ------------------------------------------------------------------
@@ -251,6 +255,62 @@ namespace ESDeckPC
                 Buttons = new List<DeckButton>(),
             };
             _preview.SetPage(settingsPage, _assetsBackgroundsDir, _assetsIconsDir);
+            RefreshSidebar();
+        }
+
+        // ------------------------------------------------------------------
+        // Sidebar preview (picSide): the ESP's page column and gear next to
+        // the content preview, so side icons can be compared in place.
+        // Left click shows that page / Settings, right click sets its icon.
+        // ------------------------------------------------------------------
+
+        private void RefreshSidebar()
+        {
+            var items = _deckConfig.Pages
+                .Select(p => new SidebarItem(EspSidebarRenderer.Resolve(_assetsSideIconsDir, p.SideIcon), p.Name))
+                .ToList();
+            int sel = _settingsSelected ? -1 : lstPages.SelectedIndex;
+            _sideScroll = EspSidebarRenderer.ScrollToShow(_sideScroll, sel, items.Count);
+            var bmp = EspSidebarRenderer.RenderPages(items,
+                EspSidebarRenderer.Resolve(_assetsSideIconsDir, _deckConfig.Settings.SideIcon),
+                sel, _settingsSelected, _sideScroll);
+            var old = picSide.Image;
+            picSide.Image = bmp;
+            old?.Dispose();
+        }
+
+        private void PicSide_MouseUp(object sender, MouseEventArgs e)
+        {
+            int hit = EspSidebarRenderer.HitPages(e.Location, _deckConfig.Pages.Count, _sideScroll);
+            if (hit == EspSidebarRenderer.HitNone) return;
+            if (e.Button == MouseButtons.Left)
+            {
+                if (hit == EspSidebarRenderer.HitGear) ShowSettingsPreview();
+                else lstPages.SelectedIndex = hit;
+            }
+            else if (e.Button == MouseButtons.Right)
+            {
+                if (hit == EspSidebarRenderer.HitGear) SetSettingsSideIcon();
+                else SetPageSideIcon(hit);
+            }
+        }
+
+        private void SetPageSideIcon(int idx)
+        {
+            string name = FormSideIconPicker.Show(this, "Set Side Icon",
+                _deckConfig.Pages[idx].SideIcon ?? "", _deckConfig.Pages[idx].Name, _assetsSideIconsDir);
+            if (name == null) return;
+            _deckConfig.Pages[idx].SideIcon = name;
+            RefreshSidebar();
+        }
+
+        private void SetSettingsSideIcon()
+        {
+            string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
+                _deckConfig.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
+            if (name == null) return;
+            _deckConfig.Settings.SideIcon = name;
+            RefreshSidebar();
         }
 
         private void BtnSettingsPage_MouseUp(object sender, MouseEventArgs e)
@@ -275,15 +335,7 @@ namespace ESDeckPC
             menu.Items.Add(itemBg);
 
             var itemSideIcon = new ToolStripMenuItem("Set Side Icon") { ForeColor = Color.FromArgb(220, 220, 220) };
-            itemSideIcon.Click += (s, ev) =>
-            {
-                string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
-                    _deckConfig.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
-                if (name == null) return;
-                _deckConfig.Settings.SideIcon = name;
-                // No _preview refresh -- same as page side_icon, DeckPreviewPanel
-                // shows the grid/background, not the sidebar switcher.
-            };
+            itemSideIcon.Click += (s, ev) => SetSettingsSideIcon();
             menu.Items.Add(itemSideIcon);
 
             menu.Show(btnSettingsPage, e.Location);
@@ -544,6 +596,7 @@ namespace ESDeckPC
             if (sel >= 0 && sel < lstPages.Items.Count)
                 lstPages.SelectedIndex = sel;
             SyncMoveTargets();   // page added / renamed / removed
+            RefreshSidebar();
         }
 
         private void lstPages_MouseUp(object sender, MouseEventArgs e)
@@ -580,16 +633,7 @@ namespace ESDeckPC
                 menu.Items.Add(itemBg);
 
                 var itemSideIcon = new ToolStripMenuItem("Set Side Icon") { ForeColor = Color.FromArgb(220, 220, 220) };
-                itemSideIcon.Click += (s, ev) =>
-                {
-                    string name = FormSideIconPicker.Show(this, "Set Side Icon",
-                        _deckConfig.Pages[idx].SideIcon ?? "", _deckConfig.Pages[idx].Name, _assetsSideIconsDir);
-                    if (name == null) return;
-                    _deckConfig.Pages[idx].SideIcon = name;
-                    // No _preview refresh here -- DeckPreviewPanel shows the
-                    // grid page (buttons/background), not the sidebar page
-                    // switcher, so side_icon has nothing to redraw there.
-                };
+                itemSideIcon.Click += (s, ev) => SetPageSideIcon(idx);
                 menu.Items.Add(itemSideIcon);
 
                 var itemDel = new ToolStripMenuItem("Delete Page") { ForeColor = Color.FromArgb(220, 80, 80) };

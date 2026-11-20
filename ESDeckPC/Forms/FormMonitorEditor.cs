@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -86,6 +87,7 @@ namespace ESDeckPC
             btnClockPage.MouseUp += BtnClockPage_MouseUp;
             btnSettingsPage.Click += (s, e) => ShowSettingsPage();
             btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
+            picSide.MouseUp += PicSide_MouseUp;
 
             flpPages.AllowDrop = true;
             flpPages.MouseUp += FlpPages_MouseUp;
@@ -114,6 +116,7 @@ namespace ESDeckPC
 
             foreach (var page in _cfg.Pages)
                 flpPages.Controls.Add(CreatePageButton(page));
+            RefreshSidebar();
         }
 
         private Button CreatePageButton(MonitorPageCfg page)
@@ -233,6 +236,7 @@ namespace ESDeckPC
                                             .ToList();
             _cfg.Pages.Clear();
             _cfg.Pages.AddRange(ordered);
+            RefreshSidebar();
         }
 
         // ------------------------------------------------------------------
@@ -272,13 +276,7 @@ namespace ESDeckPC
             cms.Items.Add(miEdit);
 
             var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, e) =>
-            {
-                string name = FormSideIconPicker.Show(this, "Set Side Icon",
-                    page.SideIcon ?? "", page.Name, _assetsSideIconsDir);
-                if (name == null) return;
-                page.SideIcon = name;
-            };
+            miSideIcon.Click += (s, e) => SetPageSideIcon(page);
             cms.Items.Add(miSideIcon);
 
             var miDelete = new ToolStripMenuItem("Delete");
@@ -335,6 +333,7 @@ namespace ESDeckPC
             btn.Text = name;
             if (_ucPage != null && _ucPage.BoundPage == page)
                 _ucPage.ApplyConfig(page, _assetsBackgroundsDir); // refresh name textbox if currently shown
+            RefreshSidebar();   // name shows on a button without a side icon
         }
 
         private void DeletePage(Button btn, MonitorPageCfg page)
@@ -353,6 +352,8 @@ namespace ESDeckPC
 
             if (_selectedPage == page)
                 ShowClockSettings(); // fall back to Clock if the deleted page was selected
+            else
+                RefreshSidebar();
         }
 
         // ------------------------------------------------------------------
@@ -370,13 +371,7 @@ namespace ESDeckPC
 
             var cms = BuildDarkMenu();
             var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, ev) =>
-            {
-                string name = FormSideIconPicker.Show(this, "Set Side Icon - Clock",
-                    _cfg.Clock.SideIcon ?? "", "Clock", _assetsSideIconsDir);
-                if (name == null) return;
-                _cfg.Clock.SideIcon = name;
-            };
+            miSideIcon.Click += (s, ev) => SetClockSideIcon();
             cms.Items.Add(miSideIcon);
 
             cms.Show(Cursor.Position);
@@ -467,13 +462,7 @@ namespace ESDeckPC
             var cms = BuildDarkMenu();
 
             var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, ev) =>
-            {
-                string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
-                    _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
-                if (name == null) return;
-                _cfg.Settings.SideIcon = name;
-            };
+            miSideIcon.Click += (s, ev) => SetSettingsSideIcon();
             cms.Items.Add(miSideIcon);
 
             cms.Show(Cursor.Position);
@@ -613,6 +602,7 @@ namespace ESDeckPC
         private void RefreshPreview()
         {
             ReadUiIntoConfig();
+            RefreshSidebar();
 
             Bitmap newBmp;
             if (_settingsSelected)
@@ -650,6 +640,76 @@ namespace ESDeckPC
         }
 
         private void SetStatus(string msg) => lblStatus.Text = msg;
+
+        // ------------------------------------------------------------------
+        // Sidebar preview (picSide): the ESP's sidebar (Clock + data pages,
+        // gear) next to the content preview, so side icons can be compared
+        // in place. Left click shows that entry, right click sets its icon.
+        // ------------------------------------------------------------------
+
+        private void RefreshSidebar()
+        {
+            var items = new List<SidebarItem>
+            {
+                new SidebarItem(EspSidebarRenderer.Resolve(_assetsSideIconsDir, _cfg.Clock.SideIcon), "Clock"),
+            };
+            foreach (var p in _cfg.Pages)
+                items.Add(new SidebarItem(EspSidebarRenderer.Resolve(_assetsSideIconsDir, p.SideIcon), p.Name));
+            int sel = _settingsSelected ? -1 : _selectedPage == null ? 0 : _cfg.Pages.IndexOf(_selectedPage) + 1;
+            var bmp = EspSidebarRenderer.RenderPages(items,
+                EspSidebarRenderer.Resolve(_assetsSideIconsDir, _cfg.Settings.SideIcon),
+                sel, _settingsSelected, 0);
+            var old = picSide.Image;
+            picSide.Image = bmp;
+            old?.Dispose();
+        }
+
+        private void PicSide_MouseUp(object sender, MouseEventArgs e)
+        {
+            int hit = EspSidebarRenderer.HitPages(e.Location, _cfg.Pages.Count + 1, 0);
+            if (hit == EspSidebarRenderer.HitNone) return;
+            bool left = e.Button == MouseButtons.Left, right = e.Button == MouseButtons.Right;
+            if (hit == EspSidebarRenderer.HitGear)
+            {
+                if (left) ShowSettingsPage(); else if (right) SetSettingsSideIcon();
+            }
+            else if (hit == 0)
+            {
+                if (left) ShowClockSettings(); else if (right) SetClockSideIcon();
+            }
+            else
+            {
+                var page = _cfg.Pages[hit - 1];
+                if (left) ShowPageSettings(page); else if (right) SetPageSideIcon(page);
+            }
+        }
+
+        private void SetClockSideIcon()
+        {
+            string name = FormSideIconPicker.Show(this, "Set Side Icon - Clock",
+                _cfg.Clock.SideIcon ?? "", "Clock", _assetsSideIconsDir);
+            if (name == null) return;
+            _cfg.Clock.SideIcon = name;
+            RefreshSidebar();
+        }
+
+        private void SetPageSideIcon(MonitorPageCfg page)
+        {
+            string name = FormSideIconPicker.Show(this, "Set Side Icon",
+                page.SideIcon ?? "", page.Name, _assetsSideIconsDir);
+            if (name == null) return;
+            page.SideIcon = name;
+            RefreshSidebar();
+        }
+
+        private void SetSettingsSideIcon()
+        {
+            string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
+                _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
+            if (name == null) return;
+            _cfg.Settings.SideIcon = name;
+            RefreshSidebar();
+        }
 
         // ------------------------------------------------------------------
         // Config <-> UI sync

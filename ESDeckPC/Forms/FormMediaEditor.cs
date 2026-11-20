@@ -81,6 +81,7 @@ namespace ESDeckPC
             btnPlayerPage.Click += (s, e) => ShowPlayerSettings();
             btnSettingsPage.Click += (s, e) => ShowSettingsPage();
             btnSettingsPage.MouseUp += BtnSettingsPage_MouseUp;
+            picSide.MouseUp += PicSide_MouseUp;
 
             ShowPlayerSettings();
         }
@@ -124,13 +125,7 @@ namespace ESDeckPC
 
             var cms = BuildDarkMenu();
             var miSideIcon = new ToolStripMenuItem("Set Side Icon");
-            miSideIcon.Click += (s, ev) =>
-            {
-                string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
-                    _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
-                if (name == null) return;
-                _cfg.Settings.SideIcon = name;
-            };
+            miSideIcon.Click += (s, ev) => SetSettingsSideIcon();
             cms.Items.Add(miSideIcon);
 
             cms.Show(Cursor.Position);
@@ -321,6 +316,7 @@ namespace ESDeckPC
         private void RefreshPreview()
         {
             ReadUiIntoConfig();
+            RefreshSidebar();
 
             Bitmap newBmp;
             if (_settingsSelected)
@@ -357,6 +353,43 @@ namespace ESDeckPC
         }
 
         private void SetStatus(string msg) => lblStatus.Text = msg;
+
+        // ------------------------------------------------------------------
+        // Sidebar preview (picSide): the ESP's Media sidebar -- level bar
+        // (shown at a fixed level) and the gear. Left click on the bar shows
+        // the Player, on the gear Settings; right click on the gear sets its
+        // side icon.
+        // ------------------------------------------------------------------
+
+        private void RefreshSidebar()
+        {
+            var bmp = EspSidebarRenderer.RenderMedia(
+                EspSidebarRenderer.Resolve(_assetsSideIconsDir, _cfg.Settings.SideIcon), _settingsSelected, 60);
+            var old = picSide.Image;
+            picSide.Image = bmp;
+            old?.Dispose();
+        }
+
+        private void PicSide_MouseUp(object sender, MouseEventArgs e)
+        {
+            int hit = EspSidebarRenderer.HitMedia(e.Location);
+            if (hit == EspSidebarRenderer.HitGear)
+            {
+                if (e.Button == MouseButtons.Left) ShowSettingsPage();
+                else if (e.Button == MouseButtons.Right) SetSettingsSideIcon();
+            }
+            else if (hit == EspSidebarRenderer.HitContent && e.Button == MouseButtons.Left)
+                ShowPlayerSettings();
+        }
+
+        private void SetSettingsSideIcon()
+        {
+            string name = FormSideIconPicker.Show(this, "Set Side Icon - Settings",
+                _cfg.Settings.SideIcon ?? "", "Settings", _assetsSideIconsDir);
+            if (name == null) return;
+            _cfg.Settings.SideIcon = name;
+            RefreshPreview();   // status line shows the side_icon too
+        }
 
         // ------------------------------------------------------------------
         // Config <-> UI sync
