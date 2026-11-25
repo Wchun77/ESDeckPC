@@ -32,7 +32,13 @@ namespace ESDeckPC
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, ref Point lParam);
         private const int LVM_SETICONSPACING = 0x1000 + 53;
+        private const int LVM_GETORIGIN = 0x1000 + 41;
+        private const int LVM_SCROLL = 0x1000 + 20;
+
+        private int _spacing;   // last LVM_SETICONSPACING value (cy << 16 | cx), 0 = not set yet
 
         protected override void OnHandleCreated(EventArgs e)
         {
@@ -58,16 +64,33 @@ namespace ESDeckPC
         /// Spread the columns over the whole width: as many cells of at least
         /// the thumbnail + room for the name as fit, then share out what's left
         /// (LargeIcon's fixed spacing otherwise leaves a strip on the right).
+        /// The width always leaves room for the vertical scroll bar: going by
+        /// ClientSize instead made the column count flip whenever the bar came
+        /// or went, which re-arranged, which brought / removed the bar again --
+        /// the flicker after clearing the filter.
         /// </summary>
         private void FitColumns()
         {
             if (!lvAssets.IsHandleCreated) return;
-            int avail = lvAssets.ClientSize.Width;
+            int avail = lvAssets.Width - SystemInformation.BorderSize.Width * 2 - SystemInformation.VerticalScrollBarWidth;
             int min = Math.Max(_thumb.Width + 28, 110);
             int cols = Math.Max(1, avail / min);
             int cx = avail / cols, cy = _thumb.Height + 44;
-            SendMessage(lvAssets.Handle, LVM_SETICONSPACING, IntPtr.Zero, (IntPtr)((cy << 16) | (cx & 0xFFFF)));
+            int spacing = (cy << 16) | (cx & 0xFFFF);
+            if (spacing == _spacing) return;   // nothing to re-arrange
+            _spacing = spacing;
+            SendMessage(lvAssets.Handle, LVM_SETICONSPACING, IntPtr.Zero, (IntPtr)spacing);
             lvAssets.ArrangeIcons();
+        }
+
+        /// <summary>Scroll the view back to its top-left corner.</summary>
+        private void ScrollToOrigin()
+        {
+            if (!lvAssets.IsHandleCreated || lvAssets.Items.Count == 0) return;
+            var origin = Point.Empty;
+            SendMessage(lvAssets.Handle, LVM_GETORIGIN, IntPtr.Zero, ref origin);
+            if (origin.X != 0 || origin.Y != 0)
+                SendMessage(lvAssets.Handle, LVM_SCROLL, (IntPtr)(-origin.X), (IntPtr)(-origin.Y));
         }
 
         private FormAssetPicker(string title, string dir, string[] patterns, string fileFilter, Size thumb, string current)
@@ -94,7 +117,7 @@ namespace ESDeckPC
 
             txtFilter.TextChanged += (s, e) => Fill(txtFilter.Text.Trim());
             lvAssets.ItemActivate += (s, e) => Accept();
-            lvAssets.ClientSizeChanged += (s, e) => FitColumns();
+            lvAssets.Resize += (s, e) => FitColumns();   // the control's own size, not its client area (see FitColumns)
             lvAssets.SelectedIndexChanged += (s, e) => btnOk.Enabled = lvAssets.SelectedItems.Count > 0;
             btnOk.Click += (s, e) => Accept();
             btnOther.Click += BtnOther_Click;
@@ -103,14 +126,26 @@ namespace ESDeckPC
 
         private void Fill(string filter)
         {
+            // Keep the selection if it's still in the filtered list.
+            string selected = lvAssets.SelectedItems.Count > 0 ? lvAssets.SelectedItems[0].Name : null;
+
+            // Back to the top first: the view keeps its scroll position across
+            // Clear(), so after scrolling down (or opening with the current file
+            // further down the list) a short filtered list sat above the visible
+            // area -- count shown, list empty.
+            ScrollToOrigin();
+
             lvAssets.BeginUpdate();
             lvAssets.Items.Clear();
             foreach (var n in _names)
                 if (filter.Length == 0 || n.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
                     lvAssets.Items.Add(new ListViewItem(n, n) { Name = n });
             lvAssets.EndUpdate();
-            FitColumns();
+            ScrollToOrigin();
             lblCount.Text = $"{lvAssets.Items.Count} / {_names.Count}";
+
+            SelectName(selected);
+            btnOk.Enabled = lvAssets.SelectedItems.Count > 0;
         }
 
         private void SelectName(string name)
